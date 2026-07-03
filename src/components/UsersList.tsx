@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Users, 
@@ -7,68 +7,117 @@ import {
   Mail, 
   UserCheck, 
   Lock, 
-  CheckCircle,
-  Eye,
-  Info,
-  ChevronRight,
-  Search
+  CheckCircle, 
+  Eye, 
+  Info, 
+  ChevronRight, 
+  Search,
+  Briefcase
 } from 'lucide-react';
 import { ROLES, Role } from '../lib/utils';
+import { db } from '../lib/firebase';
+import { collection, onSnapshot, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
-interface UserProfile {
+interface Project {
   id: string;
   name: string;
-  email: string;
-  role: Role;
-  status: 'active' | 'pending';
-  avatar: string;
+  clientName: string;
+  color: string;
 }
 
 interface UsersListProps {
   currentUserRole: Role;
   onRoleChange: (newRole: Role) => void;
+  projects: Project[];
 }
 
-export default function UsersList({ currentUserRole, onRoleChange }: UsersListProps) {
+export default function UsersList({ currentUserRole, onRoleChange, projects }: UsersListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<Role>('client');
   const [inviteName, setInviteName] = useState('');
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock initial users
-  const [teamMembers, setTeamMembers] = useState<UserProfile[]>([
-    { id: '1', name: 'Laura Gómez', email: 'laura.gomez@basetis.com', role: 'creative_director', status: 'active', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80' },
-    { id: '2', name: 'Miguel Sueiro', email: 'miguel.sueiro@basetis.com', role: 'creative_director', status: 'active', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80' },
-    { id: '3', name: 'Carlos Díaz', email: 'carlos.copywriter@basetis.com', role: 'copy', status: 'active', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80' },
-    { id: '4', name: 'Sofía Martínez', email: 'sofia.artdirector@basetis.com', role: 'art_director', status: 'active', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80' },
-    { id: '5', name: 'Lucas Rossi', email: 'lucas.designer@basetis.com', role: 'designer', status: 'active', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
-    { id: '6', name: 'Ana Belén', email: 'ana.client@basetis.com', role: 'client', status: 'active', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80' }
-  ]);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
+      if (snapshot.empty) {
+        // Seed default users if empty
+        const defaultUsers = [
+          { uid: '1', name: 'Laura Gómez', email: 'laura.gomez@basetis.com', role: 'creative_director', status: 'active', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80' },
+          { uid: '2', name: 'Miguel Sueiro', email: 'miguel.sueiro@basetis.com', role: 'creative_director', status: 'active', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80' },
+          { uid: '3', name: 'Carlos Díaz', email: 'carlos.copywriter@basetis.com', role: 'copy', status: 'active', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80' },
+          { uid: '4', name: 'Sofía Martínez', email: 'sofia.artdirector@basetis.com', role: 'art_director', status: 'active', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80' },
+          { uid: '5', name: 'Lucas Rossi', email: 'lucas.designer@basetis.com', role: 'designer', status: 'active', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+          { uid: '6', name: 'Ana Belén', email: 'ana.client@basetis.com', role: 'client', status: 'active', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80', projectId: '' }
+        ];
+        defaultUsers.forEach(async (u) => {
+          await setDoc(doc(db, 'users', u.uid), u);
+        });
+      } else {
+        setTeamMembers(snapshot.docs.map(d => ({
+          id: d.id,
+          ...d.data()
+        })));
+      }
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
 
-  const handleInvite = (e: React.FormEvent) => {
+  const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail || !inviteName) return;
 
-    const newUser: UserProfile = {
-      id: String(teamMembers.length + 1),
-      name: inviteName,
-      email: inviteEmail,
-      role: inviteRole,
-      status: 'pending',
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(inviteName)}&background=random`
-    };
+    try {
+      const id = doc(collection(db, 'users')).id;
+      const newUser = {
+        uid: id,
+        name: inviteName,
+        email: inviteEmail,
+        role: inviteRole,
+        status: 'pending',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(inviteName)}&background=random`,
+        projectId: ''
+      };
 
-    setTeamMembers(prev => [...prev, newUser]);
-    setInviteEmail('');
-    setInviteName('');
-    setShowInviteModal(false);
+      await setDoc(doc(db, 'users', id), newUser);
+      toast.success('Usuario invitado con éxito');
+      setInviteEmail('');
+      setInviteName('');
+      setShowInviteModal(false);
+    } catch (err) {
+      toast.error('Error al invitar usuario');
+      console.error(err);
+    }
+  };
+
+  const handleRoleChangeInDb = async (userId: string, newRole: Role) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), { role: newRole });
+      toast.success('Rol actualizado con éxito');
+    } catch (err) {
+      toast.error('Error al actualizar rol');
+      console.error(err);
+    }
+  };
+
+  const handleProjectAssignmentChange = async (userId: string, projectId: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), { projectId });
+      toast.success('Asignación de proyecto actualizada');
+    } catch (err) {
+      toast.error('Error al asignar proyecto');
+      console.error(err);
+    }
   };
 
   const filteredMembers = teamMembers.filter(member => 
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ROLES[member.role].toLowerCase().includes(searchTerm.toLowerCase())
+    (member.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (member.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (ROLES[member.role as Role] || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -86,13 +135,15 @@ export default function UsersList({ currentUserRole, onRoleChange }: UsersListPr
           />
         </div>
 
-        <button 
-          onClick={() => setShowInviteModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-blue-200 transition-all active:scale-95 flex items-center gap-2 self-stretch sm:self-auto justify-center"
-        >
-          <UserPlus size={18} />
-          Invitar Colaborador o Cliente
-        </button>
+        {currentUserRole !== 'client' && (
+          <button 
+            onClick={() => setShowInviteModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-blue-200 transition-all active:scale-95 flex items-center gap-2 self-stretch sm:self-auto justify-center"
+          >
+            <UserPlus size={18} />
+            Invitar Colaborador o Cliente
+          </button>
+        )}
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
@@ -110,55 +161,102 @@ export default function UsersList({ currentUserRole, onRoleChange }: UsersListPr
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/75 text-[10px] font-black text-gray-400 uppercase tracking-wider">
-                  <th className="px-6 py-4">Usuario</th>
-                  <th className="px-6 py-4">Correo Electrónico</th>
-                  <th className="px-6 py-4">Permisos / Rol</th>
-                  <th className="px-6 py-4 text-right">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-xs">
-                {filteredMembers.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <img 
-                          src={member.avatar} 
-                          alt={member.name} 
-                          className="w-8 h-8 rounded-full border-2 border-white shadow-sm shrink-0"
-                        />
-                        <div>
-                          <p className="font-bold text-gray-900">{member.name}</p>
-                          <p className="text-[10px] text-gray-400 font-medium">ID: {member.id}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 font-medium">
-                      {member.email}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5">
-                        <Shield size={14} className="text-blue-500 shrink-0" />
-                        <span className="font-bold text-gray-700">{ROLES[member.role]}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {member.status === 'active' ? (
-                        <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 font-bold px-2 py-0.5 rounded-full text-[10px]">
-                          <CheckCircle size={10} /> Activo
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-700 font-bold px-2 py-0.5 rounded-full text-[10px] animate-pulse">
-                          Pendiente
-                        </span>
-                      )}
-                    </td>
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/75 text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-4">Usuario</th>
+                    <th className="px-6 py-4">Correo Electrónico</th>
+                    <th className="px-6 py-4">Permisos / Rol</th>
+                    <th className="px-6 py-4">Proyecto Asignado (Solo Cliente)</th>
+                    <th className="px-6 py-4 text-right">Estado</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-xs">
+                  {filteredMembers.map((member) => (
+                    <tr key={member.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || '')}`} 
+                            alt={member.name} 
+                            className="w-8 h-8 rounded-full border-2 border-white shadow-sm shrink-0 object-cover"
+                          />
+                          <div>
+                            <p className="font-bold text-gray-900">{member.name}</p>
+                            <p className="text-[10px] text-gray-400 font-medium">ID: {member.id}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-500 font-medium">
+                        {member.email}
+                      </td>
+                      <td className="px-6 py-4">
+                        {currentUserRole !== 'client' ? (
+                          <div className="flex items-center gap-1.5">
+                            <Shield size={14} className="text-blue-500 shrink-0" />
+                            <select
+                              value={member.role}
+                              onChange={(e) => handleRoleChangeInDb(member.id, e.target.value as Role)}
+                              className="bg-transparent border border-gray-200 rounded-lg py-1 px-1.5 text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            >
+                              {Object.entries(ROLES).map(([key, label]) => (
+                                <option key={key} value={key}>{label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <Shield size={14} className="text-blue-500 shrink-0" />
+                            <span className="font-bold text-gray-700">{ROLES[member.role as Role]}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {member.role === 'client' ? (
+                          currentUserRole !== 'client' ? (
+                            <div className="flex items-center gap-1.5">
+                              <Briefcase size={14} className="text-gray-400 shrink-0" />
+                              <select
+                                value={member.projectId || ''}
+                                onChange={(e) => handleProjectAssignmentChange(member.id, e.target.value)}
+                                className="bg-transparent border border-gray-200 rounded-lg py-1 px-1.5 text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                              >
+                                <option value="">-- Sin asignar --</option>
+                                {projects.map((proj) => (
+                                  <option key={proj.id} value={proj.id}>{proj.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                          ) : (
+                            <span className="font-bold text-gray-600">
+                              {projects.find(p => p.id === member.projectId)?.name || 'Sin asignar'}
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-gray-400 italic">Acceso Total</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {member.status === 'active' ? (
+                          <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 font-bold px-2 py-0.5 rounded-full text-[10px]">
+                            <CheckCircle size={10} /> Activo
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-700 font-bold px-2 py-0.5 rounded-full text-[10px] animate-pulse">
+                            Pendiente
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
 
@@ -195,7 +293,7 @@ export default function UsersList({ currentUserRole, onRoleChange }: UsersListPr
             <div className="bg-yellow-50/50 border border-yellow-100 p-3.5 rounded-2xl flex gap-2.5 text-[11px] text-amber-800 leading-relaxed">
               <Info size={16} className="shrink-0 mt-0.5 text-amber-600" />
               <p>
-                <strong>Simulador:</strong> Puedes usar el selector inferior del menú para cambiar tu rol activo de inmediato y validar las diferentes experiencias.
+                <strong>Asignación de Clientes:</strong> A los usuarios de tipo 'Cliente' se les puede asignar un proyecto específico en esta pantalla para restringir completamente su acceso al resto de proyectos.
               </p>
             </div>
           </div>

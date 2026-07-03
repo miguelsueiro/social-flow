@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Grid, 
   Tv, 
-  BookOpen, 
   Heart, 
   MessageCircle, 
   Camera, 
@@ -11,15 +10,15 @@ import {
   Layers,
   Sparkles,
   Smartphone,
-  Eye,
   Info,
-  Layers as CarouselIcon,
-  Video as VideoIcon
+  Edit2,
+  Upload
 } from 'lucide-react';
 import { cn, PHASES, Phase } from '../lib/utils';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import InstagramDetailModal from './InstagramDetailModal';
+import { toast } from 'react-hot-toast';
 
 interface Post {
   id: string;
@@ -44,9 +43,15 @@ interface InstagramFeedProps {
 export default function InstagramFeed({ posts, onSelectPost, userRole }: InstagramFeedProps) {
   const [activeTab, setActiveTab] = useState<'posts' | 'reels'>('posts');
   const [showDeviceFrame, setShowDeviceFrame] = useState(true);
+  const [isPersonalizerExpanded, setIsPersonalizerExpanded] = useState(false);
   const [filterPhase, setFilterPhase] = useState<'all' | 'approved_only'>('all');
   const [selectedIgPost, setSelectedIgPost] = useState<any | null>(null);
   const [igComments, setIgComments] = useState<any[]>([]);
+
+  // Customizable IG profile states
+  const [profileUsername, setProfileUsername] = useState(() => localStorage.getItem('ig_profile_username') || 'socialflow_agency');
+  const [profileBio, setProfileBio] = useState(() => localStorage.getItem('ig_profile_bio') || '✨ Planificación de parrilla en tiempo real. Revisa la estética de tu feed antes de publicar.');
+  const [profileImage, setProfileImage] = useState(() => localStorage.getItem('ig_profile_image') || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80');
 
   useEffect(() => {
     if (!selectedIgPost) {
@@ -88,12 +93,36 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
     }
   };
 
+  const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setProfileImage(base64);
+        localStorage.setItem('ig_profile_image', base64);
+        toast.success('Foto de perfil de mockup actualizada');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUsernameChange = (val: string) => {
+    const sanitized = val.toLowerCase().replace(/[^a-z0-9_.]/g, '');
+    setProfileUsername(sanitized);
+    localStorage.setItem('ig_profile_username', sanitized);
+  };
+
+  const handleBioChange = (val: string) => {
+    setProfileBio(val);
+    localStorage.setItem('ig_profile_bio', val);
+  };
+
   // Filter for Instagram platform posts
   const instagramPosts = posts.filter(p => p.platform === 'instagram');
   
-  // Apply optional phase filter (clients may only see approved/published, but let team preview draft state too)
+  // Apply optional phase filter (clients may only see approved/published)
   const visiblePosts = instagramPosts.filter(p => {
-    // Role level check
     const isVisibleForRole = userRole !== 'client' || PHASES[p.phase].clientVisible;
     if (!isVisibleForRole) return false;
 
@@ -104,12 +133,11 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
   });
 
   const feedPosts = visiblePosts.filter(p => {
-    if (activeTab === 'posts') return true; // Show all in general grid
-    // For reels tab, show posts that have "video" or "reel" keywords, or just everything for demo
+    if (activeTab === 'posts') return true;
     return p.idea.toLowerCase().includes('video') || p.idea.toLowerCase().includes('reels') || p.idea.toLowerCase().includes('reel');
   });
 
-  // Helper to generate a reliable elegant background or use design URL
+  // Helper to generate a clean gradient background or show the design URL (no technical info overlays!)
   const getPostMedia = (post: Post) => {
     if (post.currentDesignUrl) {
       return (
@@ -122,113 +150,88 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
       );
     }
 
-    // Elegant gradient matching the phase
+    // Elegant neutral/gradient matching the aspect-ratio
     const gradients = [
-      'from-indigo-500 via-purple-500 to-pink-500',
-      'from-pink-500 via-red-500 to-yellow-500',
-      'from-blue-600 via-indigo-500 to-purple-600',
-      'from-teal-400 via-blue-500 to-indigo-600',
-      'from-emerald-400 to-teal-600',
-      'from-amber-400 to-orange-600'
+      'from-neutral-800 to-stone-950',
+      'from-zinc-900 to-neutral-950',
+      'from-stone-850 to-zinc-950',
+      'from-neutral-900 to-stone-900'
     ];
     
-    // Choose gradient pseudo-randomly based on post ID
     const charSum = post.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const gradient = gradients[charSum % gradients.length];
 
     return (
-      <div className={cn("w-full h-full bg-gradient-to-tr flex flex-col justify-between p-4 text-white relative", gradient)}>
-        <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
+      <div className={cn("w-full h-full bg-gradient-to-tr flex flex-col justify-center items-center p-4 text-center text-white relative", gradient)}>
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
         
-        <div className="relative z-10 flex justify-between items-start">
-          <span className="bg-white/20 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-semibold">
-            {PHASES[post.phase].label.split(':')[0]}
-          </span>
-          <div className="w-6 h-6 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-            <Sparkles size={11} className="text-white animate-pulse" />
-          </div>
-        </div>
-
-        <div className="relative z-10 space-y-1.5">
-          <p className="text-xs font-medium leading-snug line-clamp-3 text-white drop-shadow-md">
+        <div className="relative z-10 space-y-1">
+          <p className="text-[10px] font-black uppercase text-app-accent tracking-widest">{post.format || 'Estático'}</p>
+          <p className="text-xs font-semibold leading-normal line-clamp-4 text-white/95 px-2 drop-shadow-md">
             {post.idea}
           </p>
-          <p className="text-[9px] text-white/85 font-normal line-clamp-2 drop-shadow-sm italic">
-            {post.copyCaption || 'Diseño de copy en producción...'}
-          </p>
         </div>
 
-        {/* Decorative corner wireframes */}
-        <div className="absolute bottom-2 right-2 opacity-30">
-          <Layers size={14} className="text-white" />
+        {/* Subtle format icon */}
+        <div className="absolute bottom-2 right-2 opacity-35">
+          <Layers size={13} className="text-white" />
         </div>
       </div>
     );
   };
 
-  // Profile Mock Stats
   const postsCount = instagramPosts.length;
   const approvedCount = instagramPosts.filter(p => p.phase === 'approved' || p.phase === 'published').length;
 
   const renderProfileHeader = () => (
-    <div className="border-b border-gray-100 pb-8 mb-6">
-      <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
+    <div className="border-b border-gray-100 pb-6 mb-4">
+      <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
         {/* Profile Pic */}
         <div className="relative shrink-0">
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[3px] shadow-md">
-            <div className="w-full h-full bg-white rounded-full p-[2px]">
+          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2.5px] shadow-sm">
+            <div className="w-full h-full bg-white rounded-full p-[1.5px]">
               <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
                 <img 
-                  src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80" 
+                  src={profileImage} 
                   alt="Profile" 
                   className="w-full h-full object-cover"
                 />
               </div>
             </div>
           </div>
-          <span className="absolute bottom-1 right-1 bg-blue-500 text-white p-0.5 rounded-full border-2 border-white">
-            <CheckCircle size={12} fill="currentColor" className="text-white" />
+          <span className="absolute bottom-0 right-0 bg-blue-500 text-white p-0.5 rounded-full border border-white">
+            <CheckCircle size={10} fill="currentColor" className="text-white" />
           </span>
         </div>
 
         {/* Profile Info */}
-        <div className="flex-1 text-center md:text-left space-y-3.5 min-w-0">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-center md:justify-start">
-            <h2 className="text-lg md:text-xl font-semibold text-gray-900 flex items-center gap-1.5 justify-center sm:justify-start">
-              socialflow_agency
-              <span className="inline-block w-4 h-4 bg-blue-500 rounded-full text-white flex items-center justify-center p-0.5 text-[8px] font-bold">✓</span>
+        <div className="flex-1 text-center md:text-left space-y-2.5 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-center md:justify-start">
+            <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-1 justify-center sm:justify-start truncate">
+              {profileUsername}
+              <span className="inline-block w-3.5 h-3.5 bg-blue-500 rounded-full text-white flex items-center justify-center p-0.5 text-[6px] font-bold shrink-0">✓</span>
             </h2>
-            <div className="flex justify-center gap-2">
-              <button className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold px-4 py-1.5 rounded-lg transition-all">
-                Editar Perfil
-              </button>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition-all shadow-sm">
-                Seguir
-              </button>
-            </div>
           </div>
 
           {/* Stats count */}
-          <div className="flex justify-center md:justify-start gap-6 text-sm">
+          <div className="flex justify-center md:justify-start gap-4 text-xs">
             <div>
-              <span className="font-semibold text-gray-900">{postsCount}</span> <span className="text-gray-500">publicaciones</span>
+              <span className="font-bold text-gray-900">{postsCount}</span> <span className="text-gray-400">publicaciones</span>
             </div>
             <div>
-              <span className="font-semibold text-gray-900">14.8k</span> <span className="text-gray-500">seguidores</span>
+              <span className="font-bold text-gray-900">18.4k</span> <span className="text-gray-400">seguidores</span>
             </div>
             <div>
-              <span className="font-semibold text-gray-900">421</span> <span className="text-gray-500">seguidos</span>
+              <span className="font-bold text-gray-900">485</span> <span className="text-gray-400">seguidos</span>
             </div>
           </div>
 
           {/* Bio */}
-          <div className="text-xs text-gray-700 space-y-1">
-            <p className="font-semibold text-gray-900">SocialFlow Hub</p>
-            <p className="text-gray-500">
-              ✨ Planificación de parrilla en tiempo real. Revisa la estética de tu feed antes de publicar.
-            </p>
-            <div className="flex items-center gap-1 text-blue-600 font-semibold justify-center md:justify-start mt-1">
-              <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-semibold">
+          <div className="text-[11px] text-gray-700 space-y-0.5 leading-normal max-w-md">
+            <p className="font-bold text-gray-900">{profileUsername}</p>
+            <p className="text-gray-500 whitespace-pre-wrap">{profileBio}</p>
+            <div className="flex items-center gap-1 text-blue-600 font-semibold justify-center md:justify-start mt-1.5">
+              <span className="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">
                 Aprobados: {approvedCount}/{postsCount}
               </span>
             </div>
@@ -252,9 +255,8 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
     }
 
     return (
-      <div className="grid grid-cols-3 gap-1 md:gap-4">
+      <div className="grid grid-cols-3 gap-0.5 md:gap-1 bg-gray-100">
         {feedPosts.map((post) => {
-          // Fake mock comments and likes count based on ID
           const seed = post.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
           const likes = (seed % 150) + 10;
           const commentsCount = (seed % 25) + 2;
@@ -264,23 +266,20 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
               layoutId={`feed-${post.id}`}
               key={post.id}
               onClick={() => setSelectedIgPost(post)}
-              className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group cursor-pointer border border-gray-100 shadow-sm transition-all"
-              whileHover={{ scale: 1.01 }}
+              className="relative aspect-[4/5] bg-gray-100 overflow-hidden group cursor-pointer border border-transparent shadow-none transition-all rounded-none"
+              whileHover={{ scale: 0.99 }}
             >
               {getPostMedia(post)}
 
-              {/* Hover overlay with IG engagement numbers */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-4 md:gap-6 text-white text-xs md:text-sm font-extrabold z-20">
-                <span className="flex items-center gap-1.5 hover:scale-110 transition-transform">
-                  <Heart size={16} fill="currentColor" />
+              {/* Hover overlay with pure IG stats (strictly NO technical/phase labels on top of the image) */}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-4 text-white text-xs font-bold z-20">
+                <span className="flex items-center gap-1">
+                  <Heart size={14} fill="currentColor" />
                   {likes}
                 </span>
-                <span className="flex items-center gap-1.5 hover:scale-110 transition-transform">
-                  <MessageCircle size={16} fill="currentColor" />
+                <span className="flex items-center gap-1">
+                  <MessageCircle size={14} fill="currentColor" />
                   {commentsCount}
-                </span>
-                <span className="absolute bottom-2 left-2 right-2 text-center text-[8px] bg-black/40 backdrop-blur-md py-1 rounded text-white/90 uppercase tracking-wider line-clamp-1 border border-white/10">
-                  {PHASES[post.phase].label.split(':')[1] || PHASES[post.phase].label}
                 </span>
               </div>
             </motion.div>
@@ -294,7 +293,8 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
     <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
       
       {/* Settings / Controls Sidebar Panel */}
-      <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
+      <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4 overflow-y-auto pr-1">
+        
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
@@ -302,12 +302,12 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
               Vista Instagram
             </h3>
             <span className="bg-pink-50 text-pink-600 font-bold text-[9px] px-2 py-0.5 rounded-full uppercase">
-              Mockup Feed
+              1080x1350 Standard
             </span>
           </div>
           
           <p className="text-xs text-gray-500 leading-relaxed">
-            Esta vista simula cómo quedará la cuadrícula visual de tu cuenta de Instagram. Ideal para que tu cliente valide la estética general y la paleta de color.
+            Parrilla de previsualización optimizada con relación de aspecto 4:5 (1080x1350 px), bordes completamente rectos y libre de textos o etiquetas técnicas.
           </p>
 
           <hr className="border-gray-100" />
@@ -331,7 +331,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
 
           {/* Filter Phases */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Fases Incluidas</label>
+            <label className="text-[10px] font-bold text-gray-400 uppercase block">Fases Incluidas</label>
             <div className="grid grid-cols-2 gap-1.5 bg-gray-50 p-1 rounded-xl border border-gray-200">
               <button
                 onClick={() => setFilterPhase('all')}
@@ -355,11 +355,96 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
           </div>
         </div>
 
+        {/* Mockup Profile Customizer Panel (Folded under Vista Instagram) */}
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+          <button 
+            onClick={() => setIsPersonalizerExpanded(!isPersonalizerExpanded)}
+            className="w-full flex items-center justify-between text-xs font-bold text-gray-700 hover:text-gray-900 transition-colors uppercase tracking-wider text-left"
+          >
+            <div className="flex items-center gap-2">
+              <Edit2 size={14} className="text-blue-600" />
+              <span>Personalizar Cuenta IG</span>
+            </div>
+            <motion.span
+              animate={{ rotate: isPersonalizerExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="text-gray-400 text-[10px]"
+            >
+              ▼
+            </motion.span>
+          </button>
+          
+          <AnimatePresence initial={false}>
+            {isPersonalizerExpanded && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-3 text-xs overflow-hidden pt-2 border-t border-gray-100"
+              >
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Nombre de Usuario</label>
+                  <input 
+                    type="text" 
+                    value={profileUsername}
+                    onChange={e => handleUsernameChange(e.target.value)}
+                    placeholder="usuario_marca"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-bold text-gray-700 outline-none focus:border-blue-500 focus:bg-white transition-all text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Biografía / Descripción</label>
+                  <textarea 
+                    rows={3}
+                    value={profileBio}
+                    onChange={e => handleBioChange(e.target.value)}
+                    placeholder="Escribe la descripción de la marca..."
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-semibold text-gray-700 outline-none focus:border-blue-500 focus:bg-white transition-all text-xs resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Foto de Perfil</label>
+                  <div className="flex gap-2 items-center">
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      id="profile-pic-upload"
+                      className="hidden"
+                      onChange={handleProfileImageUpload}
+                    />
+                    <label 
+                      htmlFor="profile-pic-upload"
+                      className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg py-2 px-3 flex items-center gap-1.5 cursor-pointer font-bold text-gray-600 text-[10px] transition-colors"
+                    >
+                      <Upload size={12} />
+                      Subir Foto
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fallback = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80';
+                        setProfileImage(fallback);
+                        localStorage.setItem('ig_profile_image', fallback);
+                      }}
+                      className="text-gray-400 hover:text-red-500 text-[10px] font-semibold"
+                    >
+                      Resetear
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Tip banner */}
-        <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3 text-xs text-blue-700 leading-normal">
+        <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3 text-xs text-blue-700 leading-normal shrink-0">
           <Info size={16} className="shrink-0 mt-0.5 text-blue-600" />
           <p>
-            <strong>Tip de Agencia:</strong> Haz clic en cualquier post dentro de la parrilla para ver el modal con la versión actual del copy y del diseño, dejar feedback o cambiar el estado directamente.
+            <strong>Edición en vivo:</strong> Haz clic sobre cualquier creatividad para abrir la ficha técnica, redactar copy, subir diseños o dejar feedback del cliente.
           </p>
         </div>
       </div>
@@ -388,16 +473,18 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
 
               {/* Instagram App Top Header */}
               <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-                <span className="font-extrabold text-sm tracking-tight text-gray-900">socialflow_agency</span>
+                <span className="font-extrabold text-xs tracking-tight text-gray-900">{profileUsername}</span>
                 <span className="text-gray-400">•</span>
               </div>
 
               {/* Profile Contents */}
-              <div className="flex-1 overflow-y-auto px-3 py-4 scrollbar-hide text-xs">
-                {renderProfileHeader()}
+              <div className="flex-1 overflow-y-auto px-1 py-4 scrollbar-hide text-xs bg-white">
+                <div className="px-2">
+                  {renderProfileHeader()}
+                </div>
 
                 {/* Simulated Tab Bar */}
-                <div className="flex border-b border-gray-100 mb-4">
+                <div className="flex border-b border-gray-100 mb-2">
                   <button 
                     onClick={() => setActiveTab('posts')}
                     className={cn(
@@ -405,8 +492,8 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                       activeTab === 'posts' ? "border-black text-black" : "border-transparent text-gray-400"
                     )}
                   >
-                    <Grid size={16} />
-                    <span>Posteos</span>
+                    <Grid size={15} />
+                    <span>Publicaciones</span>
                   </button>
                   <button 
                     onClick={() => setActiveTab('reels')}
@@ -415,7 +502,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                       activeTab === 'reels' ? "border-black text-black" : "border-transparent text-gray-400"
                     )}
                   >
-                    <Tv size={16} />
+                    <Tv size={15} />
                     <span>Reels</span>
                   </button>
                 </div>
@@ -426,11 +513,11 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
           </div>
         ) : (
           /* Normal Expanded Web Layout */
-          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm max-w-4xl mx-auto">
+          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm max-w-4xl mx-auto">
             {renderProfileHeader()}
 
             {/* Normal Web Tab Bar */}
-            <div className="flex justify-center border-t border-gray-100 gap-12 mb-6">
+            <div className="flex justify-center border-t border-gray-100 gap-12 mb-4">
               <button 
                 onClick={() => setActiveTab('posts')}
                 className={cn(
@@ -449,7 +536,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                 )}
               >
                 <Tv size={14} />
-                Reels / Videos
+                Reels
               </button>
             </div>
 

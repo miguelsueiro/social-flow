@@ -18,6 +18,17 @@ export interface Comment {
   createdAt: Date;
 }
 
+export interface FeedbackItem {
+  id: string;
+  text: string;
+  authorName: string;
+  roleAtTime: string;
+  createdAt: Date;
+  done: boolean;
+  doneAt?: Date;
+  doneBy?: string;
+}
+
 export interface PostVersion {
   createdAt: Date;
   copyCaption: string;

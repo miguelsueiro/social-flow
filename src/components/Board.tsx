@@ -15,11 +15,49 @@ interface Post {
 interface BoardProps {
   posts: Post[];
   onSelectPost: (post: Post) => void;
+  onUpdatePost: (postId: string, updates: any) => void;
   userRole: string;
 }
 
-export default function Board({ posts, onSelectPost, userRole }: BoardProps) {
+export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: BoardProps) {
   const phaseKeys = Object.keys(PHASES) as Phase[];
+  const [draggedPost, setDraggedPost] = React.useState<Post | null>(null);
+  const [activeDropColumn, setActiveDropColumn] = React.useState<Phase | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, post: Post) => {
+    if (userRole === 'client') {
+      e.preventDefault();
+      return;
+    }
+    setDraggedPost(post);
+    e.dataTransfer.setData('text/plain', post.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setDraggedPost(null);
+    setActiveDropColumn(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, phase: Phase) => {
+    e.preventDefault();
+    if (userRole === 'client') return;
+    setActiveDropColumn(phase);
+  };
+
+  const handleDragLeave = () => {
+    setActiveDropColumn(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, phase: Phase) => {
+    e.preventDefault();
+    setActiveDropColumn(null);
+    if (userRole === 'client' || !draggedPost) return;
+    
+    if (draggedPost.phase !== phase) {
+      onUpdatePost(draggedPost.id, { phase });
+    }
+  };
   
   // Filter phases for clients
   const visiblePhases = phaseKeys.filter(phase => 
@@ -53,14 +91,28 @@ export default function Board({ posts, onSelectPost, userRole }: BoardProps) {
               </span>
             </div>
 
-            <div className="flex-1 bg-gray-100/50 rounded-2xl p-3 space-y-3 min-h-[200px] border border-dashed border-gray-200">
+            <div 
+              onDragOver={(e) => handleDragOver(e, phase)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, phase)}
+              className={cn(
+                "flex-1 rounded-2xl p-3 space-y-3 min-h-[200px] border transition-all duration-200",
+                activeDropColumn === phase 
+                  ? "bg-blue-50/70 border-solid border-blue-300 shadow-inner" 
+                  : "bg-gray-100/50 border-dashed border-gray-200"
+              )}
+            >
               {phasePosts.map((post) => (
                 <motion.div
                   layoutId={post.id}
                   key={post.id}
+                  draggable={userRole !== 'client'}
+                  onDragStart={(e) => handleDragStart(e, post)}
+                  onDragEnd={handleDragEnd}
                   onClick={() => onSelectPost(post)}
                   className={cn(
                     "p-4 rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer group",
+                    userRole !== 'client' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
                     post.phase === 'idea_1' && "bg-slate-50/95 border-slate-200/60 text-slate-800",
                     post.phase === 'idea_2' && "bg-sky-50/95 border-sky-200/60 text-sky-800",
                     post.phase === 'copy' && "bg-purple-50/95 border-purple-200/60 text-purple-800",

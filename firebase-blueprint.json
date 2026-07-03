@@ -81,6 +81,14 @@
     "/posts/{postId}/comments/{commentId}": {
       "schema": "Comment",
       "description": "Comments and feedback for a specific post"
+    },
+    "/posts/{postId}/feedbacks/{feedbackId}": {
+      "schema": "Comment",
+      "description": "Interactive feedback points from client reviews"
+    },
+    "/notifications/{notifId}": {
+      "schema": "Comment",
+      "description": "Real-time activity logs and mentions"
     }
   }
 }

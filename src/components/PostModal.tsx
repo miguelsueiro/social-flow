@@ -13,11 +13,15 @@ import {
   Trash2,
   Layers,
   Video,
-  Film
+  Film,
+  Square,
+  CheckSquare
 } from 'lucide-react';
 import { cn, PHASES, Phase, Role, ROLES, compressImage } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
+import { db } from '../lib/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 interface Comment {
   id: string;
@@ -25,6 +29,17 @@ interface Comment {
   authorName: string;
   roleAtTime: string;
   createdAt: any;
+}
+
+interface FeedbackItem {
+  id: string;
+  text: string;
+  authorName: string;
+  roleAtTime: string;
+  createdAt: any;
+  done: boolean;
+  doneAt?: any;
+  doneBy?: string;
 }
 
 interface PostVersion {
@@ -58,6 +73,9 @@ interface PostModalProps {
   userRole: Role;
   comments: Comment[];
   onAddComment: (text: string) => void;
+  feedbacks: FeedbackItem[];
+  onAddFeedback: (text: string) => void;
+  onToggleFeedbackDone: (feedbackId: string, currentDone: boolean) => void;
   history: PostVersion[];
   projects?: any[];
 }
@@ -70,13 +88,94 @@ export default function PostModal({
   userRole, 
   comments, 
   onAddComment,
+  feedbacks = [],
+  onAddFeedback,
+  onToggleFeedbackDone,
   history,
   projects = []
 }: PostModalProps) {
-  const [activeTab, setActiveTab] = useState<'details' | 'history' | 'comments'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'history' | 'comments' | 'feedback'>('details');
   const [commentText, setCommentText] = useState('');
+  const [feedbackText, setFeedbackText] = useState('');
   const [localPost, setLocalPost] = useState<Post | null>(post);
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
+
+  // User Mentions autocomplete state
+  interface User {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    projectId?: string;
+  }
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [activeMentionInput, setActiveMentionInput] = useState<'comment' | 'feedback' | null>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
+      setAllUsers(snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }) as User));
+    });
+    return () => unsub();
+  }, []);
+
+  const accessibleUsers = allUsers.filter(u => {
+    if (!localPost || !localPost.projectId) return true;
+    if (u.role !== 'client') return true;
+    return u.projectId === localPost.projectId;
+  });
+
+  const getMentionHandle = (user: User) => {
+    if (user.email) {
+      return user.email.split('@')[0];
+    }
+    return user.name.replace(/\s+/g, '').toLowerCase();
+  };
+
+  const handleInputChange = (text: string, type: 'comment' | 'feedback') => {
+    if (type === 'comment') {
+      setCommentText(text);
+    } else {
+      setFeedbackText(text);
+    }
+
+    const lastWord = text.split(/\s+/).pop() || '';
+    if (lastWord.startsWith('@')) {
+      const q = lastWord.substring(1);
+      setMentionQuery(q);
+      setActiveMentionInput(type);
+    } else {
+      setMentionQuery(null);
+      setActiveMentionInput(null);
+    }
+  };
+
+  const selectMentionUser = (user: User) => {
+    const handle = getMentionHandle(user);
+    const textState = activeMentionInput === 'comment' ? commentText : feedbackText;
+    const words = textState.split(/\s+/);
+    words.pop();
+    words.push(`@${handle} `);
+    const newText = words.join(' ');
+    
+    if (activeMentionInput === 'comment') {
+      setCommentText(newText);
+    } else {
+      setFeedbackText(newText);
+    }
+    setMentionQuery(null);
+    setActiveMentionInput(null);
+  };
+
+  const filteredMentionUsers = mentionQuery !== null
+    ? accessibleUsers.filter(u => 
+        u.name.toLowerCase().includes(mentionQuery.toLowerCase()) ||
+        getMentionHandle(u).toLowerCase().includes(mentionQuery.toLowerCase())
+      )
+    : [];
 
   // Drag over states
   const [isDragOverReferences, setIsDragOverReferences] = useState(false);
@@ -211,12 +310,16 @@ export default function PostModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
+      onClick={onClose}
+    >
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden cursor-default"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
@@ -269,7 +372,8 @@ export default function PostModal({
         <div className="flex border-b border-gray-100 px-6 bg-white shrink-0">
           {[
             { id: 'details', label: 'Producción', icon: CheckCircle },
-            { id: 'comments', label: 'Comentarios', icon: MessageSquare, count: comments.length },
+            ...(userRole !== 'client' ? [{ id: 'comments', label: 'Comentarios', icon: MessageSquare, count: comments.length }] : []),
+            { id: 'feedback', label: 'Feedback (Cliente)', icon: MessageSquare, count: feedbacks.length },
             { id: 'history', label: 'Historial', icon: HistoryIcon }
           ].map(tab => (
             <button
@@ -636,21 +740,143 @@ export default function PostModal({
 
                 <div className="sticky bottom-0 bg-white pt-4 border-t border-gray-100">
                   <div className="relative">
+                    {/* Autocomplete Suggestion Dropdown */}
+                    {activeMentionInput === 'comment' && filteredMentionUsers.length > 0 && (
+                      <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto divide-y divide-gray-100">
+                        <div className="p-2 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          Mencionar usuario del proyecto:
+                        </div>
+                        {filteredMentionUsers.map(user => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() => selectMentionUser(user)}
+                            className="w-full text-left p-2.5 hover:bg-gray-50 transition-colors flex items-center gap-2.5"
+                          >
+                            <div className="w-6 h-6 rounded-full bg-app-accent/10 flex items-center justify-center font-bold text-app-accent text-xs">
+                              {user.name[0]}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-gray-800 truncate">{user.name}</p>
+                              <p className="text-[10px] text-gray-400 font-medium truncate">@{getMentionHandle(user)} • {user.role}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <input
                       value={commentText}
-                      onChange={e => setCommentText(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && commentText && (onAddComment(commentText), setCommentText(''))}
+                      onChange={e => handleInputChange(e.target.value, 'comment')}
+                      onKeyDown={e => e.key === 'Enter' && commentText && (onAddComment(commentText), setCommentText(''), setActiveMentionInput(null))}
                       className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-4 pl-4 pr-12 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent"
                       placeholder="Escribe un comentario o feedback..."
                     />
                     <button 
-                      onClick={() => commentText && (onAddComment(commentText), setCommentText(''))}
+                      onClick={() => commentText && (onAddComment(commentText), setCommentText(''), setActiveMentionInput(null))}
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-app-accent text-white rounded-xl hover:bg-app-accent-hover transition-all shadow-sm"
                     >
                       <Send size={18} />
                     </button>
                   </div>
                   <p className="mt-2 text-[10px] text-gray-400 italic">Los clientes solo podrán ver comentarios públicos marcados para fase 5.</p>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'feedback' && (
+              <motion.div 
+                key="feedback"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className="flex flex-col h-full max-h-[500px]"
+              >
+                <div className="flex-1 space-y-4 overflow-y-auto pr-2 mb-4 scrollbar-hide">
+                  {feedbacks.length === 0 && (
+                    <div className="text-center py-20 text-gray-400">
+                      <MessageSquare className="mx-auto mb-2 opacity-20" size={48} />
+                      <p className="font-medium text-sm">Sin feedback del cliente aún</p>
+                      <p className="text-xs">Los comentarios del cliente se registran aquí para su seguimiento</p>
+                    </div>
+                  )}
+                  {feedbacks.map((f) => (
+                    <div key={f.id} className={cn("flex gap-3 p-3 rounded-2xl border transition-all", f.done ? "bg-gray-50/50 border-gray-100 opacity-60" : "bg-white border-gray-100 shadow-sm")}>
+                      <button 
+                        onClick={() => onToggleFeedbackDone(f.id, f.done)}
+                        className="p-1 rounded-lg text-gray-400 hover:text-blue-600 transition-colors shrink-0 self-start"
+                        title={f.done ? "Marcar como pendiente" : "Marcar como hecho"}
+                      >
+                        {f.done ? (
+                          <CheckSquare className="text-green-600" size={20} />
+                        ) : (
+                          <Square size={20} className="text-gray-300 hover:text-gray-500" />
+                        )}
+                      </button>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2 mb-1 flex-wrap">
+                          <span className="text-sm font-bold text-gray-900">{f.authorName}</span>
+                          <span className="text-[9px] bg-blue-50 text-blue-600 font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider">{f.roleAtTime}</span>
+                          <span className="text-[10px] text-gray-400">
+                            {f.createdAt instanceof Date ? format(f.createdAt, 'HH:mm dd/MM') : 'Ahora'}
+                          </span>
+                        </div>
+                        <div className={cn("text-xs sm:text-sm text-gray-700", f.done && "line-through text-gray-400 font-medium")}>
+                          {f.text}
+                        </div>
+                        {f.done && f.doneBy && (
+                          <p className="text-[10px] text-green-600 font-extrabold mt-1.5 flex items-center gap-1">
+                            ✓ Hecho por {f.doneBy}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="sticky bottom-0 bg-white pt-4 border-t border-gray-100">
+                  <div className="relative">
+                    {/* Autocomplete Suggestion Dropdown */}
+                    {activeMentionInput === 'feedback' && filteredMentionUsers.length > 0 && (
+                      <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto divide-y divide-gray-100">
+                        <div className="p-2 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          Mencionar usuario del proyecto:
+                        </div>
+                        {filteredMentionUsers.map(user => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() => selectMentionUser(user)}
+                            className="w-full text-left p-2.5 hover:bg-gray-50 transition-colors flex items-center gap-2.5"
+                          >
+                            <div className="w-6 h-6 rounded-full bg-app-accent/10 flex items-center justify-center font-bold text-app-accent text-xs">
+                              {user.name[0]}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-gray-800 truncate">{user.name}</p>
+                              <p className="text-[10px] text-gray-400 font-medium truncate">@{getMentionHandle(user)} • {user.role}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <input
+                      value={feedbackText}
+                      onChange={e => handleInputChange(e.target.value, 'feedback')}
+                      onKeyDown={e => e.key === 'Enter' && feedbackText && (onAddFeedback(feedbackText), setFeedbackText(''), setActiveMentionInput(null))}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-4 pl-4 pr-12 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent"
+                      placeholder="Escribe una solicitud de feedback para el cliente..."
+                    />
+                    <button 
+                      onClick={() => feedbackText && (onAddFeedback(feedbackText), setFeedbackText(''), setActiveMentionInput(null))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-app-accent text-white rounded-xl hover:bg-app-accent-hover transition-all shadow-sm"
+                    >
+                      <Send size={18} />
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[10px] text-gray-400">Los elementos de feedback tienen checkboxes interactivos para marcar tareas como resueltas.</p>
                 </div>
               </motion.div>
             )}

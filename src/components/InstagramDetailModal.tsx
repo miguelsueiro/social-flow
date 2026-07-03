@@ -267,15 +267,21 @@ export default function InstagramDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
-      <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl flex flex-col md:flex-row overflow-y-auto md:overflow-hidden max-h-[95vh] md:max-h-[92vh]">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm cursor-pointer"
+      onClick={onClose}
+    >
+      <div 
+        className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl flex flex-col md:flex-row overflow-y-auto md:overflow-hidden max-h-[95vh] md:max-h-[92vh] cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
         
-        {/* Close Button on Top Right Corner of Screen */}
+        {/* Close Button on Top Right Corner */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 md:-top-10 md:-right-10 p-2 text-white bg-black/40 hover:bg-black/60 md:bg-transparent rounded-full z-50 transition-colors"
+          className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-800 bg-white/80 hover:bg-white rounded-full z-50 transition-colors shadow-sm"
         >
-          <X size={24} />
+          <X size={20} />
         </button>
 
         {/* Left Column: Media Container */}
