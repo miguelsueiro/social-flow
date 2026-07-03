@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  body {
+    @apply font-sans;
+  }
+}
+
+:root {
+  --app-accent: #2563eb;
+  --app-accent-hover: #1d4ed8;
+}
+
+.bg-app-accent {
+  background-color: var(--app-accent);
+}
+.hover\:bg-app-accent-hover:hover {
+  background-color: var(--app-accent-hover);
+}
+.text-app-accent {
+  color: var(--app-accent);
+}
+.border-app-accent {
+  border-color: var(--app-accent);
+}
+.focus\:ring-app-accent:focus {
+  --tw-ring-color: var(--app-accent);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

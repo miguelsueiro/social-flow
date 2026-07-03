@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role management",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "creative_director", "copy", "art_director", "designer", "account_manager", "community_manager", "client"]
+        },
+        "name": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Post": {
+      "title": "Social Media Post",
+      "description": "Main post entity tracking production phases",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "platform": { "type": "string", "enum": ["instagram", "tiktok"] },
+        "phase": {
+          "type": "string",
+          "enum": ["idea_1", "idea_2", "copy", "design", "client_review", "approved", "published"]
+        },
+        "idea": { "type": "string" },
+        "references": { "type": "array", "items": { "type": "string" } },
+        "copyCreativity": { "type": "string" },
+        "copyCaption": { "type": "string" },
+        "translations": { "type": "object" },
+        "currentDesignUrl": { "type": "string" },
+        "history": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["date", "platform", "phase"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Feedback on posts",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "roleAtTime": { "type": "string" }
+      },
+      "required": ["text", "authorId", "createdAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Client project details",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "clientName": { "type": "string" },
+        "color": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "clientName", "color"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profiles"
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Client projects list"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Main posts collection"
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Comments and feedback for a specific post"
+    }
+  }
+}

@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isRole(role) {
+      return isSignedIn() && getUserData().role == role;
+    }
+    
+    function isAgencyRole() {
+      return isRole('creative_director') || isRole('copy') || isRole('art_director') || isRole('designer') || isRole('account_manager') || isRole('community_manager') || isRole('admin');
+    }
+
+    function isAdmin() {
+      return isRole('admin');
+    }
+
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128
+        && data.email is string && data.email.size() <= 256
+        && data.role in ['admin', 'creative_director', 'copy', 'art_director', 'designer', 'account_manager', 'community_manager', 'client']
+        && (data.name == null || (data.name is string && data.name.size() <= 256));
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+    }
+
+    // --- Projects Collection ---
+    function isValidProject(data) {
+      return data.name is string && data.name.size() <= 256
+        && data.clientName is string && data.clientName.size() <= 256
+        && data.color is string && data.color.size() <= 10;
+    }
+
+    match /projects/{projectId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isAgencyRole() && isValidProject(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // --- Posts Collection ---
+    function isValidPost(data) {
+      return data.platform in ['instagram', 'linkedin', 'tiktok']
+        && data.phase in ['idea_1', 'idea_2', 'copy', 'design', 'client_review', 'approved', 'published']
+        && data.get('idea', '') is string && data.get('idea', '').size() <= 5000
+        && data.get('copyCaption', '') is string && data.get('copyCaption', '').size() <= 6000
+        && data.get('copyCreativity', '') is string && data.get('copyCreativity', '').size() <= 2000;
+    }
+
+    function isClientVisible(phase) {
+      return phase in ['idea_2', 'copy', 'design', 'client_review', 'approved', 'published'];
+    }
+
+    match /posts/{postId} {
+      allow list: if isSignedIn() && (
+        isAgencyRole() || 
+        (isRole('client') && isClientVisible(resource.data.phase))
+      );
+      
+      allow get: if isSignedIn() && (
+        isAgencyRole() || 
+        (isRole('client') && isClientVisible(existing().phase))
+      );
+
+      allow create: if isAgencyRole() && isValidPost(incoming()) 
+        && incoming().updatedAt == request.time;
+
+      allow update: if isSignedIn() && (
+        (isAgencyRole() && isValidPost(incoming()) && incoming().updatedAt == request.time) ||
+        (isRole('client') && isClientVisible(existing().phase) && (
+          // Clients can only advance phase to next steps or add feedback (comments handled separately)
+          incoming().diff(existing()).affectedKeys().hasOnly(['phase', 'updatedAt'])
+          && incoming().phase in ['client_review', 'approved']
+          && incoming().updatedAt == request.time
+        ))
+      );
+      
+      allow delete: if isAdmin();
+
+      // --- Comments Subcollection ---
+      match /comments/{commentId} {
+        allow list: if isSignedIn() && (
+          isAgencyRole() || 
+          (isRole('client') && isClientVisible(get(/databases/$(database)/documents/posts/$(postId)).data.phase))
+        );
+        
+        allow create: if isSignedIn() && (
+          isAgencyRole() || 
+          (isRole('client') && isClientVisible(get(/databases/$(database)/documents/posts/$(postId)).data.phase))
+        ) && incoming().authorId == request.auth.uid 
+          && incoming().createdAt == request.time
+          && incoming().text.size() <= 1000;
+          
+        allow update, delete: if isRole('admin') || (isSignedIn() && existing().authorId == request.auth.uid);
+      }
+    }
+  }
+}
