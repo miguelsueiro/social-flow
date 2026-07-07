@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   collection, 
   onSnapshot, 
@@ -21,7 +21,7 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db, signIn, logOut } from './lib/firebase';
-import { cn, Role, ROLES, Phase } from './lib/utils';
+import { cn, Role, ROLES, Phase, PHASES } from './lib/utils';
 import Calendar from './components/Calendar';
 import Board from './components/Board';
 import PostModal from './components/PostModal';
@@ -50,7 +50,8 @@ import {
   Globe,
   Palette,
   X,
-  BookOpen
+  BookOpen,
+  Video
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
@@ -131,6 +132,21 @@ export default function App() {
   const [history, setHistory] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Close search suggestions on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Auto open the user guide on first load
   useEffect(() => {
@@ -547,6 +563,21 @@ export default function App() {
     );
   });
 
+  const matchingSuggestions = searchQuery.trim()
+    ? posts.filter(post => {
+        const matchesProject = activeProjectId === 'all' || post.projectId === activeProjectId;
+        if (!matchesProject) return false;
+
+        const query = searchQuery.toLowerCase();
+        return (
+          (post.idea || '').toLowerCase().includes(query) ||
+          (post.copyCaption || '').toLowerCase().includes(query) ||
+          (post.copyCreativity || '').toLowerCase().includes(query) ||
+          (post.platform || '').toLowerCase().includes(query)
+        );
+      })
+    : [];
+
   const stats = {
     total: filteredPosts.length,
     approved: filteredPosts.filter(p => p.phase === 'approved').length,
@@ -586,7 +617,7 @@ export default function App() {
                 Continuar con Google
              </button>
           </div>
-          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+          <p className="text-[11px] text-gray-400 font-medium tracking-wide">
             © 2026 SocialFlow Agency Tool
           </p>
         </motion.div>
@@ -611,7 +642,7 @@ export default function App() {
 
           {/* Project Label Display */}
           <div className="mb-6 bg-slate-50 border border-slate-100/80 p-3.5 rounded-2xl shrink-0">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Proyecto Seleccionado</label>
+            <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">Proyecto seleccionado</label>
             <div className="flex items-center gap-2">
               <div 
                 className="w-3.5 h-3.5 rounded-full shrink-0"
@@ -669,7 +700,7 @@ export default function App() {
             />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-gray-900 truncate">{currentUser.displayName}</p>
-              <p className="text-[10px] font-bold text-app-accent uppercase tracking-wider truncate">{ROLES[userRole]}</p>
+              <p className="text-[11px] font-semibold text-app-accent truncate">{ROLES[userRole]}</p>
             </div>
             <button 
               onClick={logOut}
@@ -686,37 +717,130 @@ export default function App() {
       <main className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
         <header className="h-20 bg-white border-b border-gray-100 px-6 flex items-center justify-between shrink-0">
-          <div className="relative w-full max-w-md">
+          <div ref={searchContainerRef} className="relative w-full max-w-md">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setShowSuggestions(false);
+                }
+              }}
               placeholder="Buscar posts, ideas, copys, plataformas..." 
               className="w-full bg-gray-50 border border-transparent rounded-2xl py-2.5 pl-12 pr-10 text-sm focus:bg-white focus:border-app-accent/20 focus:ring-4 focus:ring-app-accent/5 transition-all outline-none"
             />
             {searchQuery && (
               <button 
-                onClick={() => setSearchQuery('')}
+                onClick={() => {
+                  setSearchQuery('');
+                  setShowSuggestions(false);
+                }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-xs"
                 title="Limpiar búsqueda"
               >
                 ✕
               </button>
             )}
+
+            <AnimatePresence>
+              {showSuggestions && searchQuery.trim() && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                  className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100"
+                >
+                  <div className="p-3 bg-slate-50 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <span>Sugerencias predictivas</span>
+                    <span>
+                      {matchingSuggestions.length} {matchingSuggestions.length === 1 ? 'post' : 'posts'}
+                    </span>
+                  </div>
+                  <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100">
+                    {matchingSuggestions.length > 0 ? (
+                      matchingSuggestions.slice(0, 6).map((post) => {
+                        const proj = projects.find(p => p.id === post.projectId);
+                        const phaseInfo = PHASES[post.phase as Phase];
+                        return (
+                          <button
+                            key={post.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedPost(post);
+                              setSearchQuery('');
+                              setShowSuggestions(false);
+                            }}
+                            className="w-full text-left p-3.5 hover:bg-slate-50/80 transition-colors flex flex-col gap-1.5 group"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              {/* Left side: Platform & Project */}
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                {post.platform === 'instagram' ? (
+                                  <Instagram size={13} className="text-pink-600 shrink-0" />
+                                ) : (
+                                  <Video size={13} className="text-slate-800 shrink-0" />
+                                )}
+                                {proj && (
+                                  <span 
+                                    className="text-[9px] font-black px-1.5 py-0.5 rounded-md truncate shrink-0 max-w-[130px]"
+                                    style={{ backgroundColor: `${proj.color}12`, color: proj.color }}
+                                  >
+                                    {proj.name}
+                                  </span>
+                                )}
+                              </div>
+                              {/* Right side: Phase Badge */}
+                              {phaseInfo && (
+                                <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0", phaseInfo.color)}>
+                                  {phaseInfo.label.split(': ').pop()}
+                                </span>
+                              )}
+                            </div>
+                            
+                            {/* Idea / content description */}
+                            <p className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-app-accent transition-colors">
+                              {post.idea}
+                            </p>
+
+                            {/* Caption preview if available */}
+                            {post.copyCaption && (
+                              <p className="text-[10px] text-slate-400 line-clamp-1 italic">
+                                "{post.copyCaption}"
+                              </p>
+                            )}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+                        <span>🔍</span>
+                        <p className="font-bold text-slate-400">No se encontraron posts</p>
+                        <p className="text-[10px] text-slate-400 font-normal">Prueba a buscar otra palabra clave, idea o plataforma.</p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="flex items-center gap-4">
             {/* Topbar Client/Project Label */}
             <div className="flex items-center gap-2 bg-gray-100/70 border border-gray-200/50 px-3.5 py-2 rounded-xl">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider hidden sm:inline">PROYECTO:</span>
+              <span className="text-[11px] font-bold text-gray-400 hidden sm:inline">Proyecto:</span>
               <span className="text-xs font-bold text-gray-700">
                 {activeProjectId === 'all' ? 'Todos los Proyectos' : (projects.find(p => p.id === activeProjectId)?.name || 'Cargando...')}
               </span>
             </div>
 
             <div className="flex flex-col items-end mr-2 hidden md:flex">
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest leading-none mb-1">PRODUCCIÓN</span>
-              <span className="text-xs font-semibold text-gray-800">Q2 2026 PLAN</span>
+              <span className="text-[11px] font-semibold text-gray-400 leading-none mb-1">Producción</span>
+              <span className="text-xs font-bold text-gray-800">Plan Q2 2026</span>
             </div>
             <button 
               onClick={() => setShowGuideModal(true)}
@@ -753,7 +877,7 @@ export default function App() {
                     <stat.icon size={20} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
+                    <p className="text-[11px] font-semibold text-gray-400 leading-none mb-1">{stat.label}</p>
                     <p className="text-xl font-black text-gray-900">{stat.value}</p>
                   </div>
                 </div>

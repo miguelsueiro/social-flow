@@ -20,7 +20,7 @@ interface BoardProps {
 }
 
 export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: BoardProps) {
-  const phaseKeys = Object.keys(PHASES) as Phase[];
+  const phaseKeys = (Object.keys(PHASES) as Phase[]).filter(p => p !== 'idea_2');
   const [draggedPost, setDraggedPost] = React.useState<Post | null>(null);
   const [activeDropColumn, setActiveDropColumn] = React.useState<Phase | null>(null);
 
@@ -77,7 +77,6 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: B
                 <span className={cn(
                   "w-2 h-2 rounded-full",
                   phase === 'idea_1' && "bg-slate-400",
-                  phase === 'idea_2' && "bg-sky-400",
                   phase === 'copy' && "bg-purple-400",
                   phase === 'design' && "bg-amber-400",
                   phase === 'client_review' && "bg-rose-400",

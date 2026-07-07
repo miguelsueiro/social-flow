@@ -36,12 +36,12 @@ export type Phase =
   | 'published';
 
 export const PHASES: Record<Phase, { label: string; color: string; clientVisible: boolean }> = {
-  idea_1: { label: 'Fase 1: Ideas Initials', color: 'bg-gray-100 text-gray-700', clientVisible: false },
-  idea_2: { label: 'Fase 2: Ideas Desarrolladas', color: 'bg-blue-100 text-blue-700', clientVisible: true },
-  copy: { label: 'Fase 3: Copys & Captions', color: 'bg-purple-100 text-purple-700', clientVisible: true },
-  design: { label: 'Fase 4: Diseño', color: 'bg-orange-100 text-orange-700', clientVisible: true },
-  client_review: { label: 'Fase 5: Feedback Cliente', color: 'bg-yellow-100 text-yellow-700', clientVisible: true },
-  approved: { label: 'Fase 6: Aprobado', color: 'bg-green-100 text-green-700', clientVisible: true },
+  idea_1: { label: 'Fase 1: Ideas Iniciales', color: 'bg-gray-100 text-gray-700', clientVisible: false },
+  idea_2: { label: 'Fase de Ideas Desarrolladas (Inactiva)', color: 'bg-blue-100 text-blue-700', clientVisible: false },
+  copy: { label: 'Fase 2: Copys & Captions', color: 'bg-purple-100 text-purple-700', clientVisible: true },
+  design: { label: 'Fase 3: Diseño', color: 'bg-orange-100 text-orange-700', clientVisible: true },
+  client_review: { label: 'Fase 4: Feedback Cliente', color: 'bg-yellow-100 text-yellow-700', clientVisible: true },
+  approved: { label: 'Fase 5: Aprobado', color: 'bg-green-100 text-green-700', clientVisible: true },
   published: { label: 'Publicado', color: 'bg-indigo-100 text-indigo-700', clientVisible: true }
 };
 

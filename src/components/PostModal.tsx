@@ -9,6 +9,7 @@ import {
   Clock,
   ExternalLink,
   ChevronRight,
+  ChevronLeft,
   Plus,
   Trash2,
   Layers,
@@ -213,10 +214,34 @@ function VersionFeedbackControl({
   };
 
   const handleRestoreVersion = (version: VersionItem) => {
-    onUpdatePost({
-      ...localPost,
-      [valueFieldName]: version.value
-    });
+    if (type === 'design') {
+      if (localPost.format === 'carrusel') {
+        let urls: string[] = [];
+        try {
+          if (version.value.startsWith('[')) {
+            urls = JSON.parse(version.value);
+          } else if (version.value) {
+            urls = [version.value];
+          }
+        } catch (e) {
+          if (version.value) urls = [version.value];
+        }
+        onUpdatePost({
+          ...localPost,
+          carouselUrls: urls
+        });
+      } else {
+        onUpdatePost({
+          ...localPost,
+          currentDesignUrl: version.value
+        });
+      }
+    } else {
+      onUpdatePost({
+        ...localPost,
+        [valueFieldName]: version.value
+      });
+    }
     toast.success('Versión restaurada');
   };
 
@@ -256,8 +281,8 @@ function VersionFeedbackControl({
   return (
     <div className="mt-2.5 p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/50 shadow-sm">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-          <span>🔒 Versiones y Feedback Interno ({versions.length})</span>
+        <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+          <span>🔒 Versiones y feedback interno ({versions.length})</span>
         </span>
         <div className="flex items-center gap-2">
           <button
@@ -306,28 +331,50 @@ function VersionFeedbackControl({
                   </div>
 
                   {/* Content Preview */}
-                  <div className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100 max-h-20 overflow-y-auto">
-                    {type === 'design' ? (
-                      <div className="flex items-center gap-2">
-                        <img 
-                          src={ver.value} 
-                          alt="preview" 
-                          className="w-10 h-10 object-cover rounded border border-slate-200" 
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80';
-                          }}
-                        />
-                        <span className="text-[10px] text-slate-400 truncate flex-1">{ver.value}</span>
-                      </div>
-                    ) : (
+                  <div className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100 max-h-28 overflow-y-auto">
+                    {type === 'design' ? (() => {
+                      let urls: string[] = [];
+                      let isCarousel = false;
+                      try {
+                        if (ver.value.startsWith('[')) {
+                          urls = JSON.parse(ver.value);
+                          isCarousel = true;
+                        } else if (ver.value) {
+                          urls = [ver.value];
+                        }
+                      } catch (e) {
+                        if (ver.value) urls = [ver.value];
+                      }
+
+                      return (
+                        <div className="flex flex-col gap-1.5 w-full">
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {urls.map((url, i) => (
+                              <img 
+                                key={i}
+                                src={url} 
+                                alt={`preview-${i}`} 
+                                className="w-10 h-10 object-cover rounded border border-slate-200 shadow-xs" 
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80';
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-semibold">
+                            {isCarousel ? `📊 Carrusel (${urls.length} diapositivas)` : '🖼️ Diseño'}
+                          </span>
+                        </div>
+                      );
+                    })() : (
                       <p className="whitespace-pre-line text-[11px] text-slate-600 font-medium leading-relaxed">{ver.value}</p>
                     )}
                   </div>
 
                   {/* Internal feedbacks on this version */}
                   <div className="space-y-1.5 pl-2 border-l-2 border-slate-200">
-                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">Comentarios Internos:</span>
+                    <span className="text-[10px] font-bold text-slate-500 block mb-1">Comentarios internos:</span>
                     {ver.feedbacks?.map((fb) => (
                       <div key={fb.id} className="text-[11px] leading-relaxed bg-slate-50/50 p-2 rounded-lg border border-slate-100/50">
                         <div className="flex items-baseline gap-1">
@@ -342,7 +389,7 @@ function VersionFeedbackControl({
                     <div className="flex gap-1.5 mt-2 relative">
                       {activeMentionVersionId === ver.id && filteredMentionUsers.length > 0 && (
                         <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-36 overflow-y-auto divide-y divide-slate-100">
-                          <div className="p-1.5 bg-slate-50 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                          <div className="p-1.5 bg-slate-50 text-[10px] font-semibold text-slate-500">
                             Mencionar usuario:
                           </div>
                           {filteredMentionUsers.map(user => (
@@ -525,6 +572,40 @@ export default function PostModal({
   // Drag over states
   const [isDragOverReferences, setIsDragOverReferences] = useState(false);
   const [isDragOverCreativity, setIsDragOverCreativity] = useState(false);
+  const [draggingSlideIdx, setDraggingSlideIdx] = useState<number | null>(null);
+
+  const handleSlideDragStart = (e: React.DragEvent, index: number) => {
+    if (!canEditDesign) return;
+    setDraggingSlideIdx(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleSlideDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (!canEditDesign || draggingSlideIdx === null || draggingSlideIdx === index) return;
+  };
+
+  const handleSlideDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (!canEditDesign || draggingSlideIdx === null || draggingSlideIdx === targetIndex) return;
+
+    const urls = [...(localPost.carouselUrls || [])];
+    const draggedUrl = urls[draggingSlideIdx];
+    
+    // Remove the dragged URL and insert it at the targetIndex
+    urls.splice(draggingSlideIdx, 1);
+    urls.splice(targetIndex, 0, draggedUrl);
+
+    const updated = { ...localPost, carouselUrls: urls };
+    setLocalPost(updated);
+    onUpdate(updated);
+    setDraggingSlideIdx(null);
+    toast.success('Orden del carrusel actualizado');
+  };
+
+  const handleSlideDragEnd = () => {
+    setDraggingSlideIdx(null);
+  };
 
   useEffect(() => {
     setLocalPost(post);
@@ -538,17 +619,35 @@ export default function PostModal({
   const canEditDesign = ['admin', 'art_director', 'designer'].includes(userRole);
   const isAgencyMember = userRole !== 'client';
   const canAdvancePhase = isAgencyMember || (userRole === 'client' && localPost.phase === 'client_review');
+  const canGoBackPhase = isAgencyMember && localPost.phase !== 'idea_1';
 
   const handleUpdate = () => {
     if (localPost) onUpdate(localPost);
   };
 
   const nextPhase = () => {
-    const phaseOrder: Phase[] = ['idea_1', 'idea_2', 'copy', 'design', 'client_review', 'approved', 'published'];
-    const currentIndex = phaseOrder.indexOf(localPost.phase);
-    if (currentIndex < phaseOrder.length - 1) {
+    const phaseOrder: Phase[] = ['idea_1', 'copy', 'design', 'client_review', 'approved', 'published'];
+    let currentIndex = phaseOrder.indexOf(localPost.phase);
+    if (currentIndex === -1 && localPost.phase === 'idea_2') {
+      currentIndex = 0;
+    }
+    if (currentIndex !== -1 && currentIndex < phaseOrder.length - 1) {
       const nextPh = phaseOrder[currentIndex + 1];
       const updated = { ...localPost, phase: nextPh };
+      setLocalPost(updated);
+      onUpdate(updated);
+    }
+  };
+
+  const prevPhase = () => {
+    const phaseOrder: Phase[] = ['idea_1', 'copy', 'design', 'client_review', 'approved', 'published'];
+    let currentIndex = phaseOrder.indexOf(localPost.phase);
+    if (currentIndex === -1 && localPost.phase === 'idea_2') {
+      currentIndex = 1;
+    }
+    if (currentIndex > 0) {
+      const prevPh = phaseOrder[currentIndex - 1];
+      const updated = { ...localPost, phase: prevPh };
       setLocalPost(updated);
       onUpdate(updated);
     }
@@ -1030,17 +1129,33 @@ export default function PostModal({
                     <div>
                       {localPost.format === 'carrusel' ? (
                         <div className="space-y-4">
-                          <span className="text-xs font-semibold text-gray-500 block">Carrusel Slides:</span>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-semibold text-gray-500 block">Carrusel Slides:</span>
+                            {canEditDesign && localPost.carouselUrls && localPost.carouselUrls.length > 1 && (
+                              <span className="text-[9px] text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded-full animate-pulse shrink-0">
+                                ↔ Arrastra para reordenar
+                              </span>
+                            )}
+                          </div>
                           {localPost.carouselUrls && localPost.carouselUrls.length > 0 ? (
                             <div className="grid grid-cols-3 gap-2">
                               {localPost.carouselUrls.map((url, idx) => (
                                 <div 
                                   key={idx} 
+                                  draggable={canEditDesign}
+                                  onDragStart={(e) => handleSlideDragStart(e, idx)}
+                                  onDragOver={(e) => handleSlideDragOver(e, idx)}
+                                  onDrop={(e) => handleSlideDrop(e, idx)}
+                                  onDragEnd={handleSlideDragEnd}
                                   onClick={() => setZoomedImageUrl(url)}
-                                  className="group relative aspect-square bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm cursor-zoom-in hover:scale-105 transition-transform"
+                                  className={cn(
+                                    "group relative aspect-square bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm cursor-zoom-in hover:scale-105 transition-all duration-200",
+                                    draggingSlideIdx === idx ? "opacity-30 border-app-accent border-2 scale-95" : "cursor-grab active:cursor-grabbing",
+                                    canEditDesign ? "hover:border-app-accent/50" : ""
+                                  )}
                                 >
-                                  <img src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
-                                  <div className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[8px] font-bold text-white">
+                                  <img src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover select-none pointer-events-none" />
+                                  <div className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[8px] font-bold text-white select-none">
                                     {idx + 1}
                                   </div>
                                   {canEditDesign && (
@@ -1122,16 +1237,26 @@ export default function PostModal({
                       <div className="p-4 bg-white rounded-xl border border-gray-200 space-y-3 shadow-sm">
                          <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
                            <span>Control de Proceso</span>
-                           <span className="text-app-accent font-medium">Fase actual: {PHASES[localPost.phase].label}</span>
+                           <span className="text-app-accent font-medium">Fase actual: {PHASES[localPost.phase]?.label || localPost.phase}</span>
                          </div>
-                         <button 
-                            disabled={!canAdvancePhase}
-                            onClick={nextPhase}
-                            className="w-full bg-app-accent text-white hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed px-6 py-4 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 text-sm"
-                          >
-                           Avanzar a Siguiente Fase
-                           <ChevronRight size={20} />
-                         </button>
+                         <div className="flex gap-2">
+                           <button 
+                              disabled={!canGoBackPhase}
+                              onClick={prevPhase}
+                              className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-2.5 rounded-xl font-semibold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs"
+                            >
+                             <ChevronLeft size={16} />
+                             Fase Anterior
+                           </button>
+                           <button 
+                              disabled={!canAdvancePhase}
+                              onClick={nextPhase}
+                              className="flex-[1.5] bg-app-accent text-white hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
+                            >
+                             Siguiente Fase
+                             <ChevronRight size={16} />
+                           </button>
+                         </div>
                          {localPost.phase === 'approved' && (
                            <p className="text-[10px] text-green-600 font-semibold text-center">✓ Post aprobado por el cliente</p>
                          )}
@@ -1143,7 +1268,11 @@ export default function PostModal({
                     <VersionFeedbackControl
                       title="Creatividad Visual"
                       type="design"
-                      currentValue={localPost.currentDesignUrl || (localPost.carouselUrls && localPost.carouselUrls[0]) || ''}
+                      currentValue={
+                        localPost.format === 'carrusel'
+                          ? JSON.stringify(localPost.carouselUrls || [])
+                          : (localPost.currentDesignUrl || '')
+                      }
                       versions={localPost.designVersions}
                       isAgencyMember={userRole !== 'client'}
                       onUpdatePost={onUpdate}
@@ -1179,7 +1308,7 @@ export default function PostModal({
                       <div className="flex-1">
                         <div className="flex items-baseline gap-2 mb-1">
                           <span className="text-sm font-bold text-gray-900">{comment.authorName}</span>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase">{comment.roleAtTime}</span>
+                          <span className="text-[11px] font-semibold text-gray-400">{comment.roleAtTime}</span>
                           <span className="text-[10px] text-gray-400">{format(comment.createdAt, 'HH:mm dd/MM')}</span>
                         </div>
                         <div className="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-xs sm:text-sm text-gray-700">
@@ -1195,7 +1324,7 @@ export default function PostModal({
                     {/* Autocomplete Suggestion Dropdown */}
                     {activeMentionInput === 'comment' && filteredMentionUsers.length > 0 && (
                       <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto divide-y divide-gray-100">
-                        <div className="p-2 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <div className="p-2 bg-gray-50 text-[11px] font-bold text-gray-400">
                           Mencionar usuario del proyecto:
                         </div>
                         {filteredMentionUsers.map(user => (
@@ -1292,7 +1421,7 @@ export default function PostModal({
                     {/* Autocomplete Suggestion Dropdown */}
                     {activeMentionInput === 'feedback' && filteredMentionUsers.length > 0 && (
                       <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto divide-y divide-gray-100">
-                        <div className="p-2 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <div className="p-2 bg-gray-50 text-[11px] font-bold text-gray-400">
                           Mencionar usuario del proyecto:
                         </div>
                         {filteredMentionUsers.map(user => (
@@ -1373,12 +1502,18 @@ export default function PostModal({
       <AnimatePresence>
         {zoomedImageUrl && (
           <div 
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
-            onClick={() => setZoomedImageUrl(null)}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 cursor-default"
+            onClick={(e) => {
+              e.stopPropagation();
+              setZoomedImageUrl(null);
+            }}
           >
             <button 
               className="absolute top-4 right-4 text-white hover:text-gray-300 p-2"
-              onClick={() => setZoomedImageUrl(null)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setZoomedImageUrl(null);
+              }}
             >
               <X size={32} />
             </button>
