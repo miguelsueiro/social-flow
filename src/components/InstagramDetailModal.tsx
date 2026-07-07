@@ -41,6 +41,7 @@ export default function InstagramDetailModal({
   const [likesCount, setLikesCount] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
 
   // Initialize random-like counts once based on ID
   useEffect(() => {
@@ -102,7 +103,8 @@ export default function InstagramDetailModal({
               <img 
                 src={post.currentDesignUrl} 
                 alt="Reel design" 
-                className="absolute inset-0 w-full h-full object-cover opacity-80"
+                className="absolute inset-0 w-full h-full object-cover opacity-80 cursor-zoom-in"
+                onClick={() => setZoomedImageUrl(post.currentDesignUrl)}
               />
             ) : (
               <div className={cn("absolute inset-0 bg-gradient-to-tr", mediaGradient)} />
@@ -178,8 +180,9 @@ export default function InstagramDetailModal({
                 <img 
                   src={activeSlides[currentSlide]} 
                   alt={`Slide ${currentSlide + 1}`} 
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain cursor-zoom-in"
                   referrerPolicy="no-referrer"
+                  onClick={() => setZoomedImageUrl(activeSlides[currentSlide])}
                 />
               ) : (
                 <div className={cn("w-full h-full bg-gradient-to-tr flex flex-col justify-between p-6 text-white", mediaGradient)}>
@@ -239,8 +242,9 @@ export default function InstagramDetailModal({
           <img 
             src={post.currentDesignUrl} 
             alt={post.idea} 
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain cursor-zoom-in"
             referrerPolicy="no-referrer"
+            onClick={() => setZoomedImageUrl(post.currentDesignUrl)}
           />
         ) : (
           <div className={cn("w-full h-full bg-gradient-to-tr flex flex-col justify-between p-6 text-white", mediaGradient)}>
@@ -416,6 +420,33 @@ export default function InstagramDetailModal({
         </div>
 
       </div>
+      <AnimatePresence>
+        {zoomedImageUrl && (
+          <div 
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 cursor-default"
+            onClick={(e) => {
+              e.stopPropagation();
+              setZoomedImageUrl(null);
+            }}
+          >
+            <button 
+              className="absolute top-4 right-4 text-white hover:text-gray-300 p-2 z-[110]"
+              onClick={(e) => {
+                e.stopPropagation();
+                setZoomedImageUrl(null);
+              }}
+            >
+              <X size={32} />
+            </button>
+            <img 
+              src={zoomedImageUrl} 
+              alt="Zoomed Design" 
+              className="max-w-full max-h-full object-contain rounded shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
