@@ -86,11 +86,11 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
     if (post.format === 'carrusel' && post.carouselUrls && post.carouselUrls.length > 0) {
       const activeIdx = activeCarouselSlides[post.id] || 0;
       return (
-        <div className="relative aspect-square bg-slate-50 border-y border-gray-150 overflow-hidden group">
+        <div className="relative bg-slate-50 border-y border-gray-150 overflow-hidden group">
           <img 
             src={post.carouselUrls[activeIdx]} 
             alt={`Slide ${activeIdx + 1}`} 
-            className="w-full h-full object-contain"
+            className="w-full h-auto block"
             referrerPolicy="no-referrer"
           />
           {post.carouselUrls.length > 1 && (
@@ -119,14 +119,11 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
     if (post.currentDesignUrl) {
       const isReel = post.format === 'reel';
       return (
-        <div className={cn(
-          "relative bg-slate-50 border-y border-gray-150 overflow-hidden",
-          isReel ? "aspect-[9/16] max-h-[480px]" : "aspect-square"
-        )}>
+        <div className="relative bg-slate-50 border-y border-gray-150 overflow-hidden">
           <img 
             src={post.currentDesignUrl} 
             alt={post.idea} 
-            className="w-full h-full object-contain"
+            className="w-full h-auto block"
             referrerPolicy="no-referrer"
           />
           {isReel && (

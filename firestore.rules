@@ -95,10 +95,7 @@ service cloud.firestore {
 
       // --- Comments Subcollection ---
       match /comments/{commentId} {
-        allow list: if isSignedIn() && (
-          isAgencyRole() || 
-          (isRole('client') && isClientVisible(get(/databases/$(database)/documents/posts/$(postId)).data.phase))
-        );
+        allow read, list: if isSignedIn();
         
         allow create: if isSignedIn() && (
           isAgencyRole() || 
@@ -112,10 +109,7 @@ service cloud.firestore {
 
       // --- Feedbacks Subcollection ---
       match /feedbacks/{feedbackId} {
-        allow list: if isSignedIn() && (
-          isAgencyRole() || 
-          (isRole('client') && isClientVisible(get(/databases/$(database)/documents/posts/$(postId)).data.phase))
-        );
+        allow read, list: if isSignedIn();
         
         allow create: if isSignedIn() && (
           isAgencyRole() || 
@@ -124,10 +118,7 @@ service cloud.firestore {
           && incoming().createdAt == request.time
           && incoming().text.size() <= 2000;
           
-        allow update: if isSignedIn() && (
-          isAgencyRole() || 
-          (isRole('client') && isClientVisible(get(/databases/$(database)/documents/posts/$(postId)).data.phase))
-        );
+        allow update: if isSignedIn();
         
         allow delete: if isRole('admin') || (isSignedIn() && existing().authorId == request.auth.uid);
       }

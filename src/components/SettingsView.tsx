@@ -11,11 +11,15 @@ import {
   Folder, 
   User, 
   Grid,
-  Check
+  Check,
+  ShieldCheck,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { db } from '../lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { ROLES, Role } from '../lib/utils';
 
 interface Project {
   id: string;
@@ -29,9 +33,10 @@ interface SettingsViewProps {
   activeProjectId: string;
   setActiveProjectId: (id: string) => void;
   userRole: string;
+  onRoleChange: (role: Role) => void;
 }
 
-export default function SettingsView({ projects, activeProjectId, setActiveProjectId, userRole }: SettingsViewProps) {
+export default function SettingsView({ projects, activeProjectId, setActiveProjectId, userRole, onRoleChange }: SettingsViewProps) {
   const [agencyName, setAgencyName] = useState('Basetis Creative Studio');
   const [timezone, setTimezone] = useState('Europe/Madrid');
   const [notifySlack, setNotifySlack] = useState(true);
@@ -109,21 +114,25 @@ export default function SettingsView({ projects, activeProjectId, setActiveProje
     }
   };
 
-  const handleDeleteProject = async (projId: string) => {
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+
+  const handleDeleteProject = (projId: string) => {
     if (projects.length <= 1) {
       toast.error('No se puede eliminar el único proyecto existente');
       return;
     }
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este proyecto? Todos los posts asociados quedarán huérfanos.')) {
-      return;
-    }
+    setProjectToDelete(projId);
+  };
 
+  const confirmDeleteProject = async () => {
+    if (!projectToDelete) return;
     try {
-      await deleteDoc(doc(db, 'projects', projId));
+      await deleteDoc(doc(db, 'projects', projectToDelete));
       toast.success('Proyecto eliminado correctamente');
-      if (activeProjectId === projId) {
+      if (activeProjectId === projectToDelete) {
         setActiveProjectId('all');
       }
+      setProjectToDelete(null);
     } catch (err) {
       toast.error('Error al eliminar el proyecto');
       console.error(err);
@@ -132,6 +141,52 @@ export default function SettingsView({ projects, activeProjectId, setActiveProje
 
   return (
     <div className="flex-1 overflow-y-auto max-w-4xl mx-auto w-full pb-12 space-y-6">
+      
+      {/* Role Selection Simulator Panel */}
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl">
+            <ShieldCheck size={22} />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-gray-900 text-sm">Modo de Rol de Usuario (Simulador de Entorno)</h3>
+            <p className="text-xs text-gray-400">Cambia de rol para simular la interfaz, permisos y vistas específicas de la agencia o del cliente.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {Object.entries(ROLES).map(([key, label]) => {
+            const isSelected = userRole === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onRoleChange(key as Role)}
+                className={`p-4 rounded-2xl border text-left flex flex-col justify-between h-24 transition-all relative ${
+                  isSelected
+                    ? 'border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-500/10'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-indigo-600' : 'text-gray-400'}`}>
+                    {key === 'client' ? 'Externo' : 'Agencia'}
+                  </span>
+                  {isSelected && (
+                    <div className="bg-indigo-600 text-white rounded-full p-0.5">
+                      <Check size={10} />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-black text-gray-900 leading-snug">{label}</p>
+                  <p className="text-[9px] text-gray-400 mt-0.5 truncate">Permisos de {key === 'client' ? 'revisión' : 'edición'}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
       
       {/* 1. Project switching panel (moved from sidebar/topbar) */}
       {userRole !== 'client' && (
@@ -521,6 +576,52 @@ export default function SettingsView({ projects, activeProjectId, setActiveProje
           </div>
         </form>
       </div>
+
+      {/* Custom Confirmation Modal */}
+      {projectToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-3xl p-6 max-w-md w-full shadow-xl border border-gray-100"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
+                <AlertTriangle size={24} />
+              </div>
+              <button 
+                onClick={() => setProjectToDelete(null)}
+                className="p-1.5 hover:bg-gray-100 rounded-xl transition-all text-gray-400 hover:text-gray-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <h4 className="text-base font-extrabold text-gray-900 mb-2">
+              ¿Eliminar proyecto definitivamente?
+            </h4>
+            <p className="text-xs text-gray-500 leading-relaxed mb-6">
+              Esta acción es irreversible. Se eliminará el proyecto seleccionado y todas las publicaciones asociadas podrían quedar huérfanas o sin clasificar.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setProjectToDelete(null)}
+                className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeleteProject}
+                className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-red-600/10"
+              >
+                Sí, eliminar
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

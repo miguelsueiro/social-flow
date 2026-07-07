@@ -20,8 +20,25 @@ import {
 import { cn, PHASES, Phase, Role, ROLES, compressImage } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
+
+interface InternalFeedback {
+  id: string;
+  authorName: string;
+  role: string;
+  text: string;
+  createdAt: string;
+}
+
+interface VersionItem {
+  id: string;
+  value: string;
+  createdAt: string;
+  authorName: string;
+  feedbacks: InternalFeedback[];
+}
 
 interface Comment {
   id: string;
@@ -63,6 +80,9 @@ interface Post {
   format?: 'estatico' | 'reel' | 'carrusel';
   carouselUrls?: string[];
   projectId?: string;
+  captionVersions?: VersionItem[];
+  creativityVersions?: VersionItem[];
+  designVersions?: VersionItem[];
 }
 
 interface PostModalProps {
@@ -78,6 +98,302 @@ interface PostModalProps {
   onToggleFeedbackDone: (feedbackId: string, currentDone: boolean) => void;
   history: PostVersion[];
   projects?: any[];
+}
+
+interface VersionFeedbackControlProps {
+  title: string;
+  type: 'caption' | 'creativity' | 'design';
+  currentValue: string;
+  versions: VersionItem[] | undefined;
+  isAgencyMember: boolean;
+  onUpdatePost: (updates: Partial<Post>) => void;
+  localPost: Post;
+  accessibleUsers: any[];
+}
+
+function VersionFeedbackControl({
+  title,
+  type,
+  currentValue,
+  versions = [],
+  isAgencyMember,
+  onUpdatePost,
+  localPost,
+  accessibleUsers = []
+}: VersionFeedbackControlProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
+  const [activeMentionVersionId, setActiveMentionVersionId] = useState<string | null>(null);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  
+  if (!isAgencyMember) return null;
+
+  const getMentionHandle = (user: any) => {
+    if (user.email) {
+      return user.email.split('@')[0];
+    }
+    return user.name.replace(/\s+/g, '').toLowerCase();
+  };
+
+  const handleInputChange = (text: string, versionId: string) => {
+    setFeedbackInputs(prev => ({ ...prev, [versionId]: text }));
+
+    const lastWord = text.split(/\s+/).pop() || '';
+    if (lastWord.startsWith('@')) {
+      const q = lastWord.substring(1);
+      setMentionQuery(q);
+      setActiveMentionVersionId(versionId);
+    } else {
+      setMentionQuery(null);
+      setActiveMentionVersionId(null);
+    }
+  };
+
+  const selectMentionUser = (user: any, versionId: string) => {
+    const handle = getMentionHandle(user);
+    const textState = feedbackInputs[versionId] || '';
+    const words = textState.split(/\s+/);
+    words.pop();
+    words.push(`@${handle} `);
+    const newText = words.join(' ');
+    
+    setFeedbackInputs(prev => ({ ...prev, [versionId]: newText }));
+    setMentionQuery(null);
+    setActiveMentionVersionId(null);
+  };
+
+  const filteredMentionUsers = mentionQuery !== null
+    ? accessibleUsers.filter(u => 
+        u.name.toLowerCase().includes(mentionQuery.toLowerCase()) ||
+        getMentionHandle(u).toLowerCase().includes(mentionQuery.toLowerCase())
+      )
+    : [];
+
+  const fieldNameMap = {
+    caption: 'captionVersions',
+    creativity: 'creativityVersions',
+    design: 'designVersions'
+  } as const;
+
+  const valueFieldNameMap = {
+    caption: 'copyCaption',
+    creativity: 'copyCreativity',
+    design: 'currentDesignUrl'
+  } as const;
+
+  const fieldName = fieldNameMap[type];
+  const valueFieldName = valueFieldNameMap[type];
+
+  const handleSaveVersion = () => {
+    if (!currentValue) {
+      toast.error('No hay contenido para guardar en una versión');
+      return;
+    }
+    
+    // Check if already most recent version
+    if (versions.length > 0 && versions[0].value === currentValue) {
+      toast.error('Esta versión ya se encuentra guardada en el historial');
+      return;
+    }
+
+    const newVersion: VersionItem = {
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      value: currentValue,
+      createdAt: new Date().toISOString(),
+      authorName: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Miembro de Agencia',
+      feedbacks: []
+    };
+
+    const updatedVersions = [newVersion, ...versions];
+    onUpdatePost({
+      ...localPost,
+      [fieldName]: updatedVersions
+    });
+    toast.success('Versión guardada correctamente');
+  };
+
+  const handleRestoreVersion = (version: VersionItem) => {
+    onUpdatePost({
+      ...localPost,
+      [valueFieldName]: version.value
+    });
+    toast.success('Versión restaurada');
+  };
+
+  const handleAddFeedback = (versionId: string) => {
+    const text = feedbackInputs[versionId]?.trim();
+    if (!text) return;
+
+    const newFeedback: InternalFeedback = {
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      authorName: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Miembro de Agencia',
+      role: 'Agencia',
+      text,
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedVersions = versions.map(v => {
+      if (v.id === versionId) {
+        return {
+          ...v,
+          feedbacks: [...(v.feedbacks || []), newFeedback]
+        };
+      }
+      return v;
+    });
+
+    onUpdatePost({
+      ...localPost,
+      [fieldName]: updatedVersions
+    });
+
+    setFeedbackInputs(prev => ({ ...prev, [versionId]: '' }));
+    setActiveMentionVersionId(null);
+    setMentionQuery(null);
+    toast.success('Feedback interno registrado');
+  };
+
+  return (
+    <div className="mt-2.5 p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/50 shadow-sm">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+          <span>🔒 Versiones y Feedback Interno ({versions.length})</span>
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSaveVersion}
+            className="whitespace-nowrap text-xs bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-extrabold px-3 py-1.5 rounded-lg transition-colors shadow-xs flex items-center gap-1 shrink-0"
+            title="Capturar el estado actual en una versión"
+          >
+            💾 Guardar Versión
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className="whitespace-nowrap text-xs text-app-accent hover:underline font-extrabold flex items-center gap-1 shrink-0"
+          >
+            {isOpen ? 'Ocultar Historial ▲' : 'Ver Historial ▼'}
+          </button>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="mt-3 pt-3 border-t border-slate-200 space-y-3 max-h-64 overflow-y-auto pr-1">
+          {versions.length === 0 ? (
+            <p className="text-center py-4 text-[11px] text-slate-400 italic">No hay versiones guardadas aún. Haz clic en "Guardar Versión" para registrar el estado actual.</p>
+          ) : (
+            versions.map((ver, idx) => {
+              const displayIndex = versions.length - idx;
+              return (
+                <div key={ver.id} className="p-3 bg-white rounded-xl border border-slate-100 shadow-xs space-y-2.5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md mr-1.5">
+                        v{displayIndex}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-500">
+                        {ver.authorName} • {format(new Date(ver.createdAt), 'dd/MM HH:mm')}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRestoreVersion(ver)}
+                      className="text-[10px] text-app-accent hover:text-app-accent-hover font-extrabold flex items-center gap-0.5"
+                    >
+                      Restaurar ↩
+                    </button>
+                  </div>
+
+                  {/* Content Preview */}
+                  <div className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100 max-h-20 overflow-y-auto">
+                    {type === 'design' ? (
+                      <div className="flex items-center gap-2">
+                        <img 
+                          src={ver.value} 
+                          alt="preview" 
+                          className="w-10 h-10 object-cover rounded border border-slate-200" 
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80';
+                          }}
+                        />
+                        <span className="text-[10px] text-slate-400 truncate flex-1">{ver.value}</span>
+                      </div>
+                    ) : (
+                      <p className="whitespace-pre-line text-[11px] text-slate-600 font-medium leading-relaxed">{ver.value}</p>
+                    )}
+                  </div>
+
+                  {/* Internal feedbacks on this version */}
+                  <div className="space-y-1.5 pl-2 border-l-2 border-slate-200">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">Comentarios Internos:</span>
+                    {ver.feedbacks?.map((fb) => (
+                      <div key={fb.id} className="text-[11px] leading-relaxed bg-slate-50/50 p-2 rounded-lg border border-slate-100/50">
+                        <div className="flex items-baseline gap-1">
+                          <span className="font-extrabold text-slate-800">{fb.authorName}</span>
+                          <span className="text-[9px] text-slate-400 font-bold">({format(new Date(fb.createdAt), 'dd/MM HH:mm')})</span>
+                        </div>
+                        <p className="text-slate-600 mt-0.5 font-medium">{fb.text}</p>
+                      </div>
+                    ))}
+
+                    {/* Add feedback input */}
+                    <div className="flex gap-1.5 mt-2 relative">
+                      {activeMentionVersionId === ver.id && filteredMentionUsers.length > 0 && (
+                        <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-36 overflow-y-auto divide-y divide-slate-100">
+                          <div className="p-1.5 bg-slate-50 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                            Mencionar usuario:
+                          </div>
+                          {filteredMentionUsers.map(user => (
+                            <button
+                              key={user.id}
+                              type="button"
+                              onClick={() => selectMentionUser(user, ver.id)}
+                              className="w-full text-left p-2 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                            >
+                              <div className="w-5 h-5 rounded-full bg-indigo-50 flex items-center justify-center font-bold text-indigo-600 text-[10px]">
+                                {user.name[0]}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-bold text-gray-800 truncate">{user.name}</p>
+                                <p className="text-[9px] text-gray-400 truncate">@{getMentionHandle(user)} • {user.role}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <input
+                        type="text"
+                        placeholder="Escribir feedback o nota interna..."
+                        value={feedbackInputs[ver.id] || ''}
+                        onChange={(e) => handleInputChange(e.target.value, ver.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddFeedback(ver.id);
+                          }
+                        }}
+                        className="flex-1 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:bg-white focus:border-app-accent transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAddFeedback(ver.id)}
+                        className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[10px] px-2.5 py-1.5 rounded-lg transition-colors"
+                      >
+                        Enviar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function PostModal({ 
@@ -99,6 +415,35 @@ export default function PostModal({
   const [feedbackText, setFeedbackText] = useState('');
   const [localPost, setLocalPost] = useState<Post | null>(post);
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
+
+  const getFormattedDateForInput = (d: any) => {
+    if (!d) return '';
+    const dateObj = d instanceof Date ? d : (d?.toDate ? d.toDate() : new Date(d));
+    if (isNaN(dateObj.getTime())) return '';
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val && localPost) {
+      const parts = val.split('-');
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const newDate = new Date(year, month, day, 12, 0, 0);
+      const updated = { ...localPost, date: newDate };
+      setLocalPost(updated);
+      onUpdate(updated);
+      toast.success('Fecha del post actualizada correctamente');
+    }
+  };
+
+  const displayDate = localPost?.date instanceof Date 
+    ? localPost.date 
+    : (localPost?.date?.toDate ? localPost.date.toDate() : (localPost?.date ? new Date(localPost.date) : new Date()));
 
   // User Mentions autocomplete state
   interface User {
@@ -318,7 +663,7 @@ export default function PostModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden cursor-default"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -332,7 +677,7 @@ export default function PostModal({
               {PHASES[localPost.phase].label}
             </div>
             <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
-              <span className="capitalize">{localPost.platform} — {format(localPost.date, 'dd/MM/yyyy')}</span>
+              <span className="capitalize">{localPost.platform} — {format(displayDate, 'dd/MM/yyyy')}</span>
               {projectInfo && (
                 <span 
                   className="px-2.5 py-0.5 text-white border rounded-full text-xs font-semibold shadow-sm"
@@ -423,7 +768,7 @@ export default function PostModal({
                       />
                     </section>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <section>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Plataforma</label>
                         <select
@@ -456,12 +801,23 @@ export default function PostModal({
                           <option value="carrusel">Carrusel (Múltiples Diapositivas)</option>
                         </select>
                       </section>
+
+                      <section>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha Programada</label>
+                        <input
+                          type="date"
+                          disabled={!isAgencyMember}
+                          value={getFormattedDateForInput(localPost.date)}
+                          onChange={handleDateChange}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                        />
+                      </section>
                     </div>
 
                     {/* Drag and Drop References Section */}
                     <section>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Referencias Visuales (Arrastra o sube imágenes)
+                        Referencias Visuales (Arrastra imágenes o añade URLs externas)
                       </label>
                       
                       <div 
@@ -480,7 +836,27 @@ export default function PostModal({
                               onClick={() => setZoomedImageUrl(ref)}
                               className="group relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 shadow-sm cursor-zoom-in transition-transform hover:scale-105"
                             >
-                               <img src={ref} alt="ref" className="w-full h-full object-cover" />
+                               <img 
+                                 src={ref} 
+                                 alt="ref" 
+                                 className="w-full h-full object-cover" 
+                                 onError={(e) => {
+                                   e.currentTarget.onerror = null;
+                                   e.currentTarget.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80';
+                                 }}
+                               />
+                               {ref.startsWith('http') && (
+                                 <a 
+                                   href={ref} 
+                                   target="_blank" 
+                                   rel="noopener noreferrer"
+                                   onClick={(e) => e.stopPropagation()}
+                                   className="absolute bottom-1 left-1 bg-black/60 text-white p-1 rounded hover:bg-black/85 transition-colors z-10"
+                                   title="Abrir referencia en pestaña nueva"
+                                 >
+                                   <ExternalLink size={8} />
+                                 </a>
+                               )}
                                {!isClient && (
                                  <button 
                                    type="button"
@@ -492,7 +868,7 @@ export default function PostModal({
                                      setLocalPost(updated);
                                      onUpdate(updated);
                                    }}
-                                   className="absolute top-1 right-1 bg-white/95 hover:bg-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                   className="absolute top-1 right-1 bg-white/95 hover:bg-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                  >
                                    <X size={10} className="text-red-500" />
                                  </button>
@@ -529,6 +905,49 @@ export default function PostModal({
                             Arrastra tus imágenes de referencia aquí o haz clic en Subir
                           </div>
                         )}
+
+                        {/* Direct URL Reference input */}
+                        {!isClient && (
+                          <div className="mt-2 pt-2 border-t border-gray-150/40 flex gap-2">
+                            <input 
+                              type="url"
+                              placeholder="Pegar enlace de referencia externa..."
+                              id="ref-url-input"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const target = e.currentTarget;
+                                  const val = target.value.trim();
+                                  if (val) {
+                                    const currentRefs = localPost.references || [];
+                                    const updated = { ...localPost, references: [...currentRefs, val] };
+                                    setLocalPost(updated);
+                                    onUpdate(updated);
+                                    target.value = '';
+                                  }
+                                }
+                              }}
+                              className="flex-1 bg-white border border-gray-200 rounded-lg py-1.5 px-3 text-xs outline-none focus:border-app-accent focus:ring-1 focus:ring-app-accent/20 transition-all"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const el = document.getElementById('ref-url-input') as HTMLInputElement;
+                                const val = el?.value.trim();
+                                if (val) {
+                                  const currentRefs = localPost.references || [];
+                                  const updated = { ...localPost, references: [...currentRefs, val] };
+                                  setLocalPost(updated);
+                                  onUpdate(updated);
+                                  el.value = '';
+                                }
+                              }}
+                              className="bg-app-accent hover:bg-app-accent-hover text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                            >
+                              Añadir URL
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </section>
                   </div>
@@ -544,6 +963,16 @@ export default function PostModal({
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
                         placeholder="Texto que aparecerá dentro del diseño..."
                       />
+                      <VersionFeedbackControl
+                        title="Copy de la Creatividad"
+                        type="creativity"
+                        currentValue={localPost.copyCreativity}
+                        versions={localPost.creativityVersions}
+                        isAgencyMember={userRole !== 'client'}
+                        onUpdatePost={onUpdate}
+                        localPost={localPost}
+                        accessibleUsers={accessibleUsers}
+                      />
                     </section>
 
                     <section>
@@ -555,6 +984,16 @@ export default function PostModal({
                         onBlur={handleUpdate}
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-36 text-sm"
                         placeholder="Escribe el caption definitivo..."
+                      />
+                      <VersionFeedbackControl
+                        title="Post Caption"
+                        type="caption"
+                        currentValue={localPost.copyCaption}
+                        versions={localPost.captionVersions}
+                        isAgencyMember={userRole !== 'client'}
+                        onUpdatePost={onUpdate}
+                        localPost={localPost}
+                        accessibleUsers={accessibleUsers}
                       />
                     </section>
                   </div>
@@ -698,6 +1137,19 @@ export default function PostModal({
                          )}
                       </div>
                     </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <VersionFeedbackControl
+                      title="Creatividad Visual"
+                      type="design"
+                      currentValue={localPost.currentDesignUrl || (localPost.carouselUrls && localPost.carouselUrls[0]) || ''}
+                      versions={localPost.designVersions}
+                      isAgencyMember={userRole !== 'client'}
+                      onUpdatePost={onUpdate}
+                      localPost={localPost}
+                      accessibleUsers={accessibleUsers}
+                    />
                   </div>
                 </section>
               </motion.div>

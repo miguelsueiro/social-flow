@@ -65,7 +65,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: B
   );
 
   return (
-    <div className="flex gap-6 overflow-x-auto pb-8 min-h-[calc(100vh-250px)] scrollbar-hide">
+    <div className="flex gap-6 overflow-x-auto pb-6 pt-2 min-h-[calc(100vh-250px)] w-full">
       {visiblePhases.map((phase) => {
         const phaseInfo = PHASES[phase];
         const phasePosts = posts.filter(p => p.phase === phase);

@@ -30,6 +30,7 @@ import LinkedInFeed from './components/LinkedInFeed';
 import UsersList from './components/UsersList';
 import NotificationsStream from './components/NotificationsStream';
 import SettingsView from './components/SettingsView';
+import UserGuideModal from './components/UserGuideModal';
 import { 
   LayoutDashboard, 
   LogOut, 
@@ -48,7 +49,8 @@ import {
   Instagram,
   Globe,
   Palette,
-  X
+  X,
+  BookOpen
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
@@ -127,6 +129,20 @@ export default function App() {
   const [comments, setComments] = useState<any[]>([]);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showGuideModal, setShowGuideModal] = useState(false);
+
+  // Auto open the user guide on first load
+  useEffect(() => {
+    const hasSeenGuide = localStorage.getItem('socialflow_guide_seen');
+    if (!hasSeenGuide) {
+      // Delay slightly for smooth entering transitions
+      const timer = setTimeout(() => {
+        setShowGuideModal(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Project modal states
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
@@ -518,8 +534,17 @@ export default function App() {
   };
 
   const filteredPosts = posts.filter(post => {
-    if (activeProjectId === 'all') return true;
-    return post.projectId === activeProjectId;
+    const matchesProject = activeProjectId === 'all' || post.projectId === activeProjectId;
+    if (!matchesProject) return false;
+
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      (post.idea || '').toLowerCase().includes(query) ||
+      (post.copyCaption || '').toLowerCase().includes(query) ||
+      (post.copyCreativity || '').toLowerCase().includes(query) ||
+      (post.platform || '').toLowerCase().includes(query)
+    );
   });
 
   const stats = {
@@ -636,33 +661,6 @@ export default function App() {
 
         {/* Fixed Footer Elements */}
         <div className="shrink-0 pt-4 border-t border-gray-100 space-y-4">
-          <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
-            <div className="flex items-center gap-2">
-              <ShieldCheck size={14} className="text-app-accent" />
-              <span className="text-[10px] font-bold text-gray-400 uppercase">Modo de Rol</span>
-            </div>
-            <select 
-              value={userRole}
-              onChange={async (e) => {
-                const newRole = e.target.value as Role;
-                setUserRole(newRole);
-                try {
-                  if (currentUser) {
-                    const { updateDoc, doc } = await import('firebase/firestore');
-                    await updateDoc(doc(db, 'users', currentUser.uid), { role: newRole });
-                  }
-                } catch (err) {
-                  handleFirestoreError(err, OperationType.UPDATE, `users/${currentUser?.uid}`);
-                }
-              }}
-              className="w-full bg-white border border-gray-200 rounded-lg py-1.5 px-2 text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-app-accent/20"
-            >
-              {Object.entries(ROLES).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
-
           <div className="flex items-center gap-3">
             <img 
                src={currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.displayName}`} 
@@ -691,9 +689,20 @@ export default function App() {
           <div className="relative w-full max-w-md">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
-              placeholder="Buscar posts, ideas, copys..." 
-              className="w-full bg-gray-50 border border-transparent rounded-2xl py-2.5 pl-12 pr-4 text-sm focus:bg-white focus:border-app-accent/20 focus:ring-4 focus:ring-app-accent/5 transition-all outline-none"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar posts, ideas, copys, plataformas..." 
+              className="w-full bg-gray-50 border border-transparent rounded-2xl py-2.5 pl-12 pr-10 text-sm focus:bg-white focus:border-app-accent/20 focus:ring-4 focus:ring-app-accent/5 transition-all outline-none"
             />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-xs"
+                title="Limpiar búsqueda"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -709,6 +718,13 @@ export default function App() {
               <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest leading-none mb-1">PRODUCCIÓN</span>
               <span className="text-xs font-semibold text-gray-800">Q2 2026 PLAN</span>
             </div>
+            <button 
+              onClick={() => setShowGuideModal(true)}
+              className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all flex items-center justify-center shrink-0"
+              title="Abrir Guía de Uso"
+            >
+              <BookOpen size={18} />
+            </button>
             {userRole !== 'client' && (
                <button 
                 onClick={() => handleCreatePost(new Date())}
@@ -722,7 +738,7 @@ export default function App() {
         </header>
 
         {/* Content Area */}
-        <div className="p-6 flex-1 overflow-hidden flex flex-col gap-6">
+        <div className="p-4 sm:p-6 pb-24 lg:pb-6 flex-1 overflow-hidden flex flex-col gap-4 sm:gap-6">
           {/* Stats Bar */}
           {sidebarTab === 'calendario' && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
@@ -781,6 +797,7 @@ export default function App() {
                   userRole={userRole} 
                   onAddPost={handleCreatePost}
                   onSelectPost={setSelectedPost}
+                  onUpdatePost={handleUpdatePostDirectly}
                 />
               ) : (
                 <Board 
@@ -827,14 +844,57 @@ export default function App() {
                 activeProjectId={activeProjectId}
                 setActiveProjectId={setActiveProjectId}
                 userRole={userRole}
+                onRoleChange={async (newRole) => {
+                  setUserRole(newRole);
+                  try {
+                    if (currentUser) {
+                      const { updateDoc, doc } = await import('firebase/firestore');
+                      await updateDoc(doc(db, 'users', currentUser.uid), { role: newRole });
+                    }
+                  } catch (err) {
+                    handleFirestoreError(err, OperationType.UPDATE, `users/${currentUser?.uid}`);
+                  }
+                }}
               />
             )}
           </div>
         </div>
       </main>
 
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-150 h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0">
+        {[
+          { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
+          { id: 'instagram_feed', label: 'Instagram', icon: Instagram },
+          { id: 'linkedin_feed', label: 'LinkedIn', icon: Globe },
+          { id: 'notificaciones', label: 'Alertas', icon: Bell },
+          { id: 'configuracion', label: 'Config.', icon: Settings }
+        ].map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setSidebarTab(item.id as any)}
+            className={cn(
+              "flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-extrabold transition-all",
+              sidebarTab === item.id 
+                ? "text-app-accent" 
+                : "text-gray-400 hover:text-gray-500"
+            )}
+          >
+            <item.icon size={18} className="mb-1" />
+            <span className="truncate">{item.label}</span>
+          </button>
+        ))}
+      </nav>
+
       {/* Modals & Dialogs */}
       <AnimatePresence>
+        {showGuideModal && (
+          <UserGuideModal 
+            isOpen={showGuideModal} 
+            onClose={() => setShowGuideModal(false)} 
+          />
+        )}
+
         {selectedPost && (
           <PostModal 
             post={selectedPost} 

@@ -28,10 +28,12 @@ interface CalendarProps {
   onAddPost: (date: Date) => void;
   onSelectPost: (post: Post) => void;
   userRole: string;
+  onUpdatePost: (postId: string, updates: any) => void;
 }
 
-export default function Calendar({ posts, onAddPost, onSelectPost, userRole }: CalendarProps) {
+export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onUpdatePost }: CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [draggedOverDay, setDraggedOverDay] = useState<string | null>(null);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(monthStart);
@@ -45,6 +47,31 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole }: C
 
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+
+  const handleDragStart = (e: React.DragEvent, postId: string) => {
+    e.dataTransfer.setData('text/plain', postId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, dayStr: string) => {
+    if (userRole === 'client') return;
+    e.preventDefault();
+    setDraggedOverDay(dayStr);
+  };
+
+  const handleDragLeave = () => {
+    setDraggedOverDay(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetDay: Date) => {
+    if (userRole === 'client') return;
+    e.preventDefault();
+    setDraggedOverDay(null);
+    const postId = e.dataTransfer.getData('text/plain');
+    if (postId) {
+      onUpdatePost(postId, { date: targetDay });
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -87,14 +114,20 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole }: C
           const dayPosts = posts.filter(p => isSameDay(p.date, day));
           const isCurrentMonth = isSameMonth(day, monthStart);
           const isToday = isSameDay(day, new Date());
+          const dayStr = day.toISOString();
+          const isDraggedOver = draggedOverDay === dayStr;
 
           return (
             <div 
-              key={day.toISOString()} 
+              key={dayStr} 
+              onDragOver={(e) => handleDragOver(e, dayStr)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, day)}
               className={cn(
-                "p-2 border-r border-b border-gray-50 flex flex-col gap-1 relative group transition-colors",
+                "p-2 border-r border-b border-gray-50 flex flex-col gap-1 relative group transition-all duration-150",
                 !isCurrentMonth && "bg-gray-50/50",
-                isToday && "bg-blue-50/20"
+                isToday && "bg-blue-50/20",
+                isDraggedOver && "ring-2 ring-dashed ring-app-accent bg-app-accent/5 z-10 scale-[0.98] shadow-inner"
               )}
             >
               <div className="flex justify-between items-start">
@@ -128,8 +161,11 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole }: C
                       layoutId={post.id}
                       key={post.id}
                       onClick={() => onSelectPost(post)}
+                      draggable={userRole !== 'client'}
+                      onDragStart={(e) => handleDragStart(e, post.id)}
                       className={cn(
                         "w-full text-left p-1.5 rounded-lg border text-[10px] leading-tight transition-all hover:scale-[1.02] shadow-sm flex flex-col font-medium",
+                        userRole !== 'client' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
                         post.phase === 'idea_1' && "bg-slate-100/90 border-slate-200/80 text-slate-700",
                         post.phase === 'idea_2' && "bg-sky-100/90 border-sky-200/80 text-sky-800",
                         post.phase === 'copy' && "bg-purple-100/90 border-purple-200/80 text-purple-800",
