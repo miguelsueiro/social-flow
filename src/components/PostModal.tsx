@@ -84,6 +84,7 @@ interface Post {
   captionVersions?: VersionItem[];
   creativityVersions?: VersionItem[];
   designVersions?: VersionItem[];
+  videoUrl?: string;
 }
 
 interface PostModalProps {
@@ -623,7 +624,24 @@ export default function PostModal({
   const canGoBackPhase = isAgencyMember && localPost.phase !== 'idea_1';
 
   const handleUpdate = () => {
-    if (localPost) onUpdate(localPost);
+    if (!localPost) return;
+
+    const hasChanged = 
+      (localPost.idea || '') !== (post.idea || '') ||
+      (localPost.copyCreativity || '') !== (post.copyCreativity || '') ||
+      (localPost.copyCaption || '') !== (post.copyCaption || '') ||
+      (localPost.currentDesignUrl || '') !== (post.currentDesignUrl || '') ||
+      localPost.format !== post.format ||
+      localPost.platform !== post.platform ||
+      localPost.projectId !== post.projectId ||
+      localPost.phase !== post.phase ||
+      localPost.date?.toString() !== post.date?.toString() ||
+      JSON.stringify(localPost.carouselUrls || []) !== JSON.stringify(post.carouselUrls || []) ||
+      localPost.videoUrl !== post.videoUrl;
+
+    if (hasChanged) {
+      onUpdate(localPost);
+    }
   };
 
   const nextPhase = () => {

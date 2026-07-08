@@ -306,10 +306,6 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
             </span>
           </div>
           
-          <p className="text-xs text-gray-500 leading-relaxed">
-            Parrilla de previsualización optimizada con relación de aspecto 4:5 (1080x1350 px), bordes completamente rectos y libre de textos o etiquetas técnicas.
-          </p>
-
           <hr className="border-gray-100" />
 
           {/* Toggle Mobile Frame */}
@@ -444,7 +440,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
         <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3 text-xs text-blue-700 leading-normal shrink-0">
           <Info size={16} className="shrink-0 mt-0.5 text-blue-600" />
           <p>
-            <strong>Edición en vivo:</strong> Haz clic sobre cualquier creatividad para abrir la ficha técnica, redactar copy, subir diseños o dejar feedback del cliente.
+            <strong>Vista de Instagram:</strong> Haz clic sobre cualquier creatividad para abrir la vista individual de Instagram, y utiliza el botón <strong>Editar</strong> para abrir la ficha técnica, redactar copy o gestionar el feedback.
           </p>
         </div>
       </div>

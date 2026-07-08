@@ -945,10 +945,7 @@ export default function App() {
                 </span>
               </div>
 
-              <div className="flex flex-col items-end mr-2 hidden md:flex">
-                <span className="text-[11px] font-semibold text-gray-400 leading-none mb-1">Producción</span>
-                <span className="text-xs font-bold text-gray-800">Plan Q2 2026</span>
-              </div>
+
               <button 
                 onClick={() => setShowGuideModal(true)}
                 className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all flex items-center justify-center shrink-0"

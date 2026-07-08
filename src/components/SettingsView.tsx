@@ -20,7 +20,8 @@ import {
   UserPlus,
   Mail,
   Users,
-  CheckCircle
+  CheckCircle,
+  Edit2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { db } from '../lib/firebase';
@@ -103,6 +104,49 @@ export default function SettingsView({
       toast.success('Rol de usuario actualizado');
     } catch (err) {
       toast.error('Error al actualizar rol');
+      console.error(err);
+    }
+  };
+
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editUserName, setEditUserName] = useState('');
+  const [editUserEmail, setEditUserEmail] = useState('');
+  const [editUserStatus, setEditUserStatus] = useState('active');
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+
+  const startEditingUser = (usr: any) => {
+    setEditingUserId(usr.id);
+    setEditUserName(usr.name || '');
+    setEditUserEmail(usr.email || '');
+    setEditUserStatus(usr.status || 'active');
+  };
+
+  const handleSaveUser = async (userId: string) => {
+    if (!editUserName.trim() || !editUserEmail.trim()) {
+      toast.error('Nombre y correo son obligatorios');
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        name: editUserName.trim(),
+        email: editUserEmail.trim(),
+        status: editUserStatus
+      });
+      toast.success('Usuario actualizado correctamente');
+      setEditingUserId(null);
+    } catch (err) {
+      toast.error('Error al actualizar usuario');
+      console.error(err);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await deleteDoc(doc(db, 'users', userId));
+      toast.success('Usuario eliminado correctamente');
+      setUserToDelete(null);
+    } catch (err) {
+      toast.error('Error al eliminar usuario');
       console.error(err);
     }
   };
@@ -386,176 +430,273 @@ export default function SettingsView({
                     const isUserAdmin = usr.role === 'admin';
                     // Handle backward compatibility for permittedProjects
                     const userPermitted = usr.permittedProjects || (usr.projectId ? [usr.projectId] : []);
+                    const isEditing = editingUserId === usr.id;
 
                     return (
-                      <div key={usr.id} className="py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
+                      <div key={usr.id} className="py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-50/50 pb-4">
+                        <div className="flex-1 flex items-center gap-3">
                           <img 
                             src={usr.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(usr.name || '')}`} 
                             alt={usr.name} 
                             className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-100"
                           />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold text-gray-900 text-xs">{usr.name}</p>
-                              {usr.status === 'pending' ? (
-                                <span className="bg-amber-50 text-amber-700 font-extrabold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider animate-pulse">Pendiente</span>
-                              ) : (
-                                <span className="bg-emerald-50 text-emerald-700 font-extrabold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">Activo</span>
-                              )}
+                          
+                          {isEditing ? (
+                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              <div>
+                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Nombre</label>
+                                <input
+                                  type="text"
+                                  value={editUserName}
+                                  onChange={(e) => setEditUserName(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all"
+                                  placeholder="Nombre completo"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Correo</label>
+                                <input
+                                  type="email"
+                                  value={editUserEmail}
+                                  onChange={(e) => setEditUserEmail(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all"
+                                  placeholder="correo@ejemplo.com"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Estado</label>
+                                <select
+                                  value={editUserStatus}
+                                  onChange={(e) => setEditUserStatus(e.target.value)}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                                >
+                                  <option value="active">Activo</option>
+                                  <option value="pending">Pendiente</option>
+                                </select>
+                              </div>
                             </div>
-                            <p className="text-[11px] text-gray-400">{usr.email}</p>
-                          </div>
+                          ) : (
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-gray-900 text-xs">{usr.name}</p>
+                                {usr.status === 'pending' ? (
+                                  <span className="bg-amber-50 text-amber-700 font-extrabold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider animate-pulse">Pendiente</span>
+                                ) : (
+                                  <span className="bg-emerald-50 text-emerald-700 font-extrabold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">Activo</span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-gray-400">{usr.email}</p>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="flex items-center gap-5 shrink-0 relative">
-                          {/* Role Selector */}
-                          <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rol / Permisos</span>
-                            {isUserAdmin ? (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 font-bold rounded-xl text-xs">
-                                {ROLES.admin}
-                              </span>
-                            ) : (
-                              <select
-                                value={usr.role || 'client'}
-                                onChange={(e) => handleRoleChangeInDb(usr.id, e.target.value as Role)}
-                                className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                        <div className="flex items-center gap-4 shrink-0 relative">
+                          {isEditing ? (
+                            <div className="flex items-center gap-1.5 pt-4 md:pt-0">
+                              <button
+                                onClick={() => handleSaveUser(usr.id)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl transition-all shadow-sm"
                               >
-                                {Object.entries(ROLES).map(([key, label]) => (
-                                  <option key={key} value={key}>{label}</option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
-
-                          {/* Projects Selector */}
-                          <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Acceso a Proyectos</span>
-                            {isUserAdmin ? (
-                              <span className="inline-flex items-center px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-400 italic">
-                                Acceso Total (Admin)
-                              </span>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <div className="flex flex-wrap gap-1 max-w-[200px] justify-end items-center">
-                                  {userPermitted.length === 0 ? (
-                                    <span className="text-xs text-gray-400">Sin acceso</span>
-                                  ) : (
-                                    <>
-                                      {userPermitted.slice(0, 1).map((projId: string) => {
-                                        const pObj = projects.find(p => p.id === projId);
-                                        if (!pObj) return null;
-                                        return (
-                                          <span key={projId} className="inline-flex items-center gap-1 bg-gray-50 border border-gray-100 px-2 py-1 rounded-xl text-xs text-gray-600 max-w-[110px] truncate">
-                                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: pObj.color }} />
-                                            <span className="truncate">{pObj.name}</span>
-                                          </span>
-                                        );
-                                      })}
-                                      {userPermitted.length > 1 && (
-                                        <span className="inline-flex items-center bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-xl text-[10px] text-indigo-600 font-bold shrink-0">
-                                          +{userPermitted.length - 1}
-                                        </span>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
-
-                                {/* Popover trigger */}
-                                <div className="relative">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (activeUserPopover === usr.id) {
-                                        setActiveUserPopover(null);
-                                        setPopoverSearch('');
-                                      } else {
-                                        setActiveUserPopover(usr.id);
-                                        setPopoverSearch('');
-                                      }
-                                    }}
-                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 text-xs transition-all font-bold shadow-sm"
+                                Guardar
+                              </button>
+                              <button
+                                onClick={() => setEditingUserId(null)}
+                                className="bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold text-[11px] px-3 py-1.5 rounded-xl transition-all"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              {/* Role Selector */}
+                              <div className="flex flex-col">
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rol / Permisos</span>
+                                {isUserAdmin ? (
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 font-bold rounded-xl text-xs">
+                                    {ROLES.admin}
+                                  </span>
+                                ) : (
+                                  <select
+                                    value={usr.role || 'client'}
+                                    onChange={(e) => handleRoleChangeInDb(usr.id, e.target.value as Role)}
+                                    className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
                                   >
-                                    <span>Asignar</span>
-                                    <ChevronDown size={13} className={`text-gray-400 transition-transform ${activeUserPopover === usr.id ? 'rotate-180' : ''}`} />
-                                  </button>
+                                    {Object.entries(ROLES).map(([key, label]) => (
+                                      <option key={key} value={key}>{label}</option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
 
-                                  {activeUserPopover === usr.id && (
-                                    <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-150 shadow-2xl rounded-2xl p-3.5 z-50 space-y-2">
-                                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Permisos para {usr.name}</p>
-                                      
-                                      {projects.length > 4 && (
-                                        <div className="relative flex items-center">
-                                          <Search size={13} className="absolute left-2.5 text-gray-400" />
-                                          <input
-                                            type="text"
-                                            placeholder="Buscar proyecto..."
-                                            value={popoverSearch}
-                                            onChange={(e) => setPopoverSearch(e.target.value)}
-                                            className="w-full bg-gray-50 border border-gray-150 rounded-xl py-1 pl-7 pr-3 text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-gray-800"
-                                          />
-                                        </div>
-                                      )}
-
-                                      <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
-                                        {projects
-                                          .filter(p => !popoverSearch || p.name.toLowerCase().includes(popoverSearch.toLowerCase()) || p.clientName.toLowerCase().includes(popoverSearch.toLowerCase()))
-                                          .map((proj) => {
-                                            const hasPerm = userPermitted.includes(proj.id);
+                              {/* Projects Selector */}
+                              <div className="flex flex-col">
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Acceso a Proyectos</span>
+                                {isUserAdmin ? (
+                                  <span className="inline-flex items-center px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-400 italic">
+                                    Acceso Total (Admin)
+                                  </span>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex flex-wrap gap-1 max-w-[200px] justify-end items-center">
+                                      {userPermitted.length === 0 ? (
+                                        <span className="text-xs text-gray-400">Sin acceso</span>
+                                      ) : (
+                                        <>
+                                          {userPermitted.slice(0, 1).map((projId: string) => {
+                                            const pObj = projects.find(p => p.id === projId);
+                                            if (!pObj) return null;
                                             return (
-                                              <button
-                                                key={proj.id}
-                                                type="button"
-                                                onClick={async () => {
-                                                  try {
-                                                    let nextPermitted = [...userPermitted];
-                                                    if (nextPermitted.includes(proj.id)) {
-                                                      nextPermitted = nextPermitted.filter(id => id !== proj.id);
-                                                    } else {
-                                                      nextPermitted.push(proj.id);
-                                                    }
-                                                    
-                                                    const { updateDoc, doc } = await import('firebase/firestore');
-                                                    await updateDoc(doc(db, 'users', usr.id), { 
-                                                      permittedProjects: nextPermitted,
-                                                      projectId: nextPermitted[0] || ''
-                                                    });
-                                                    toast.success(`Permisos actualizados para ${usr.name}`);
-                                                  } catch (err) {
-                                                    console.error(err);
-                                                    toast.error('Error al actualizar permisos');
-                                                  }
-                                                }}
-                                                className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all text-xs hover:bg-gray-50 ${
-                                                  hasPerm ? 'text-indigo-700 font-bold' : 'text-gray-600'
-                                                }`}
-                                              >
-                                                <div className="flex items-center gap-2">
-                                                  <div className="w-2.5 h-2.5 rounded-full border border-white shrink-0" style={{ backgroundColor: proj.color }} />
-                                                  <div className="truncate">
-                                                    <p className="truncate font-bold text-gray-800">{proj.name}</p>
-                                                    <p className="text-[10px] text-gray-400 font-normal truncate">Cliente: {proj.clientName}</p>
-                                                  </div>
-                                                </div>
-                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${
-                                                  hasPerm ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-200 bg-white'
-                                                }`}>
-                                                  {hasPerm && <Check size={10} className="stroke-[3]" />}
-                                                </div>
-                                              </button>
+                                              <span key={projId} className="inline-flex items-center gap-1 bg-gray-50 border border-gray-100 px-2 py-1 rounded-xl text-xs text-gray-600 max-w-[110px] truncate">
+                                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: pObj.color }} />
+                                                <span className="truncate">{pObj.name}</span>
+                                              </span>
                                             );
                                           })}
-                                        {projects.filter(p => !popoverSearch || p.name.toLowerCase().includes(popoverSearch.toLowerCase())).length === 0 && (
-                                          <p className="text-center text-xs text-gray-400 py-3">No se encontraron proyectos</p>
-                                        )}
-                                      </div>
+                                          {userPermitted.length > 1 && (
+                                            <span className="inline-flex items-center bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-xl text-[10px] text-indigo-600 font-bold shrink-0">
+                                              +{userPermitted.length - 1}
+                                            </span>
+                                          )}
+                                        </>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
+
+                                    {/* Popover trigger */}
+                                    <div className="relative">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (activeUserPopover === usr.id) {
+                                            setActiveUserPopover(null);
+                                            setPopoverSearch('');
+                                          } else {
+                                            setActiveUserPopover(usr.id);
+                                            setPopoverSearch('');
+                                          }
+                                        }}
+                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 text-xs transition-all font-bold shadow-sm"
+                                      >
+                                        <span>Asignar</span>
+                                        <ChevronDown size={13} className={`text-gray-400 transition-transform ${activeUserPopover === usr.id ? 'rotate-180' : ''}`} />
+                                      </button>
+
+                                      {activeUserPopover === usr.id && (
+                                        <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-150 shadow-2xl rounded-2xl p-3.5 z-50 space-y-2">
+                                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Permisos para {usr.name}</p>
+                                          
+                                          {projects.length > 4 && (
+                                            <div className="relative flex items-center">
+                                              <Search size={13} className="absolute left-2.5 text-gray-400" />
+                                              <input
+                                                type="text"
+                                                placeholder="Buscar proyecto..."
+                                                value={popoverSearch}
+                                                onChange={(e) => setPopoverSearch(e.target.value)}
+                                                className="w-full bg-gray-50 border border-gray-150 rounded-xl py-1 pl-7 pr-3 text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-gray-800"
+                                              />
+                                            </div>
+                                          )}
+
+                                          <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
+                                            {projects
+                                              .filter(p => !popoverSearch || p.name.toLowerCase().includes(popoverSearch.toLowerCase()) || p.clientName.toLowerCase().includes(popoverSearch.toLowerCase()))
+                                              .map((proj) => {
+                                                const hasPerm = userPermitted.includes(proj.id);
+                                                return (
+                                                  <button
+                                                    key={proj.id}
+                                                    type="button"
+                                                    onClick={async () => {
+                                                      try {
+                                                        let nextPermitted = [...userPermitted];
+                                                        if (nextPermitted.includes(proj.id)) {
+                                                          nextPermitted = nextPermitted.filter(id => id !== proj.id);
+                                                        } else {
+                                                          nextPermitted.push(proj.id);
+                                                        }
+                                                        
+                                                        const { updateDoc, doc } = await import('firebase/firestore');
+                                                        await updateDoc(doc(db, 'users', usr.id), { 
+                                                          permittedProjects: nextPermitted,
+                                                          projectId: nextPermitted[0] || ''
+                                                        });
+                                                        toast.success(`Permisos actualizados para ${usr.name}`);
+                                                      } catch (err) {
+                                                        console.error(err);
+                                                        toast.error('Error al actualizar permisos');
+                                                      }
+                                                    }}
+                                                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all text-xs hover:bg-gray-50 ${
+                                                      hasPerm ? 'text-indigo-700 font-bold' : 'text-gray-600'
+                                                    }`}
+                                                  >
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="w-2.5 h-2.5 rounded-full border border-white shrink-0" style={{ backgroundColor: proj.color }} />
+                                                      <div className="truncate">
+                                                        <p className="truncate font-bold text-gray-800">{proj.name}</p>
+                                                        <p className="text-[10px] text-gray-400 font-normal truncate">Cliente: {proj.clientName}</p>
+                                                      </div>
+                                                    </div>
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${
+                                                      hasPerm ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-200 bg-white'
+                                                    }`}>
+                                                      {hasPerm && <Check size={10} className="stroke-[3]" />}
+                                                    </div>
+                                                  </button>
+                                                );
+                                              })}
+                                            {projects.filter(p => !popoverSearch || p.name.toLowerCase().includes(popoverSearch.toLowerCase())).length === 0 && (
+                                              <p className="text-center text-xs text-gray-400 py-3">No se encontraron proyectos</p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
+
+                              {/* Action buttons (Edit & Delete) */}
+                              <div className="flex items-center gap-1 pl-2 border-l border-gray-150 h-8 self-end">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditingUser(usr)}
+                                  className="p-1.5 hover:bg-gray-100 text-gray-500 hover:text-gray-800 rounded-lg transition-colors"
+                                  title="Editar usuario"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                
+                                {userToDelete === usr.id ? (
+                                  <div className="flex items-center gap-1 bg-red-50 border border-red-200 rounded-lg p-0.5 ml-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteUser(usr.id)}
+                                      className="bg-red-600 hover:bg-red-700 text-white font-bold text-[9px] px-2 py-1 rounded shadow-sm"
+                                    >
+                                      Sí
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setUserToDelete(null)}
+                                      className="bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold text-[9px] px-2 py-1 rounded shadow-sm"
+                                    >
+                                      No
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setUserToDelete(usr.id)}
+                                    className="p-1.5 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-lg transition-colors"
+                                    title="Eliminar usuario"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     );
