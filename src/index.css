@@ -10,6 +10,10 @@
   --radius-xl: 8px;
   --radius-lg: 6px;
   --radius-md: 4px;
+  
+  --font-weight-bold: 500;
+  --font-weight-extrabold: 600;
+  --font-weight-black: 600;
 }
 
 @layer base {
@@ -62,3 +66,33 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Ensure minimum text size of 13px across the platform */
+.text-\[8px\],
+.text-\[9px\],
+.text-\[10px\],
+.text-\[11px\],
+.text-\[12px\],
+.text-xxs,
+.text-xs {
+  font-size: 13px !important;
+}
+
+/* Fallback class overrides to guarantee consistent rendering across browsers */
+.font-black {
+  font-weight: 600 !important;
+}
+.font-extrabold {
+  font-weight: 600 !important;
+}
+.font-bold {
+  font-weight: 500 !important;
+}
+
+/* Avoid uppercase text styling globally as per user request */
+.uppercase,
+[class*="uppercase"] {
+  text-transform: none !important;
+}
+
+

@@ -38,7 +38,10 @@ service cloud.firestore {
     // --- Users Collection ---
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+      allow create, update: if isSignedIn() && (
+        (request.auth.uid == userId && isValidUser(incoming())) ||
+        isAgencyRole()
+      );
     }
 
     // --- Projects Collection ---
@@ -91,7 +94,7 @@ service cloud.firestore {
         ))
       );
       
-      allow delete: if isAdmin();
+      allow delete: if isAgencyRole();
 
       // --- Comments Subcollection ---
       match /comments/{commentId} {

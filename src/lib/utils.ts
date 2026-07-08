@@ -45,7 +45,7 @@ export const PHASES: Record<Phase, { label: string; color: string; clientVisible
   published: { label: 'Publicado', color: 'bg-indigo-100 text-indigo-700', clientVisible: true }
 };
 
-export function compressImage(base64Str: string, maxWidth = 1024, maxHeight = 1024, quality = 0.7): Promise<string> {
+export function compressImage(base64Str: string, maxWidth = 1920, maxHeight = 1920, quality = 0.88): Promise<string> {
   return new Promise((resolve) => {
     // Check if it's already a very small base64 or not an image
     if (!base64Str.startsWith('data:image/')) {
@@ -79,6 +79,10 @@ export function compressImage(base64Str: string, maxWidth = 1024, maxHeight = 10
         resolve(base64Str);
         return;
       }
+
+      // Configure high-quality image smoothing for crisp, pixel-perfect scaling
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
 
       ctx.drawImage(img, 0, 0, width, height);
       const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);

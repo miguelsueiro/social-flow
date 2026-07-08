@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Settings, 
@@ -14,11 +14,17 @@ import {
   Check,
   ShieldCheck,
   AlertTriangle,
-  X
+  X,
+  Search,
+  ChevronDown,
+  UserPlus,
+  Mail,
+  Users,
+  CheckCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { db } from '../lib/firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { ROLES, Role } from '../lib/utils';
 
 interface Project {
@@ -34,15 +40,94 @@ interface SettingsViewProps {
   setActiveProjectId: (id: string) => void;
   userRole: string;
   onRoleChange: (role: Role) => void;
+  permittedProjects?: string[];
+  userProjectId?: string | null;
 }
 
-export default function SettingsView({ projects, activeProjectId, setActiveProjectId, userRole, onRoleChange }: SettingsViewProps) {
+export default function SettingsView({ 
+  projects, 
+  activeProjectId, 
+  setActiveProjectId, 
+  userRole, 
+  onRoleChange,
+  permittedProjects = [],
+  userProjectId = null
+}: SettingsViewProps) {
   const [agencyName, setAgencyName] = useState('Basetis Creative Studio');
   const [timezone, setTimezone] = useState('Europe/Madrid');
   const [notifySlack, setNotifySlack] = useState(true);
   const [notifyEmail, setNotifyEmail] = useState(true);
   const [notifyClientApprove, setNotifyClientApprove] = useState(true);
   const [themeColor, setThemeColor] = useState('blue');
+
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [activeUserPopover, setActiveUserPopover] = useState<string | null>(null);
+  const [popoverSearch, setPopoverSearch] = useState('');
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<Role>('client');
+  const [inviteName, setInviteName] = useState('');
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail || !inviteName) return;
+
+    try {
+      const id = doc(collection(db, 'users')).id;
+      const newUser = {
+        uid: id,
+        name: inviteName,
+        email: inviteEmail,
+        role: inviteRole,
+        status: 'pending',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(inviteName)}&background=random`,
+        projectId: ''
+      };
+
+      await setDoc(doc(db, 'users', id), newUser);
+      toast.success('Usuario invitado con éxito');
+      setInviteEmail('');
+      setInviteName('');
+      setShowInviteModal(false);
+    } catch (err) {
+      toast.error('Error al invitar usuario');
+      console.error(err);
+    }
+  };
+
+  const handleRoleChangeInDb = async (userId: string, newRole: Role) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), { role: newRole });
+      toast.success('Rol de usuario actualizado');
+    } catch (err) {
+      toast.error('Error al actualizar rol');
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (userRole !== 'admin') return;
+    const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
+      setUsersList(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, [userRole]);
+
+  const hasProjectPermission = (projectId: string) => {
+    if (userRole === 'admin') return true;
+    if (userRole === 'client') {
+      if (permittedProjects && permittedProjects.length > 0) {
+        return permittedProjects.includes(projectId);
+      }
+      return userProjectId === projectId;
+    }
+    if (permittedProjects && permittedProjects.length > 0) {
+      return permittedProjects.includes(projectId);
+    }
+    return true; // Default for other agency roles if not explicitly restricted
+  };
 
   // New project inline form states
   const [isAdding, setIsAdding] = useState(false);
@@ -189,17 +274,17 @@ export default function SettingsView({ projects, activeProjectId, setActiveProje
       </div>
       
       {/* 1. Project switching panel (moved from sidebar/topbar) */}
-      {userRole !== 'client' && (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <Folder size={20} className="text-blue-600" />
-            <div>
-              <h3 className="font-extrabold text-gray-900 text-sm">Cambiar de Proyecto de Trabajo Activo</h3>
-              <p className="text-xs text-gray-400">Selecciona el espacio de trabajo que quieres planificar en el calendario y ver en el tablero.</p>
-            </div>
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Folder size={20} className="text-blue-600" />
+          <div>
+            <h3 className="font-extrabold text-gray-900 text-sm">Cambiar de Proyecto de Trabajo Activo</h3>
+            <p className="text-xs text-gray-400">Selecciona el espacio de trabajo que quieres planificar en el calendario y ver en el tablero.</p>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {userRole === 'admin' && (
             <button
               onClick={() => setActiveProjectId('all')}
               className={`p-4 rounded-2xl border text-left flex flex-col justify-between h-28 transition-all ${
@@ -216,38 +301,267 @@ export default function SettingsView({ projects, activeProjectId, setActiveProje
                 <p className="text-[10px] text-gray-400 mt-0.5">Vea la parrilla global consolidada</p>
               </div>
             </button>
+          )}
 
-            {projects.map((proj) => (
-              <button
-                key={proj.id}
-                onClick={() => setActiveProjectId(proj.id)}
-                className={`p-4 rounded-2xl border text-left flex flex-col justify-between h-28 transition-all relative group ${
-                  activeProjectId === proj.id
-                    ? 'border-transparent ring-2'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
-                style={{
-                  boxShadow: activeProjectId === proj.id ? `0 0 0 2px ${proj.color}` : 'none',
-                  backgroundColor: activeProjectId === proj.id ? `${proj.color}08` : 'transparent'
-                }}
+          {projects.filter(p => hasProjectPermission(p.id)).map((proj) => (
+            <button
+              key={proj.id}
+              onClick={() => setActiveProjectId(proj.id)}
+              className={`p-4 rounded-2xl border text-left flex flex-col justify-between h-28 transition-all relative group ${
+                activeProjectId === proj.id
+                  ? 'border-transparent ring-2'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+              style={{
+                boxShadow: activeProjectId === proj.id ? `0 0 0 2px ${proj.color}` : 'none',
+                backgroundColor: activeProjectId === proj.id ? `${proj.color}08` : 'transparent'
+              }}
+            >
+              <div 
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs"
+                style={{ backgroundColor: proj.color }}
               >
-                <div 
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs"
-                  style={{ backgroundColor: proj.color }}
-                >
-                  {proj.name[0]}
+                {proj.name[0]}
+              </div>
+              <div>
+                <p className="text-xs font-black text-gray-900 line-clamp-1">{proj.name}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">Cliente: {proj.clientName}</p>
+              </div>
+              {activeProjectId === proj.id && (
+                <div className="absolute top-3 right-3 text-white rounded-full p-0.5" style={{ backgroundColor: proj.color }}>
+                  <Check size={10} />
                 </div>
-                <div>
-                  <p className="text-xs font-black text-gray-900 line-clamp-1">{proj.name}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">Cliente: {proj.clientName}</p>
-                </div>
-                {activeProjectId === proj.id && (
-                  <div className="absolute top-3 right-3 text-white rounded-full p-0.5" style={{ backgroundColor: proj.color }}>
-                    <Check size={10} />
-                  </div>
-                )}
-              </button>
-            ))}
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 1.5. Permissions panel for Admin */}
+      {userRole === 'admin' && (
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-fade-in">
+          <div className="p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
+                <Users size={18} className="text-indigo-600" />
+                Gestión de Usuarios y Permisos de Proyectos
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">Como administrador, puedes invitar colaboradores, asignar roles de la agencia y habilitar o deshabilitar el acceso a proyectos específicos.</p>
+            </div>
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-md flex items-center gap-1.5 transition-all self-start md:self-auto shrink-0 animate-fade-in"
+            >
+              <UserPlus size={14} />
+              Invitar Usuario
+            </button>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+              <input
+                placeholder="Buscar usuarios por nombre o correo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-2 pl-10 pr-4 text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+              />
+            </div>
+
+            {usersList.length === 0 ? (
+              <div className="text-center text-xs text-gray-400 py-6">Cargando usuarios...</div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {usersList
+                  .filter(usr => {
+                    const query = searchTerm.toLowerCase();
+                    return (
+                      (usr.name || '').toLowerCase().includes(query) ||
+                      (usr.email || '').toLowerCase().includes(query) ||
+                      (ROLES[usr.role as Role] || '').toLowerCase().includes(query)
+                    );
+                  })
+                  .map((usr) => {
+                    const isUserAdmin = usr.role === 'admin';
+                    // Handle backward compatibility for permittedProjects
+                    const userPermitted = usr.permittedProjects || (usr.projectId ? [usr.projectId] : []);
+
+                    return (
+                      <div key={usr.id} className="py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={usr.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(usr.name || '')}`} 
+                            alt={usr.name} 
+                            className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-100"
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-gray-900 text-xs">{usr.name}</p>
+                              {usr.status === 'pending' ? (
+                                <span className="bg-amber-50 text-amber-700 font-extrabold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider animate-pulse">Pendiente</span>
+                              ) : (
+                                <span className="bg-emerald-50 text-emerald-700 font-extrabold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">Activo</span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-gray-400">{usr.email}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-5 shrink-0 relative">
+                          {/* Role Selector */}
+                          <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rol / Permisos</span>
+                            {isUserAdmin ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 font-bold rounded-xl text-xs">
+                                {ROLES.admin}
+                              </span>
+                            ) : (
+                              <select
+                                value={usr.role || 'client'}
+                                onChange={(e) => handleRoleChangeInDb(usr.id, e.target.value as Role)}
+                                className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                              >
+                                {Object.entries(ROLES).map(([key, label]) => (
+                                  <option key={key} value={key}>{label}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+
+                          {/* Projects Selector */}
+                          <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Acceso a Proyectos</span>
+                            {isUserAdmin ? (
+                              <span className="inline-flex items-center px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-400 italic">
+                                Acceso Total (Admin)
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap gap-1 max-w-[200px] justify-end items-center">
+                                  {userPermitted.length === 0 ? (
+                                    <span className="text-xs text-gray-400">Sin acceso</span>
+                                  ) : (
+                                    <>
+                                      {userPermitted.slice(0, 1).map((projId: string) => {
+                                        const pObj = projects.find(p => p.id === projId);
+                                        if (!pObj) return null;
+                                        return (
+                                          <span key={projId} className="inline-flex items-center gap-1 bg-gray-50 border border-gray-100 px-2 py-1 rounded-xl text-xs text-gray-600 max-w-[110px] truncate">
+                                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: pObj.color }} />
+                                            <span className="truncate">{pObj.name}</span>
+                                          </span>
+                                        );
+                                      })}
+                                      {userPermitted.length > 1 && (
+                                        <span className="inline-flex items-center bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-xl text-[10px] text-indigo-600 font-bold shrink-0">
+                                          +{userPermitted.length - 1}
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+
+                                {/* Popover trigger */}
+                                <div className="relative">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (activeUserPopover === usr.id) {
+                                        setActiveUserPopover(null);
+                                        setPopoverSearch('');
+                                      } else {
+                                        setActiveUserPopover(usr.id);
+                                        setPopoverSearch('');
+                                      }
+                                    }}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 text-xs transition-all font-bold shadow-sm"
+                                  >
+                                    <span>Asignar</span>
+                                    <ChevronDown size={13} className={`text-gray-400 transition-transform ${activeUserPopover === usr.id ? 'rotate-180' : ''}`} />
+                                  </button>
+
+                                  {activeUserPopover === usr.id && (
+                                    <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-150 shadow-2xl rounded-2xl p-3.5 z-50 space-y-2">
+                                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Permisos para {usr.name}</p>
+                                      
+                                      {projects.length > 4 && (
+                                        <div className="relative flex items-center">
+                                          <Search size={13} className="absolute left-2.5 text-gray-400" />
+                                          <input
+                                            type="text"
+                                            placeholder="Buscar proyecto..."
+                                            value={popoverSearch}
+                                            onChange={(e) => setPopoverSearch(e.target.value)}
+                                            className="w-full bg-gray-50 border border-gray-150 rounded-xl py-1 pl-7 pr-3 text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-gray-800"
+                                          />
+                                        </div>
+                                      )}
+
+                                      <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
+                                        {projects
+                                          .filter(p => !popoverSearch || p.name.toLowerCase().includes(popoverSearch.toLowerCase()) || p.clientName.toLowerCase().includes(popoverSearch.toLowerCase()))
+                                          .map((proj) => {
+                                            const hasPerm = userPermitted.includes(proj.id);
+                                            return (
+                                              <button
+                                                key={proj.id}
+                                                type="button"
+                                                onClick={async () => {
+                                                  try {
+                                                    let nextPermitted = [...userPermitted];
+                                                    if (nextPermitted.includes(proj.id)) {
+                                                      nextPermitted = nextPermitted.filter(id => id !== proj.id);
+                                                    } else {
+                                                      nextPermitted.push(proj.id);
+                                                    }
+                                                    
+                                                    const { updateDoc, doc } = await import('firebase/firestore');
+                                                    await updateDoc(doc(db, 'users', usr.id), { 
+                                                      permittedProjects: nextPermitted,
+                                                      projectId: nextPermitted[0] || ''
+                                                    });
+                                                    toast.success(`Permisos actualizados para ${usr.name}`);
+                                                  } catch (err) {
+                                                    console.error(err);
+                                                    toast.error('Error al actualizar permisos');
+                                                  }
+                                                }}
+                                                className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all text-xs hover:bg-gray-50 ${
+                                                  hasPerm ? 'text-indigo-700 font-bold' : 'text-gray-600'
+                                                }`}
+                                              >
+                                                <div className="flex items-center gap-2">
+                                                  <div className="w-2.5 h-2.5 rounded-full border border-white shrink-0" style={{ backgroundColor: proj.color }} />
+                                                  <div className="truncate">
+                                                    <p className="truncate font-bold text-gray-800">{proj.name}</p>
+                                                    <p className="text-[10px] text-gray-400 font-normal truncate">Cliente: {proj.clientName}</p>
+                                                  </div>
+                                                </div>
+                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${
+                                                  hasPerm ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-200 bg-white'
+                                                }`}>
+                                                  {hasPerm && <Check size={10} className="stroke-[3]" />}
+                                                </div>
+                                              </button>
+                                            );
+                                          })}
+                                        {projects.filter(p => !popoverSearch || p.name.toLowerCase().includes(popoverSearch.toLowerCase())).length === 0 && (
+                                          <p className="text-center text-xs text-gray-400 py-3">No se encontraron proyectos</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -619,6 +933,91 @@ export default function SettingsView({ projects, activeProjectId, setActiveProje
                 Sí, eliminar
               </button>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Invite User Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-gray-100"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+                <UserPlus size={24} />
+              </div>
+              <button 
+                onClick={() => setShowInviteModal(false)}
+                className="p-1.5 hover:bg-gray-100 rounded-xl transition-all text-gray-400 hover:text-gray-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <h4 className="text-base font-extrabold text-gray-900 mb-1">
+              Invitar colaborador o cliente
+            </h4>
+            <p className="text-xs text-gray-500 leading-relaxed mb-6">
+              El usuario recibirá un correo con el enlace para acceder con su cuenta de Google.
+            </p>
+
+            <form onSubmit={handleInvite} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 block mb-1">Nombre completo</label>
+                <input 
+                  type="text" 
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  placeholder="Ej. Ana Belén"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all text-gray-800"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 block mb-1">Correo electrónico</label>
+                <input 
+                  type="email" 
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="Ej. ana.client@basetis.com"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all text-gray-800"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 block mb-1">Rol en SocialFlow</label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as Role)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
+                >
+                  {Object.entries(ROLES).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowInviteModal(false)}
+                  className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/10"
+                >
+                  Enviar invitación
+                </button>
+              </div>
+            </form>
           </motion.div>
         </div>
       )}

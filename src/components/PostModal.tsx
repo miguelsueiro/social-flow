@@ -462,6 +462,7 @@ export default function PostModal({
   const [feedbackText, setFeedbackText] = useState('');
   const [localPost, setLocalPost] = useState<Post | null>(post);
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const getFormattedDateForInput = (d: any) => {
     if (!d) return '';
@@ -790,18 +791,37 @@ export default function PostModal({
           
           <div className="flex items-center gap-2">
             {isAgencyMember && onDelete && (
-              <button 
-                onClick={() => {
-                  if (window.confirm('¿Estás seguro de que quieres eliminar permanentemente este post de la planificación?')) {
-                    onDelete(localPost.id);
-                  }
-                }}
-                className="p-2 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
-                title="Eliminar post"
-              >
-                <Trash2 size={18} />
-                <span className="hidden sm:inline">Eliminar Post</span>
-              </button>
+              showDeleteConfirm ? (
+                <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-xl p-1 animate-fade-in">
+                  <span className="text-[11px] text-red-700 px-1.5 font-bold">¿Seguro?</span>
+                  <button
+                    onClick={() => {
+                      if (localPost) {
+                        onDelete(localPost.id);
+                      }
+                      setShowDeleteConfirm(false);
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg transition-all"
+                  >
+                    Sí, eliminar
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold text-[11px] px-2.5 py-1 rounded-lg transition-all"
+                  >
+                    No
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-2 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold animate-fade-in"
+                  title="Eliminar post"
+                >
+                  <Trash2 size={18} />
+                  <span className="hidden sm:inline">Eliminar Post</span>
+                </button>
+              )
             )}
             <button 
               onClick={onClose}

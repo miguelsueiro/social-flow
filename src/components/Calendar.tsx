@@ -164,7 +164,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                       draggable={userRole !== 'client'}
                       onDragStart={(e) => handleDragStart(e, post.id)}
                       className={cn(
-                        "w-full text-left p-1.5 rounded-lg border text-[10px] leading-tight transition-all hover:scale-[1.02] shadow-sm flex flex-col font-medium",
+                        "w-full text-left p-1.5 rounded-lg border text-xs leading-tight transition-all hover:scale-[1.02] shadow-sm flex flex-col font-medium",
                         userRole !== 'client' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
                         post.phase === 'idea_1' && "bg-slate-100/90 border-slate-200/80 text-slate-700",
                         post.phase === 'idea_2' && "bg-sky-100/90 border-sky-200/80 text-sky-800",

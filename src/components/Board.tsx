@@ -59,10 +59,13 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: B
     }
   };
   
-  // Filter phases for clients
-  const visiblePhases = phaseKeys.filter(phase => 
-    userRole !== 'client' || PHASES[phase].clientVisible
-  );
+  // Filter phases for clients: only Fase 4 and Fase 5
+  const visiblePhases = phaseKeys.filter(phase => {
+    if (userRole === 'client') {
+      return phase === 'client_review' || phase === 'approved';
+    }
+    return true;
+  });
 
   return (
     <div className="flex gap-6 overflow-x-auto pb-6 pt-2 min-h-[calc(100vh-250px)] w-full">
@@ -85,7 +88,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: B
                 )} />
                 <h3 className="font-semibold text-gray-700 text-sm">{phaseInfo.label}</h3>
               </div>
-              <span className="bg-gray-200 text-gray-500 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+              <span className="bg-gray-200 text-gray-500 text-xs font-semibold px-2 py-0.5 rounded-full">
                 {phasePosts.length}
               </span>
             </div>
@@ -128,9 +131,9 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: B
                         <Instagram size={14} className="text-pink-600" /> : 
                         <Video size={14} className="text-black" />
                       }
-                      <span className="text-[10px] font-semibold text-gray-500 capitalize">{post.platform}</span>
+                      <span className="text-xs font-semibold text-gray-500 capitalize">{post.platform}</span>
                     </div>
-                    <span className="text-[10px] font-semibold text-gray-400">{format(post.date, 'dd MMM')}</span>
+                    <span className="text-xs font-semibold text-gray-400">{format(post.date, 'dd MMM')}</span>
                   </div>
                   
                   <p className="text-sm font-medium text-gray-800 line-clamp-2 mb-3 leading-snug">
@@ -139,11 +142,11 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: B
 
                   <div className="flex items-center justify-between pt-3 border-t border-gray-200/40">
                     <div className="flex -space-x-2">
-                      <div className="w-6 h-6 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] font-medium text-blue-600">JD</div>
-                      <div className="w-6 h-6 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-[10px] font-medium text-indigo-600">MS</div>
+                      <div className="w-6 h-6 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-xs font-medium text-blue-600">JD</div>
+                      <div className="w-6 h-6 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-xs font-medium text-indigo-600">MS</div>
                     </div>
                     <div className="flex items-center gap-2 text-gray-400">
-                      <div className="flex items-center gap-0.5 text-[10px] font-medium">
+                      <div className="flex items-center gap-0.5 text-xs font-medium">
                         <MessageSquare size={12} />
                         2
                       </div>
@@ -157,7 +160,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: B
               {phasePosts.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-gray-300 py-10">
                   <Clock size={32} strokeWidth={1} className="mb-2 opacity-50" />
-                  <p className="text-[11px] font-medium text-gray-400">Sin contenido</p>
+                  <p className="text-xs font-medium text-gray-400">Sin contenido</p>
                 </div>
               )}
             </div>

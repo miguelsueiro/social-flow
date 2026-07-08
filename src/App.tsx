@@ -27,7 +27,6 @@ import Board from './components/Board';
 import PostModal from './components/PostModal';
 import InstagramFeed from './components/InstagramFeed';
 import LinkedInFeed from './components/LinkedInFeed';
-import UsersList from './components/UsersList';
 import NotificationsStream from './components/NotificationsStream';
 import SettingsView from './components/SettingsView';
 import UserGuideModal from './components/UserGuideModal';
@@ -51,7 +50,9 @@ import {
   Palette,
   X,
   BookOpen,
-  Video
+  Video,
+  Grid,
+  Info
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
@@ -102,6 +103,20 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+// Helper to slugify text for friendly URLs
+function slugify(text: string): string {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-');
+}
+
 // Simple helper to calculate a slightly darker color for hover effects
 function darkenColor(hex: string, percent: number): string {
   try {
@@ -120,11 +135,12 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<Role>('creative_director'); // Default for demo
   const [userProjectId, setUserProjectId] = useState<string | null>(null);
+  const [permittedProjects, setPermittedProjects] = useState<string[]>([]);
   const [view, setView] = useState<'calendar' | 'board'>('calendar');
-  const [sidebarTab, setSidebarTab] = useState<'calendario' | 'instagram_feed' | 'linkedin_feed' | 'usuarios' | 'notificaciones' | 'configuracion'>('calendario');
+  const [sidebarTab, setSidebarTab] = useState<'calendario' | 'instagram_feed' | 'linkedin_feed' | 'notificaciones' | 'configuracion'>('calendario');
   const [posts, setPosts] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
-  const [activeProjectId, setActiveProjectId] = useState<string>('all');
+  const [activeProjectId, setActiveProjectId] = useState<string>('dashboard');
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState<any[]>([]);
@@ -134,6 +150,53 @@ export default function App() {
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Helper to check if a user has access to a specific project
+  const hasProjectPermission = (projectId: string) => {
+    if (userRole === 'admin') return true;
+    if (userRole === 'client') {
+      if (permittedProjects && permittedProjects.length > 0) {
+        return permittedProjects.includes(projectId);
+      }
+      return userProjectId === projectId;
+    }
+    if (permittedProjects && permittedProjects.length > 0) {
+      return permittedProjects.includes(projectId);
+    }
+    return true; // Default for other agency roles if not explicitly restricted
+  };
+
+  // Helper to synchronize the URL with the active project
+  const updateProjectUrl = (projectId: string) => {
+    const url = new URL(window.location.href);
+    if (projectId && projectId !== 'all' && projectId !== 'dashboard') {
+      const proj = projects.find(p => p.id === projectId);
+      const slug = proj ? slugify(proj.name) : projectId;
+      url.searchParams.set('project', slug);
+    } else if (projectId === 'dashboard') {
+      url.searchParams.set('project', 'dashboard');
+    } else {
+      url.searchParams.delete('project');
+    }
+    window.history.pushState({}, '', url.toString());
+  };
+
+  // Wrapper helper to select a project and update its URL
+  const selectProject = (projectId: string) => {
+    setActiveProjectId(projectId);
+    updateProjectUrl(projectId);
+  };
+
+  // Synchronize initial active project from URL param at startup
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const projParam = urlParams.get('project');
+    if (projParam) {
+      setActiveProjectId(projParam);
+    } else {
+      setActiveProjectId('dashboard');
+    }
+  }, []);
 
   // Close search suggestions on click outside
   useEffect(() => {
@@ -146,18 +209,6 @@ export default function App() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
-
-  // Auto open the user guide on first load
-  useEffect(() => {
-    const hasSeenGuide = localStorage.getItem('socialflow_guide_seen');
-    if (!hasSeenGuide) {
-      // Delay slightly for smooth entering transitions
-      const timer = setTimeout(() => {
-        setShowGuideModal(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
   }, []);
 
   // Project modal states
@@ -174,6 +225,7 @@ export default function App() {
         setCurrentUser(null);
         setUserRole('creative_director');
         setUserProjectId(null);
+        setPermittedProjects([]);
       }
       setLoading(false);
     });
@@ -190,8 +242,18 @@ export default function App() {
         const data = docSnap.data();
         setUserRole(data.role || 'creative_director');
         setUserProjectId(data.projectId || null);
-        if (data.role === 'client' && data.projectId) {
-          setActiveProjectId(data.projectId);
+        setPermittedProjects(data.permittedProjects || []);
+        
+        // Sync active project if no query parameter is set
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.get('project')) {
+          if (data.role === 'client' && data.projectId) {
+            setActiveProjectId(data.projectId);
+            updateProjectUrl(data.projectId);
+          } else {
+            setActiveProjectId('dashboard');
+            updateProjectUrl('dashboard');
+          }
         }
       } else {
         // Set default role for new users
@@ -201,10 +263,18 @@ export default function App() {
           email: currentUser.email,
           role: initialRole,
           name: currentUser.displayName || 'Usuario',
-          projectId: ''
+          projectId: '',
+          permittedProjects: []
         });
         setUserRole(initialRole);
         setUserProjectId(null);
+        setPermittedProjects([]);
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.get('project')) {
+          setActiveProjectId('dashboard');
+          updateProjectUrl('dashboard');
+        }
       }
     }, (err) => {
       console.error("Error subscribing to user doc:", err);
@@ -237,6 +307,16 @@ export default function App() {
           ...doc.data()
         }));
         setProjects(projList);
+
+        // Resolve activeProjectId if it was loaded as a slug from the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const projParam = urlParams.get('project');
+        if (projParam && projParam !== 'all' && projParam !== 'dashboard') {
+          const found = projList.find((p: any) => p.id === projParam || slugify(p.name) === projParam);
+          if (found) {
+            setActiveProjectId(found.id);
+          }
+        }
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'projects');
@@ -244,6 +324,13 @@ export default function App() {
 
     return () => unsubProjects();
   }, [currentUser]);
+
+  // Automatically synchronize URL query parameter with project slug when state changes
+  useEffect(() => {
+    if (projects.length > 0 && activeProjectId) {
+      updateProjectUrl(activeProjectId);
+    }
+  }, [projects, activeProjectId]);
 
   // Set the dynamic accent colors on documentElement based on the active project
   useEffect(() => {
@@ -550,6 +637,8 @@ export default function App() {
   };
 
   const filteredPosts = posts.filter(post => {
+    if (!hasProjectPermission(post.projectId)) return false;
+
     const matchesProject = activeProjectId === 'all' || post.projectId === activeProjectId;
     if (!matchesProject) return false;
 
@@ -565,6 +654,8 @@ export default function App() {
 
   const matchingSuggestions = searchQuery.trim()
     ? posts.filter(post => {
+        if (!hasProjectPermission(post.projectId)) return false;
+
         const matchesProject = activeProjectId === 'all' || post.projectId === activeProjectId;
         if (!matchesProject) return false;
 
@@ -630,385 +721,561 @@ export default function App() {
       <Toaster position="bottom-right" />
       
       {/* Sidebar - Desktop Only with Fixed Height (h-screen, sticky, non-scrollable) */}
-      <aside className="w-64 bg-white border-r border-gray-100 p-6 flex flex-col shrink-0 hidden lg:flex h-screen sticky top-0 overflow-hidden justify-between">
-        <div className="flex flex-col overflow-hidden flex-1">
-          {/* Logo / Header */}
-          <div className="flex items-center gap-3 mb-6 shrink-0">
-            <div className="w-10 h-10 bg-app-accent rounded-xl flex items-center justify-center text-white shadow-md shadow-app-accent/15 transition-all">
-              <LayoutDashboard size={20} />
+      {activeProjectId !== 'dashboard' && (
+        <aside className="w-64 bg-white border-r border-gray-100 p-6 flex flex-col shrink-0 hidden lg:flex h-screen sticky top-0 overflow-hidden justify-between">
+          <div className="flex flex-col overflow-hidden flex-1">
+            {/* Logo / Header */}
+            <div className="flex items-center gap-3 mb-6 shrink-0">
+              <div className="w-10 h-10 bg-app-accent rounded-xl flex items-center justify-center text-white shadow-md shadow-app-accent/15 transition-all">
+                <LayoutDashboard size={20} />
+              </div>
+              <span className="text-xl font-black text-gray-900 font-sans tracking-tight">SocialFlow</span>
             </div>
-            <span className="text-xl font-black text-gray-900 font-sans tracking-tight">SocialFlow</span>
+
+            {/* Nav Tab List (scrollable if screen is extremely small, but self-contained) */}
+            <nav className="flex-1 space-y-1 overflow-y-auto pr-1 scrollbar-hide">
+              {[
+                { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
+                { id: 'instagram_feed', label: 'Feed Instagram', icon: Instagram },
+                { id: 'linkedin_feed', label: 'Feed LinkedIn', icon: Globe },
+                { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
+                { id: 'configuracion', label: 'Configuración', icon: Settings }
+              ].map((item) => (
+                <button 
+                  key={item.id}
+                  onClick={() => setSidebarTab(item.id as any)}
+                  className={cn(
+                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
+                     sidebarTab === item.id 
+                       ? "bg-app-accent/10 text-app-accent" 
+                       : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                  )}
+                >
+                  <item.icon size={18} />
+                  {item.label}
+                </button>
+              ))}
+            </nav>
           </div>
 
-          {/* Project Label Display */}
-          <div className="mb-6 bg-slate-50 border border-slate-100/80 p-3.5 rounded-2xl shrink-0">
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">Proyecto seleccionado</label>
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-3.5 h-3.5 rounded-full shrink-0"
-                style={{ backgroundColor: projects.find(p => p.id === activeProjectId)?.color || '#2563EB' }}
+          {/* Fixed Footer Elements */}
+          <div className="shrink-0 pt-4 border-t border-gray-100 space-y-4">
+            {/* Project Label Display (Now at the bottom, above user) */}
+            <div className="relative bg-slate-50 border border-slate-100/80 p-3.5 rounded-2xl shrink-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-semibold text-slate-500">Proyecto seleccionado</label>
+                
+                {/* Information Icon Tooltip */}
+                <div className="relative group leading-none flex items-center justify-center">
+                  <Info size={14} className="text-slate-400 hover:text-slate-600 cursor-pointer transition-colors" />
+                  <div className="absolute right-0 bottom-full mb-2 w-52 bg-slate-800 text-white text-[10px] p-2.5 rounded-xl shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 z-50 leading-normal font-medium border border-slate-700">
+                    {userRole !== 'client' 
+                      ? "Puedes cambiar de proyecto en el Dashboard o Configuración." 
+                      : "Acceso exclusivo a tus proyectos autorizados."}
+                    {/* Tooltip Arrow */}
+                    <div className="absolute right-2 top-full w-0 h-0 border-x-[5px] border-x-transparent border-t-[5px] border-t-slate-800" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-3.5 h-3.5 rounded-full shrink-0"
+                  style={{ backgroundColor: activeProjectId === 'dashboard' ? '#6366F1' : (projects.find(p => p.id === activeProjectId)?.color || '#2563EB') }}
+                />
+                <span className="text-xs font-bold text-gray-800 truncate">
+                  {activeProjectId === 'dashboard' ? '📂 Panel de Proyectos' : activeProjectId === 'all' ? '📁 Todos los Proyectos' : (projects.find(p => p.id === activeProjectId)?.name || 'Cargando...')}
+                </span>
+              </div>
+              {activeProjectId !== 'dashboard' && (
+                <button 
+                  onClick={() => selectProject('dashboard')}
+                  className="mt-3 w-full bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-black py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm"
+                >
+                  ← Volver al Dashboard
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <img 
+                 src={currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.displayName}`} 
+                 className="w-10 h-10 rounded-full border-2 border-white shadow-sm" 
+                 alt="avatar" 
               />
-              <span className="text-xs font-bold text-gray-800 truncate">
-                {activeProjectId === 'all' ? '📁 Todos los Proyectos' : (projects.find(p => p.id === activeProjectId)?.name || 'Cargando...')}
-              </span>
-            </div>
-            {userRole !== 'client' ? (
-              <p className="text-[9px] text-gray-400 mt-2">
-                Puedes cambiar de proyecto en la pestaña <strong className="text-app-accent">Configuración</strong>.
-              </p>
-            ) : (
-              <p className="text-[9px] text-gray-400 mt-2">
-                Acceso exclusivo al proyecto asignado.
-              </p>
-            )}
-          </div>
-
-          {/* Nav Tab List (scrollable if screen is extremely small, but self-contained) */}
-          <nav className="flex-1 space-y-1 overflow-y-auto pr-1 scrollbar-hide">
-            {[
-              { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
-              { id: 'instagram_feed', label: 'Feed Instagram', icon: Instagram },
-              { id: 'linkedin_feed', label: 'Feed LinkedIn', icon: Globe },
-              { id: 'usuarios', label: 'Usuarios', icon: Users },
-              { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
-              { id: 'configuracion', label: 'Configuración', icon: Settings }
-            ].map((item) => (
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-gray-900 truncate">{currentUser.displayName}</p>
+                <p className="text-[11px] font-semibold text-app-accent truncate">{ROLES[userRole]}</p>
+              </div>
               <button 
-                key={item.id}
-                onClick={() => setSidebarTab(item.id as any)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
-                  sidebarTab === item.id 
-                    ? "bg-app-accent/10 text-app-accent" 
-                    : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-                )}
+                onClick={logOut}
+                className="p-2 hover:bg-red-50 text-red-500 rounded-xl transition-all shrink-0"
+                title="Cerrar Sesión"
               >
-                <item.icon size={18} />
-                {item.label}
+                <LogOut size={18} />
               </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Fixed Footer Elements */}
-        <div className="shrink-0 pt-4 border-t border-gray-100 space-y-4">
-          <div className="flex items-center gap-3">
-            <img 
-               src={currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.displayName}`} 
-               className="w-10 h-10 rounded-full border-2 border-white shadow-sm" 
-               alt="avatar" 
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-gray-900 truncate">{currentUser.displayName}</p>
-              <p className="text-[11px] font-semibold text-app-accent truncate">{ROLES[userRole]}</p>
             </div>
-            <button 
-              onClick={logOut}
-              className="p-2 hover:bg-red-50 text-red-500 rounded-xl transition-all shrink-0"
-              title="Cerrar Sesión"
-            >
-              <LogOut size={18} />
-            </button>
           </div>
-        </div>
-      </aside>
+        </aside>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-20 bg-white border-b border-gray-100 px-6 flex items-center justify-between shrink-0">
-          <div ref={searchContainerRef} className="relative w-full max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setShowSuggestions(false);
-                }
-              }}
-              placeholder="Buscar posts, ideas, copys, plataformas..." 
-              className="w-full bg-gray-50 border border-transparent rounded-2xl py-2.5 pl-12 pr-10 text-sm focus:bg-white focus:border-app-accent/20 focus:ring-4 focus:ring-app-accent/5 transition-all outline-none"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => {
-                  setSearchQuery('');
-                  setShowSuggestions(false);
+        {activeProjectId !== 'dashboard' && (
+          <header className="h-20 bg-white border-b border-gray-100 px-6 flex items-center justify-between shrink-0">
+            <div ref={searchContainerRef} className="relative w-full max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSuggestions(true);
                 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-xs"
-                title="Limpiar búsqueda"
-              >
-                ✕
-              </button>
-            )}
-
-            <AnimatePresence>
-              {showSuggestions && searchQuery.trim() && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100"
+                onFocus={() => setShowSuggestions(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setShowSuggestions(false);
+                  }
+                }}
+                placeholder="Buscar posts, ideas, copys, plataformas..." 
+                className="w-full bg-gray-50 border border-transparent rounded-2xl py-2.5 pl-12 pr-10 text-sm focus:bg-white focus:border-app-accent/20 focus:ring-4 focus:ring-app-accent/5 transition-all outline-none"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => {
+                    setSearchQuery('');
+                    setShowSuggestions(false);
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-xs"
+                  title="Limpiar búsqueda"
                 >
-                  <div className="p-3 bg-slate-50 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <span>Sugerencias predictivas</span>
-                    <span>
-                      {matchingSuggestions.length} {matchingSuggestions.length === 1 ? 'post' : 'posts'}
-                    </span>
-                  </div>
-                  <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100">
-                    {matchingSuggestions.length > 0 ? (
-                      matchingSuggestions.slice(0, 6).map((post) => {
-                        const proj = projects.find(p => p.id === post.projectId);
-                        const phaseInfo = PHASES[post.phase as Phase];
-                        return (
-                          <button
-                            key={post.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedPost(post);
-                              setSearchQuery('');
-                              setShowSuggestions(false);
-                            }}
-                            className="w-full text-left p-3.5 hover:bg-slate-50/80 transition-colors flex flex-col gap-1.5 group"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              {/* Left side: Platform & Project */}
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                {post.platform === 'instagram' ? (
-                                  <Instagram size={13} className="text-pink-600 shrink-0" />
-                                ) : (
-                                  <Video size={13} className="text-slate-800 shrink-0" />
-                                )}
-                                {proj && (
-                                  <span 
-                                    className="text-[9px] font-black px-1.5 py-0.5 rounded-md truncate shrink-0 max-w-[130px]"
-                                    style={{ backgroundColor: `${proj.color}12`, color: proj.color }}
-                                  >
-                                    {proj.name}
+                  ✕
+                </button>
+              )}
+
+              <AnimatePresence>
+                {showSuggestions && searchQuery.trim() && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                    className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100"
+                  >
+                    <div className="p-3 bg-slate-50 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      <span>Sugerencias predictivas</span>
+                      <span>
+                        {matchingSuggestions.length} {matchingSuggestions.length === 1 ? 'post' : 'posts'}
+                      </span>
+                    </div>
+                    <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100">
+                      {matchingSuggestions.length > 0 ? (
+                        matchingSuggestions.slice(0, 6).map((post) => {
+                          const proj = projects.find(p => p.id === post.projectId);
+                          const phaseInfo = PHASES[post.phase as Phase];
+                          return (
+                            <button
+                              key={post.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedPost(post);
+                                setSearchQuery('');
+                                setShowSuggestions(false);
+                              }}
+                              className="w-full text-left p-3.5 hover:bg-slate-50/80 transition-colors flex flex-col gap-1.5 group"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                {/* Left side: Platform & Project */}
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  {post.platform === 'instagram' ? (
+                                    <Instagram size={13} className="text-pink-600 shrink-0" />
+                                  ) : (
+                                    <Video size={13} className="text-slate-800 shrink-0" />
+                                  )}
+                                  {proj && (
+                                    <span 
+                                      className="text-[9px] font-black px-1.5 py-0.5 rounded-md truncate shrink-0 max-w-[130px]"
+                                      style={{ backgroundColor: `${proj.color}12`, color: proj.color }}
+                                    >
+                                      {proj.name}
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Right side: Phase Badge */}
+                                {phaseInfo && (
+                                  <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0", phaseInfo.color)}>
+                                    {phaseInfo.label.split(': ').pop()}
                                   </span>
                                 )}
                               </div>
-                              {/* Right side: Phase Badge */}
-                              {phaseInfo && (
-                                <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0", phaseInfo.color)}>
-                                  {phaseInfo.label.split(': ').pop()}
-                                </span>
-                              )}
-                            </div>
-                            
-                            {/* Idea / content description */}
-                            <p className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-app-accent transition-colors">
-                              {post.idea}
-                            </p>
-
-                            {/* Caption preview if available */}
-                            {post.copyCaption && (
-                              <p className="text-[10px] text-slate-400 line-clamp-1 italic">
-                                "{post.copyCaption}"
+                              
+                              {/* Idea / content description */}
+                              <p className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-app-accent transition-colors">
+                                {post.idea}
                               </p>
-                            )}
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
-                        <span>🔍</span>
-                        <p className="font-bold text-slate-400">No se encontraron posts</p>
-                        <p className="text-[10px] text-slate-400 font-normal">Prueba a buscar otra palabra clave, idea o plataforma.</p>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
+
+                              {/* Caption preview if available */}
+                              {post.copyCaption && (
+                                <p className="text-[10px] text-slate-400 line-clamp-1 italic">
+                                  "{post.copyCaption}"
+                                </p>
+                              )}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+                          <span>🔍</span>
+                          <p className="font-bold text-slate-400">No se encontraron posts</p>
+                          <p className="text-[10px] text-slate-400 font-normal">Prueba a buscar otra palabra clave, idea o plataforma.</p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {/* Topbar Client/Project Label */}
+              <div className="flex items-center gap-2 bg-gray-100/70 border border-gray-200/50 px-3.5 py-2 rounded-xl">
+                <span className="text-[11px] font-bold text-gray-400 hidden sm:inline">Proyecto:</span>
+                <span className="text-xs font-bold text-gray-700">
+                  {activeProjectId === 'dashboard' ? 'Panel de Control' : activeProjectId === 'all' ? 'Todos los Proyectos' : (projects.find(p => p.id === activeProjectId)?.name || 'Cargando...')}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-end mr-2 hidden md:flex">
+                <span className="text-[11px] font-semibold text-gray-400 leading-none mb-1">Producción</span>
+                <span className="text-xs font-bold text-gray-800">Plan Q2 2026</span>
+              </div>
+              <button 
+                onClick={() => setShowGuideModal(true)}
+                className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all flex items-center justify-center shrink-0"
+                title="Abrir Guía de Uso"
+              >
+                <BookOpen size={18} />
+              </button>
+              {userRole !== 'client' && activeProjectId !== 'dashboard' && (
+                 <button 
+                  onClick={() => handleCreatePost(new Date())}
+                  className="bg-app-accent text-white hover:bg-app-accent-hover px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-app-accent/15 transition-all active:scale-95 flex items-center gap-2"
+                 >
+                   <Plus size={18} />
+                   Nuevo Post
+                 </button>
               )}
-            </AnimatePresence>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Topbar Client/Project Label */}
-            <div className="flex items-center gap-2 bg-gray-100/70 border border-gray-200/50 px-3.5 py-2 rounded-xl">
-              <span className="text-[11px] font-bold text-gray-400 hidden sm:inline">Proyecto:</span>
-              <span className="text-xs font-bold text-gray-700">
-                {activeProjectId === 'all' ? 'Todos los Proyectos' : (projects.find(p => p.id === activeProjectId)?.name || 'Cargando...')}
-              </span>
             </div>
-
-            <div className="flex flex-col items-end mr-2 hidden md:flex">
-              <span className="text-[11px] font-semibold text-gray-400 leading-none mb-1">Producción</span>
-              <span className="text-xs font-bold text-gray-800">Plan Q2 2026</span>
-            </div>
-            <button 
-              onClick={() => setShowGuideModal(true)}
-              className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all flex items-center justify-center shrink-0"
-              title="Abrir Guía de Uso"
-            >
-              <BookOpen size={18} />
-            </button>
-            {userRole !== 'client' && (
-               <button 
-                onClick={() => handleCreatePost(new Date())}
-                className="bg-app-accent text-white hover:bg-app-accent-hover px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-app-accent/15 transition-all active:scale-95 flex items-center gap-2"
-               >
-                 <Plus size={18} />
-                 Nuevo Post
-               </button>
-            )}
-          </div>
-        </header>
+          </header>
+        )}
 
         {/* Content Area */}
-        <div className="p-4 sm:p-6 pb-24 lg:pb-6 flex-1 overflow-hidden flex flex-col gap-4 sm:gap-6">
-          {/* Stats Bar */}
-          {sidebarTab === 'calendario' && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
-              {[
-                { label: 'Total Posts', value: stats.total, icon: FileText, color: 'text-app-accent', bg: 'bg-app-accent/10' },
-                { label: 'En Producción', value: stats.pending, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
-                { label: 'Aprobados', value: stats.approved, icon: Trophy, color: 'text-green-600', bg: 'bg-green-50' },
-                { label: 'Publicados', value: stats.published, icon: ShieldCheck, color: 'text-indigo-600', bg: 'bg-indigo-50' }
-              ].map((stat, i) => (
-                <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:scale-[1.02]">
-                  <div className={cn("p-3 rounded-xl", stat.bg, stat.color)}>
-                    <stat.icon size={20} />
+        <div className={cn(
+          "flex-1 flex flex-col gap-4 sm:gap-6",
+          activeProjectId === 'dashboard' 
+            ? "p-6 sm:p-10 max-w-6xl mx-auto w-full overflow-y-auto" 
+            : "p-4 sm:p-6 pb-24 lg:pb-6 overflow-hidden"
+        )}>
+          {activeProjectId === 'dashboard' ? (
+            <div className="space-y-8 animate-fade-in">
+              {/* Dashboard top navigation bar (only inside dashboard itself) */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-base shadow-sm">
+                    <LayoutDashboard size={18} />
                   </div>
-                  <div>
-                    <p className="text-[11px] font-semibold text-gray-400 leading-none mb-1">{stat.label}</p>
-                    <p className="text-xl font-black text-gray-900">{stat.value}</p>
-                  </div>
+                  <span className="text-lg font-black text-slate-900 tracking-tight">SocialFlow</span>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="flex items-center gap-3">
+                  {userRole === 'admin' && (
+                    <button
+                      onClick={() => {
+                        const firstProj = projects[0];
+                        if (firstProj) {
+                          selectProject(firstProj.id);
+                          setSidebarTab('configuracion');
+                        } else {
+                          toast.error('No hay proyectos creados para configurar');
+                        }
+                      }}
+                      className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                    >
+                      <Settings size={14} className="text-slate-500" />
+                      Ajustes de Plataforma
+                    </button>
+                  )}
+                  <button
+                    onClick={logOut}
+                    className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+                  >
+                    <LogOut size={14} />
+                    Cerrar Sesión
+                  </button>
+                </div>
+              </div>
 
-          {/* View Switcher */}
-          {sidebarTab === 'calendario' && (
-            <div className="flex items-center justify-between shrink-0">
-              <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
-                <button 
-                  onClick={() => setView('calendar')}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                    view === 'calendar' ? "bg-white text-app-accent shadow-sm" : "text-gray-500 hover:text-gray-700"
+              {/* Welcome banner (Minimalist look) */}
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/30 rounded-full translate-x-32 -translate-y-32 blur-3xl" />
+                <div className="relative z-10 space-y-3">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black text-indigo-600 uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    Panel de Control Global
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                    ¡Hola, {currentUser?.displayName?.split(' ')[0] || 'Usuario'}!
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 max-w-xl font-semibold leading-relaxed">
+                    Bienvenido a SocialFlow. Selecciona un proyecto para planificar contenidos en el calendario, redactar copys, adjuntar diseños y ver feeds en vivo.
+                  </p>
+                </div>
+              </div>
+
+              {/* Projects list */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
+                    <Grid size={16} className="text-indigo-600" />
+                    Tus proyectos
+                  </h3>
+                  {userRole === 'admin' && (
+                    <button
+                      onClick={() => setShowNewProjectModal(true)}
+                      className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 shadow-sm px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                    >
+                      <Plus size={14} />
+                      Nuevo Proyecto
+                    </button>
                   )}
-                >
-                  <CalendarIcon size={14} />
-                  Calendario
-                </button>
-                <button 
-                  onClick={() => setView('board')}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                    view === 'board' ? "bg-white text-app-accent shadow-sm" : "text-gray-500 hover:text-gray-700"
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {projects.filter(p => hasProjectPermission(p.id)).length === 0 ? (
+                    <div className="col-span-full bg-white rounded-[2rem] p-12 border border-gray-100 shadow-sm text-center space-y-3">
+                      <span className="text-3xl">📁</span>
+                      <h4 className="font-extrabold text-gray-900 text-sm">No tienes proyectos asignados</h4>
+                      <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                        Pídele al Administrador de la plataforma que te asigne permisos para acceder a proyectos específicos.
+                      </p>
+                    </div>
+                  ) : (
+                    projects.filter(p => hasProjectPermission(p.id)).map((proj) => {
+                      const projPosts = posts.filter(p => p.projectId === proj.id);
+                      const total = projPosts.length;
+                      const enProduccion = projPosts.filter(p => ['idea_1', 'copy', 'design', 'client_review'].includes(p.phase)).length;
+                      const aprobados = projPosts.filter(p => p.phase === 'approved').length;
+                      const publicados = projPosts.filter(p => p.phase === 'published').length;
+
+                      return (
+                        <div 
+                          key={proj.id}
+                          onClick={() => {
+                            selectProject(proj.id);
+                            setSidebarTab('calendario');
+                          }}
+                          className="bg-white rounded-[2.25rem] border border-slate-100/80 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 cursor-pointer flex flex-col justify-between overflow-hidden group animate-fade-in relative animate-fade-in"
+                        >
+                          <div className="p-7 flex-1 flex flex-col justify-between space-y-6">
+                            {/* Card Header */}
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="space-y-1.5">
+                                <h4 className="font-black text-slate-900 text-lg sm:text-xl group-hover:text-indigo-600 transition-colors line-clamp-1 tracking-tight">
+                                  {proj.name}
+                                </h4>
+                                <p className="text-xs text-slate-400 font-semibold">
+                                  Cliente: <span className="text-slate-600 font-normal">{proj.clientName}</span>
+                                </p>
+                              </div>
+                              <div 
+                                className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-black text-base shrink-0 shadow-md shadow-slate-100 transition-all group-hover:scale-105"
+                                style={{ backgroundColor: proj.color }}
+                              >
+                                {proj.name[0].toUpperCase()}
+                              </div>
+                            </div>
+
+                            {/* Stats Grid with larger numbers and titles */}
+                            <div className="grid grid-cols-2 gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-100/50">
+                              <div className="space-y-1">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">Total Posts</p>
+                                <p className="text-xl sm:text-2xl font-black text-slate-900">{total}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">En Producción</p>
+                                <p className="text-xl sm:text-2xl font-black text-orange-600">{enProduccion}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">Aprobados</p>
+                                <p className="text-xl sm:text-2xl font-black text-green-600">{aprobados}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">Publicados</p>
+                                <p className="text-xl sm:text-2xl font-black text-indigo-600">{publicados}</p>
+                              </div>
+                            </div>
+
+                            {/* Access Button */}
+                            <button
+                              type="button"
+                              className="w-full bg-slate-50 group-hover:bg-indigo-600 group-hover:text-white text-slate-700 font-extrabold text-xs py-3 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 border border-slate-100"
+                            >
+                              Entrar al Proyecto
+                              <span className="text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-transform">→</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
-                >
-                  <Columns size={14} />
-                  Producción (Board)
-                </button>
+                </div>
               </div>
             </div>
+          ) : (
+            <>
+              {/* Stats Bar */}
+              {sidebarTab === 'calendario' && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
+                  {[
+                    { label: 'Total Posts', value: stats.total, icon: FileText, color: 'text-app-accent', bg: 'bg-app-accent/10' },
+                    { label: 'En Producción', value: stats.pending, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
+                    { label: 'Aprobados', value: stats.approved, icon: Trophy, color: 'text-green-600', bg: 'bg-green-50' },
+                    { label: 'Publicados', value: stats.published, icon: ShieldCheck, color: 'text-indigo-600', bg: 'bg-indigo-50' }
+                  ].map((stat, i) => (
+                    <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:scale-[1.02]">
+                      <div className={cn("p-3 rounded-xl", stat.bg, stat.color)}>
+                        <stat.icon size={20} />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold text-gray-400 leading-none mb-1">{stat.label}</p>
+                        <p className="text-xl font-black text-gray-900">{stat.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* View Switcher */}
+              {sidebarTab === 'calendario' && (
+                <div className="flex items-center justify-between shrink-0">
+                  <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+                    <button 
+                      onClick={() => setView('calendar')}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                        view === 'calendar' ? "bg-white text-app-accent shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      )}
+                    >
+                      <CalendarIcon size={14} />
+                      Calendario
+                    </button>
+                    <button 
+                      onClick={() => setView('board')}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                        view === 'board' ? "bg-white text-app-accent shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      )}
+                    >
+                      <Columns size={14} />
+                      Producción (Board)
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex-1 overflow-y-auto flex flex-col">
+                {sidebarTab === 'calendario' && (
+                  view === 'calendar' ? (
+                    <Calendar 
+                      posts={filteredPosts} 
+                      userRole={userRole} 
+                      onAddPost={handleCreatePost}
+                      onSelectPost={setSelectedPost}
+                      onUpdatePost={handleUpdatePostDirectly}
+                    />
+                  ) : (
+                    <Board 
+                      posts={filteredPosts} 
+                      userRole={userRole} 
+                      onSelectPost={setSelectedPost}
+                      onUpdatePost={handleUpdatePostDirectly}
+                    />
+                  )
+                )}
+
+                {sidebarTab === 'instagram_feed' && (
+                  <InstagramFeed 
+                    posts={filteredPosts} 
+                    onSelectPost={setSelectedPost}
+                    userRole={userRole}
+                  />
+                )}
+
+                {sidebarTab === 'linkedin_feed' && (
+                  <LinkedInFeed 
+                    posts={filteredPosts} 
+                    onSelectPost={setSelectedPost}
+                    userRole={userRole}
+                    projects={projects}
+                  />
+                )}
+
+                {sidebarTab === 'notificaciones' && (
+                  <NotificationsStream />
+                )}
+
+                {sidebarTab === 'configuracion' && (
+                  <SettingsView 
+                    projects={projects}
+                    activeProjectId={activeProjectId}
+                    setActiveProjectId={selectProject}
+                    userRole={userRole}
+                    permittedProjects={permittedProjects}
+                    userProjectId={userProjectId}
+                    onRoleChange={async (newRole) => {
+                      setUserRole(newRole);
+                      try {
+                        if (currentUser) {
+                          const { updateDoc, doc } = await import('firebase/firestore');
+                          await updateDoc(doc(db, 'users', currentUser.uid), { role: newRole });
+                        }
+                      } catch (err) {
+                        handleFirestoreError(err, OperationType.UPDATE, `users/${currentUser?.uid}`);
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            </>
           )}
-
-          <div className="flex-1 overflow-y-auto flex flex-col">
-            {sidebarTab === 'calendario' && (
-              view === 'calendar' ? (
-                <Calendar 
-                  posts={filteredPosts} 
-                  userRole={userRole} 
-                  onAddPost={handleCreatePost}
-                  onSelectPost={setSelectedPost}
-                  onUpdatePost={handleUpdatePostDirectly}
-                />
-              ) : (
-                <Board 
-                  posts={filteredPosts} 
-                  userRole={userRole} 
-                  onSelectPost={setSelectedPost}
-                  onUpdatePost={handleUpdatePostDirectly}
-                />
-              )
-            )}
-
-            {sidebarTab === 'instagram_feed' && (
-              <InstagramFeed 
-                posts={filteredPosts} 
-                onSelectPost={setSelectedPost}
-                userRole={userRole}
-              />
-            )}
-
-            {sidebarTab === 'linkedin_feed' && (
-              <LinkedInFeed 
-                posts={filteredPosts} 
-                onSelectPost={setSelectedPost}
-                userRole={userRole}
-                projects={projects}
-              />
-            )}
-
-            {sidebarTab === 'usuarios' && (
-              <UsersList 
-                currentUserRole={userRole}
-                onRoleChange={setUserRole}
-                projects={projects}
-              />
-            )}
-
-            {sidebarTab === 'notificaciones' && (
-              <NotificationsStream />
-            )}
-
-            {sidebarTab === 'configuracion' && (
-              <SettingsView 
-                projects={projects}
-                activeProjectId={activeProjectId}
-                setActiveProjectId={setActiveProjectId}
-                userRole={userRole}
-                onRoleChange={async (newRole) => {
-                  setUserRole(newRole);
-                  try {
-                    if (currentUser) {
-                      const { updateDoc, doc } = await import('firebase/firestore');
-                      await updateDoc(doc(db, 'users', currentUser.uid), { role: newRole });
-                    }
-                  } catch (err) {
-                    handleFirestoreError(err, OperationType.UPDATE, `users/${currentUser?.uid}`);
-                  }
-                }}
-              />
-            )}
-          </div>
         </div>
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-150 h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0">
-        {[
-          { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
-          { id: 'instagram_feed', label: 'Instagram', icon: Instagram },
-          { id: 'linkedin_feed', label: 'LinkedIn', icon: Globe },
-          { id: 'notificaciones', label: 'Alertas', icon: Bell },
-          { id: 'configuracion', label: 'Config.', icon: Settings }
-        ].map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setSidebarTab(item.id as any)}
-            className={cn(
-              "flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-extrabold transition-all",
-              sidebarTab === item.id 
-                ? "text-app-accent" 
-                : "text-gray-400 hover:text-gray-500"
-            )}
-          >
-            <item.icon size={18} className="mb-1" />
-            <span className="truncate">{item.label}</span>
-          </button>
-        ))}
-      </nav>
+      {activeProjectId !== 'dashboard' && (
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-150 h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0">
+          {[
+            { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
+            { id: 'instagram_feed', label: 'Instagram', icon: Instagram },
+            { id: 'linkedin_feed', label: 'LinkedIn', icon: Globe },
+            { id: 'notificaciones', label: 'Alertas', icon: Bell },
+            { id: 'configuracion', label: 'Config.', icon: Settings }
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setSidebarTab(item.id as any)}
+              className={cn(
+                "flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-extrabold transition-all",
+                sidebarTab === item.id 
+                  ? "text-app-accent" 
+                  : "text-gray-400 hover:text-gray-500"
+              )}
+            >
+              <item.icon size={18} className="mb-1" />
+              <span className="truncate">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
 
       {/* Modals & Dialogs */}
       <AnimatePresence>
