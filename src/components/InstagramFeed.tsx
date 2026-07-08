@@ -255,7 +255,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
     }
 
     return (
-      <div className="grid grid-cols-3 gap-0.5 md:gap-1 bg-gray-100">
+      <div className="grid grid-cols-3 gap-[1px] md:gap-0.5 bg-gray-200">
         {feedPosts.map((post) => {
           const seed = post.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
           const likes = (seed % 150) + 10;

@@ -964,6 +964,8 @@ export default function SettingsView({
                 ))}
               </div>
             </div>
+
+
           </div>
 
           <hr className="border-gray-100" />

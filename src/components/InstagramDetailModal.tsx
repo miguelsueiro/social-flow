@@ -180,7 +180,7 @@ export default function InstagramDetailModal({
                 <img 
                   src={activeSlides[currentSlide]} 
                   alt={`Slide ${currentSlide + 1}`} 
-                  className="w-full h-full object-contain cursor-zoom-in"
+                  className="w-full h-full object-cover cursor-zoom-in"
                   referrerPolicy="no-referrer"
                   onClick={() => setZoomedImageUrl(activeSlides[currentSlide])}
                 />
@@ -242,7 +242,7 @@ export default function InstagramDetailModal({
           <img 
             src={post.currentDesignUrl} 
             alt={post.idea} 
-            className="w-full h-full object-contain cursor-zoom-in"
+            className="w-full h-full object-cover cursor-zoom-in"
             referrerPolicy="no-referrer"
             onClick={() => setZoomedImageUrl(post.currentDesignUrl)}
           />
@@ -289,7 +289,7 @@ export default function InstagramDetailModal({
         </button>
 
         {/* Left Column: Media Container */}
-        <div className="flex-1 bg-black flex items-center justify-center min-h-[300px] md:min-h-[500px] aspect-square relative select-none">
+        <div className="flex-1 bg-black flex items-center justify-center min-h-[300px] md:min-h-[500px] aspect-[4/5] relative select-none">
           {renderMedia()}
         </div>
 

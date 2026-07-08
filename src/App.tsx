@@ -133,6 +133,12 @@ function darkenColor(hex: string, percent: number): string {
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+    localStorage.removeItem('theme');
+  }, []);
+
   const [userRole, setUserRole] = useState<Role>('creative_director'); // Default for demo
   const [userProjectId, setUserProjectId] = useState<string | null>(null);
   const [permittedProjects, setPermittedProjects] = useState<string[]>([]);
