@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
-import { cn, PHASES, Phase } from '../lib/utils';
+import { cn, PHASES, Phase, isVideoUrl } from '../lib/utils';
 import { Post, Comment } from '../types';
 
 interface InstagramDetailModalProps {
@@ -42,6 +42,24 @@ export default function InstagramDetailModal({
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
+
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.play().catch(() => {});
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
 
   // Initialize random-like counts once based on ID
   useEffect(() => {
@@ -100,12 +118,25 @@ export default function InstagramDetailModal({
           {/* Reel Container styled 9:16 inside */}
           <div className="relative w-full h-full max-w-[360px] aspect-[9/16] bg-[#111] flex flex-col justify-between p-6 text-white shadow-xl">
             {post.currentDesignUrl ? (
-              <img 
-                src={post.currentDesignUrl} 
-                alt="Reel design" 
-                className="absolute inset-0 w-full h-full object-cover opacity-80 cursor-zoom-in"
-                onClick={() => setZoomedImageUrl(post.currentDesignUrl)}
-              />
+              isVideoUrl(post.currentDesignUrl) ? (
+                <video 
+                  ref={videoRef}
+                  src={post.currentDesignUrl} 
+                  className="absolute inset-0 w-full h-full object-cover opacity-80 cursor-pointer"
+                  loop
+                  playsInline
+                  autoPlay={isPlaying}
+                  muted={isMuted}
+                  onClick={() => setIsPlaying(!isPlaying)}
+                />
+              ) : (
+                <img 
+                  src={post.currentDesignUrl} 
+                  alt="Reel design" 
+                  className="absolute inset-0 w-full h-full object-cover opacity-80 cursor-zoom-in"
+                  onClick={() => setZoomedImageUrl(post.currentDesignUrl)}
+                />
+              )
             ) : (
               <div className={cn("absolute inset-0 bg-gradient-to-tr", mediaGradient)} />
             )}
@@ -177,13 +208,23 @@ export default function InstagramDetailModal({
               className="w-full h-full flex items-center justify-center"
             >
               {activeSlides[currentSlide] ? (
-                <img 
-                  src={activeSlides[currentSlide]} 
-                  alt={`Slide ${currentSlide + 1}`} 
-                  className="w-full h-full object-cover cursor-zoom-in"
-                  referrerPolicy="no-referrer"
-                  onClick={() => setZoomedImageUrl(activeSlides[currentSlide])}
-                />
+                isVideoUrl(activeSlides[currentSlide]) ? (
+                  <video 
+                    src={activeSlides[currentSlide]} 
+                    className="w-full h-full object-cover"
+                    controls
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <img 
+                    src={activeSlides[currentSlide]} 
+                    alt={`Slide ${currentSlide + 1}`} 
+                    className="w-full h-full object-cover cursor-zoom-in"
+                    referrerPolicy="no-referrer"
+                    onClick={() => setZoomedImageUrl(activeSlides[currentSlide])}
+                  />
+                )
               ) : (
                 <div className={cn("w-full h-full bg-gradient-to-tr flex flex-col justify-between p-6 text-white", mediaGradient)}>
                   <span className="text-xs font-semibold bg-black/20 px-2 py-0.5 rounded-full self-start">Slide {currentSlide + 1}</span>
@@ -239,13 +280,23 @@ export default function InstagramDetailModal({
     return (
       <div className="w-full h-full bg-gray-50 flex items-center justify-center overflow-hidden">
         {post.currentDesignUrl ? (
-          <img 
-            src={post.currentDesignUrl} 
-            alt={post.idea} 
-            className="w-full h-full object-cover cursor-zoom-in"
-            referrerPolicy="no-referrer"
-            onClick={() => setZoomedImageUrl(post.currentDesignUrl)}
-          />
+          isVideoUrl(post.currentDesignUrl) ? (
+            <video 
+              src={post.currentDesignUrl} 
+              className="w-full h-full object-cover"
+              controls
+              muted
+              playsInline
+            />
+          ) : (
+            <img 
+              src={post.currentDesignUrl} 
+              alt={post.idea} 
+              className="w-full h-full object-cover cursor-zoom-in"
+              referrerPolicy="no-referrer"
+              onClick={() => setZoomedImageUrl(post.currentDesignUrl)}
+            />
+          )
         ) : (
           <div className={cn("w-full h-full bg-gradient-to-tr flex flex-col justify-between p-6 text-white", mediaGradient)}>
             <div className="flex justify-between items-start">
@@ -438,12 +489,22 @@ export default function InstagramDetailModal({
             >
               <X size={32} />
             </button>
-            <img 
-              src={zoomedImageUrl} 
-              alt="Zoomed Design" 
-              className="max-w-full max-h-full object-contain rounded shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
+            {isVideoUrl(zoomedImageUrl) ? (
+              <video 
+                src={zoomedImageUrl} 
+                controls
+                autoPlay
+                className="max-w-full max-h-full object-contain rounded shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <img 
+                src={zoomedImageUrl} 
+                alt="Zoomed Design" 
+                className="max-w-full max-h-full object-contain rounded shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
           </div>
         )}
       </AnimatePresence>

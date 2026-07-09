@@ -13,7 +13,7 @@ import {
   Play,
   Volume2
 } from 'lucide-react';
-import { cn, PHASES, Phase } from '../lib/utils';
+import { cn, PHASES, Phase, isVideoUrl } from '../lib/utils';
 
 interface Post {
   id: string;
@@ -117,12 +117,23 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
         {/* Visual Content (Creativity) */}
         <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-zinc-950">
           {activePost.currentDesignUrl ? (
-            <img 
-              src={activePost.currentDesignUrl} 
-              alt={activePost.idea}
-              className="w-full h-full object-cover opacity-90 filter brightness-95"
-              referrerPolicy="no-referrer"
-            />
+            isVideoUrl(activePost.currentDesignUrl) ? (
+              <video 
+                src={activePost.currentDesignUrl} 
+                className="w-full h-full object-cover opacity-90 filter brightness-95"
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+            ) : (
+              <img 
+                src={activePost.currentDesignUrl} 
+                alt={activePost.idea}
+                className="w-full h-full object-cover opacity-90 filter brightness-95"
+                referrerPolicy="no-referrer"
+              />
+            )
           ) : (
             <div className="w-full h-full bg-gradient-to-tr from-zinc-900 via-neutral-950 to-zinc-900 flex flex-col items-center justify-center p-6 text-center">
               <span className="text-4xl mb-4">🎵</span>
@@ -267,12 +278,21 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
               className="group aspect-[9/16] bg-zinc-950 rounded-2xl overflow-hidden relative border border-zinc-900 cursor-pointer shadow-sm hover:shadow-md transition-all active:scale-[0.99]"
             >
               {post.currentDesignUrl ? (
-                <img 
-                  src={post.currentDesignUrl} 
-                  alt={post.idea} 
-                  className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
+                isVideoUrl(post.currentDesignUrl) ? (
+                  <video 
+                    src={post.currentDesignUrl} 
+                    className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <img 
+                    src={post.currentDesignUrl} 
+                    alt={post.idea} 
+                    className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                )
               ) : (
                 <div className="w-full h-full bg-gradient-to-tr from-zinc-900 via-neutral-950 to-zinc-900 flex flex-col justify-between p-4">
                   <span className="text-2xl">🎵</span>

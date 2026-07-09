@@ -14,7 +14,7 @@ import {
   Edit2,
   Upload
 } from 'lucide-react';
-import { cn, PHASES, Phase } from '../lib/utils';
+import { cn, PHASES, Phase, isVideoUrl } from '../lib/utils';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import InstagramDetailModal from './InstagramDetailModal';
@@ -140,6 +140,16 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
   // Helper to generate a clean gradient background or show the design URL (no technical info overlays!)
   const getPostMedia = (post: Post) => {
     if (post.currentDesignUrl) {
+      if (isVideoUrl(post.currentDesignUrl)) {
+        return (
+          <video 
+            src={post.currentDesignUrl} 
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            muted
+            playsInline
+          />
+        );
+      }
       return (
         <img 
           src={post.currentDesignUrl} 

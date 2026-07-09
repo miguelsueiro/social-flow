@@ -5,6 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function isVideoUrl(url?: string): boolean {
+  if (!url) return false;
+  return url.startsWith('data:video/') || /\.(mp4|webm|ogg|mov|quicktime|m4v)($|\?)/i.test(url);
+}
+
 export type Role = 
   | 'admin' 
   | 'creative_director' 

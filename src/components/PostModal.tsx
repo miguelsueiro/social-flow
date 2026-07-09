@@ -20,7 +20,7 @@ import {
   Edit2,
   Save
 } from 'lucide-react';
-import { cn, PHASES, Phase, Role, ROLES, compressImage } from '../lib/utils';
+import { cn, PHASES, Phase, Role, ROLES, compressImage, isVideoUrl } from '../lib/utils';
 import { InstagramIcon, TikTokIcon, LinkedInIcon } from './SocialIcons';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -1386,14 +1386,24 @@ export default function PostModal({
                         </div>
                       ) : (
                         <div 
-                          onClick={() => localPost.currentDesignUrl && setZoomedImageUrl(localPost.currentDesignUrl)}
+                          onClick={() => localPost.currentDesignUrl && !isVideoUrl(localPost.currentDesignUrl) && setZoomedImageUrl(localPost.currentDesignUrl)}
                           className={cn(
                             "aspect-video bg-white rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shadow-inner group",
-                            localPost.currentDesignUrl ? "cursor-zoom-in" : ""
+                            localPost.currentDesignUrl ? (isVideoUrl(localPost.currentDesignUrl) ? "" : "cursor-zoom-in") : ""
                           )}
                         >
                           {localPost.currentDesignUrl ? (
-                            <img src={localPost.currentDesignUrl} alt="Design" className="w-full h-full object-contain hover:scale-102 transition-transform duration-300" />
+                            isVideoUrl(localPost.currentDesignUrl) ? (
+                              <video 
+                                src={localPost.currentDesignUrl} 
+                                className="w-full h-full object-contain" 
+                                controls
+                                muted
+                                playsInline
+                              />
+                            ) : (
+                              <img src={localPost.currentDesignUrl} alt="Design" className="w-full h-full object-contain hover:scale-102 transition-transform duration-300" />
+                            )
                           ) : (
                             <div className="text-center px-4">
                               <ImageIcon className="mx-auto text-gray-200 mb-2 animate-pulse" size={48} />
@@ -1411,7 +1421,7 @@ export default function PostModal({
                           <input 
                             type="file"
                             multiple={localPost.format === 'carrusel'}
-                            accept="image/*"
+                            accept="image/*,video/*"
                             id="design-file-upload"
                             className="hidden"
                             onChange={(e) => {
@@ -1784,12 +1794,22 @@ export default function PostModal({
             >
               <X size={32} />
             </button>
-            <img 
-              src={zoomedImageUrl} 
-              alt="Ampliado" 
-              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
+            {isVideoUrl(zoomedImageUrl) ? (
+              <video 
+                src={zoomedImageUrl} 
+                controls
+                autoPlay
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <img 
+                src={zoomedImageUrl} 
+                alt="Ampliado" 
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
           </div>
         )}
       </AnimatePresence>

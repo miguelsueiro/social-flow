@@ -16,7 +16,7 @@ import {
   Laptop,
   Smartphone
 } from 'lucide-react';
-import { cn, PHASES, Phase } from '../lib/utils';
+import { cn, PHASES, Phase, isVideoUrl } from '../lib/utils';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
@@ -87,12 +87,22 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
       const activeIdx = activeCarouselSlides[post.id] || 0;
       return (
         <div className="relative bg-slate-50 border-y border-gray-150 overflow-hidden group">
-          <img 
-            src={post.carouselUrls[activeIdx]} 
-            alt={`Slide ${activeIdx + 1}`} 
-            className="w-full h-auto block"
-            referrerPolicy="no-referrer"
-          />
+          {isVideoUrl(post.carouselUrls[activeIdx]) ? (
+            <video 
+              src={post.carouselUrls[activeIdx]} 
+              className="w-full h-auto block max-h-[500px] mx-auto bg-black"
+              controls
+              muted
+              playsInline
+            />
+          ) : (
+            <img 
+              src={post.carouselUrls[activeIdx]} 
+              alt={`Slide ${activeIdx + 1}`} 
+              className="w-full h-auto block"
+              referrerPolicy="no-referrer"
+            />
+          )}
           {post.carouselUrls.length > 1 && (
             <>
               <button 
@@ -120,12 +130,22 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
       const isReel = post.format === 'reel';
       return (
         <div className="relative bg-slate-50 border-y border-gray-150 overflow-hidden">
-          <img 
-            src={post.currentDesignUrl} 
-            alt={post.idea} 
-            className="w-full h-auto block"
-            referrerPolicy="no-referrer"
-          />
+          {isVideoUrl(post.currentDesignUrl) ? (
+            <video 
+              src={post.currentDesignUrl} 
+              className="w-full h-auto block max-h-[500px] mx-auto bg-black"
+              controls
+              muted
+              playsInline
+            />
+          ) : (
+            <img 
+              src={post.currentDesignUrl} 
+              alt={post.idea} 
+              className="w-full h-auto block"
+              referrerPolicy="no-referrer"
+            />
+          )}
           {isReel && (
             <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-bold">
               🎥 Reel Vertical

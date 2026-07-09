@@ -1,5 +1,5 @@
 import React from 'react';
-import { PHASES, Phase, cn } from '../lib/utils';
+import { PHASES, Phase, cn, isVideoUrl } from '../lib/utils';
 import { motion } from 'motion/react';
 import { Clock, MessageSquare, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
@@ -133,19 +133,37 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: B
                     {/* Miniature Design Thumbnail Preview */}
                     <div className="w-14 h-14 rounded-lg bg-gray-200/80 border border-gray-300/30 overflow-hidden shrink-0 flex items-center justify-center relative shadow-sm">
                       {post.currentDesignUrl ? (
-                        <img 
-                          src={post.currentDesignUrl} 
-                          className="w-full h-full object-cover animate-fade-in" 
-                          alt="preview"
-                          referrerPolicy="no-referrer"
-                        />
+                        isVideoUrl(post.currentDesignUrl) ? (
+                          <video 
+                            src={post.currentDesignUrl} 
+                            className="w-full h-full object-cover animate-fade-in" 
+                            muted
+                            playsInline
+                          />
+                        ) : (
+                          <img 
+                            src={post.currentDesignUrl} 
+                            className="w-full h-full object-cover animate-fade-in" 
+                            alt="preview"
+                            referrerPolicy="no-referrer"
+                          />
+                        )
                       ) : post.carouselUrls && post.carouselUrls.length > 0 ? (
-                        <img 
-                          src={post.carouselUrls[0]} 
-                          className="w-full h-full object-cover animate-fade-in" 
-                          alt="preview"
-                          referrerPolicy="no-referrer"
-                        />
+                        isVideoUrl(post.carouselUrls[0]) ? (
+                          <video 
+                            src={post.carouselUrls[0]} 
+                            className="w-full h-full object-cover animate-fade-in" 
+                            muted
+                            playsInline
+                          />
+                        ) : (
+                          <img 
+                            src={post.carouselUrls[0]} 
+                            className="w-full h-full object-cover animate-fade-in" 
+                            alt="preview"
+                            referrerPolicy="no-referrer"
+                          />
+                        )
                       ) : (
                         <span className="text-base opacity-75">🎨</span>
                       )}
