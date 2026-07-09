@@ -23,6 +23,7 @@ import {
   CheckCircle,
   Edit2
 } from 'lucide-react';
+import { InstagramIcon, TikTokIcon, LinkedInIcon } from './SocialIcons';
 import { toast } from 'react-hot-toast';
 import { db } from '../lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -33,6 +34,7 @@ interface Project {
   name: string;
   clientName: string;
   color: string;
+  platforms?: string[];
 }
 
 interface SettingsViewProps {
@@ -178,12 +180,14 @@ export default function SettingsView({
   const [newName, setNewName] = useState('');
   const [newClient, setNewClient] = useState('');
   const [newColor, setNewColor] = useState('#2563EB');
+  const [newPlatforms, setNewPlatforms] = useState<string[]>(['instagram', 'linkedin', 'tiktok']);
 
   // Edit states for projects
   const [editingProjId, setEditingProjId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editClient, setEditClient] = useState('');
   const [editColor, setEditColor] = useState('');
+  const [editPlatforms, setEditPlatforms] = useState<string[]>(['instagram', 'linkedin', 'tiktok']);
 
   const handleSaveAgencySettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,6 +206,7 @@ export default function SettingsView({
         name: newName.trim(),
         clientName: newClient.trim(),
         color: newColor,
+        platforms: newPlatforms,
         createdAt: new Date()
       });
       toast.success('¡Proyecto creado con éxito!');
@@ -209,6 +214,7 @@ export default function SettingsView({
       setNewName('');
       setNewClient('');
       setNewColor('#2563EB');
+      setNewPlatforms(['instagram', 'linkedin', 'tiktok']);
       setIsAdding(false);
     } catch (err) {
       toast.error('Error al crear el proyecto');
@@ -221,6 +227,7 @@ export default function SettingsView({
     setEditName(proj.name);
     setEditClient(proj.clientName);
     setEditColor(proj.color);
+    setEditPlatforms(proj.platforms || ['instagram', 'linkedin', 'tiktok']);
   };
 
   const handleUpdateProject = async (projId: string) => {
@@ -233,7 +240,8 @@ export default function SettingsView({
       await updateDoc(doc(db, 'projects', projId), {
         name: editName.trim(),
         clientName: editClient.trim(),
-        color: editColor
+        color: editColor,
+        platforms: editPlatforms
       });
       toast.success('Proyecto actualizado correctamente');
       setEditingProjId(null);
@@ -730,69 +738,129 @@ export default function SettingsView({
           </div>
 
           <div className="p-6 space-y-4">
-            {/* Project Creation Form */}
+            {/* Project Creation Form Modal Overlay */}
             {isAdding && (
-              <form onSubmit={handleCreateProject} className="p-5 bg-gray-50 rounded-2xl border border-gray-200 space-y-4">
-                <div className="text-xs font-bold text-gray-700">Agregar Nueva Cuenta</div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre del Proyecto / Marca</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={newName}
-                      onChange={e => setNewName(e.target.value)}
-                      placeholder="Ej. EcoGlow S.L."
-                      className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs font-bold text-gray-700 outline-none focus:border-blue-500 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre del Cliente Legal</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={newClient}
-                      onChange={e => setNewClient(e.target.value)}
-                      placeholder="Ej. EcoGlow Cosmetics S.L."
-                      className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs font-bold text-gray-700 outline-none focus:border-blue-500 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Color de Marca (Identidad)</label>
-                    <div className="flex gap-2">
-                      <input 
-                        type="color" 
-                        value={newColor}
-                        onChange={e => setNewColor(e.target.value)}
-                        className="w-10 h-8 bg-white border border-gray-200 rounded cursor-pointer p-0.5"
-                      />
-                      <input 
-                        type="text" 
-                        value={newColor}
-                        onChange={e => setNewColor(e.target.value)}
-                        placeholder="#2563EB"
-                        className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs font-mono outline-none focus:border-blue-500 transition-all uppercase"
-                      />
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                <div 
+                  className="bg-white rounded-3xl border border-gray-100 shadow-2xl w-full max-w-lg overflow-hidden animate-scale-up"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+                    <div>
+                      <h3 className="font-extrabold text-gray-900 text-sm">Crear Nuevo Proyecto</h3>
+                      <p className="text-xs text-gray-400 mt-1">Configura los datos del nuevo cliente o marca.</p>
                     </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsAdding(false)}
+                      className="p-1.5 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-xl transition-all"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
-                </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAdding(false)}
-                    className="text-xs text-gray-500 hover:text-gray-700 px-4 py-2"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold px-4 py-2 rounded-xl"
-                  >
-                    Crear Proyecto
-                  </button>
+                  <form onSubmit={handleCreateProject} className="p-6 space-y-5">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre del Proyecto / Marca</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={newName}
+                          onChange={e => setNewName(e.target.value)}
+                          placeholder="Ej. EcoGlow S.L."
+                          className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-blue-500 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre del Cliente Legal</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={newClient}
+                          onChange={e => setNewClient(e.target.value)}
+                          placeholder="Ej. EcoGlow Cosmetics S.L."
+                          className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-blue-500 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Color de Marca (Identidad)</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="color" 
+                            value={newColor}
+                            onChange={e => setNewColor(e.target.value)}
+                            className="w-11 h-9 bg-white border border-gray-200 rounded-xl cursor-pointer p-0.5 shrink-0"
+                          />
+                          <input 
+                            type="text" 
+                            value={newColor}
+                            onChange={e => setNewColor(e.target.value)}
+                            placeholder="#2563EB"
+                            className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-xl py-2 px-3 text-xs font-mono outline-none focus:border-blue-500 transition-all uppercase font-bold text-gray-700"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Redes Sociales Activas</label>
+                      <div className="flex gap-3 flex-wrap">
+                        {[
+                          { id: 'instagram', label: 'Instagram', icon: InstagramIcon, color: 'text-[#E1306C] border-[#E1306C]/20 bg-[#E1306C]/5' },
+                          { id: 'linkedin', label: 'LinkedIn', icon: LinkedInIcon, color: 'text-[#0A66C2] border-[#0A66C2]/20 bg-[#0A66C2]/5' },
+                          { id: 'tiktok', label: 'TikTok', icon: TikTokIcon, color: 'text-zinc-900 border-zinc-900/20 bg-zinc-900/5' }
+                        ].map(platform => {
+                          const isActive = newPlatforms.includes(platform.id);
+                          const Icon = platform.icon;
+                          return (
+                            <button
+                              key={platform.id}
+                              type="button"
+                              onClick={() => {
+                                if (isActive) {
+                                  if (newPlatforms.length > 1) {
+                                    setNewPlatforms(newPlatforms.filter(p => p !== platform.id));
+                                  } else {
+                                    toast.error('El proyecto debe usar al menos una red social.');
+                                  }
+                                } else {
+                                  setNewPlatforms([...newPlatforms, platform.id]);
+                                }
+                              }}
+                              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                                isActive 
+                                  ? platform.color
+                                  : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-700'
+                              }`}
+                            >
+                              <Icon size={14} className="shrink-0" />
+                              <span>{platform.label}</span>
+                              {isActive && <Check size={12} className="stroke-[3]" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t border-gray-50">
+                      <button
+                        type="button"
+                        onClick={() => setIsAdding(false)}
+                        className="text-xs text-gray-500 hover:text-gray-700 font-bold px-4 py-2 hover:bg-gray-50 rounded-xl transition-all"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition-all"
+                      >
+                        Crear Proyecto
+                      </button>
+                    </div>
+                  </form>
                 </div>
-              </form>
+              </div>
             )}
 
             {/* List Table */}
@@ -803,6 +871,7 @@ export default function SettingsView({
                     <th className="px-4 py-3">Color</th>
                     <th className="px-4 py-3">Nombre del Proyecto</th>
                     <th className="px-4 py-3">Cliente Legal</th>
+                    <th className="px-4 py-3">Redes Activas</th>
                     <th className="px-4 py-3 text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -845,6 +914,58 @@ export default function SettingsView({
                             />
                           ) : (
                             proj.clientName
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {isEditing ? (
+                            <div className="flex gap-2 flex-wrap items-center">
+                              {[
+                                { id: 'instagram', icon: InstagramIcon, color: 'text-[#E1306C] border-[#E1306C]/30 bg-[#E1306C]/5' },
+                                { id: 'linkedin', icon: LinkedInIcon, color: 'text-[#0A66C2] border-[#0A66C2]/30 bg-[#0A66C2]/5' },
+                                { id: 'tiktok', icon: TikTokIcon, color: 'text-zinc-900 border-zinc-900/30 bg-zinc-900/5' }
+                              ].map(platform => {
+                                const isActive = editPlatforms.includes(platform.id);
+                                const Icon = platform.icon;
+                                return (
+                                  <button
+                                    key={platform.id}
+                                    type="button"
+                                    onClick={() => {
+                                      if (isActive) {
+                                        if (editPlatforms.length > 1) {
+                                          setEditPlatforms(editPlatforms.filter(p => p !== platform.id));
+                                        } else {
+                                          toast.error('Debe quedar al menos una red.');
+                                        }
+                                      } else {
+                                        setEditPlatforms([...editPlatforms, platform.id]);
+                                      }
+                                    }}
+                                    className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                                      isActive ? platform.color : 'bg-gray-50 border-gray-200 text-gray-400 opacity-60'
+                                    }`}
+                                    title={platform.id}
+                                  >
+                                    <Icon size={14} />
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="flex gap-1.5 flex-wrap">
+                              {(proj.platforms || ['instagram', 'linkedin', 'tiktok']).map(p => {
+                                return (
+                                  <span key={p} className={`px-1.5 py-0.5 rounded-md font-extrabold text-[9px] uppercase tracking-wider flex items-center gap-1 ${
+                                    p === 'instagram' ? 'bg-[#E1306C]/10 text-[#E1306C]' : p === 'linkedin' ? 'bg-[#0A66C2]/10 text-[#0A66C2]' : 'bg-zinc-900/10 text-zinc-900'
+                                  }`}>
+                                    {p === 'instagram' && <InstagramIcon size={10} />}
+                                    {p === 'linkedin' && <LinkedInIcon size={10} />}
+                                    {p === 'tiktok' && <TikTokIcon size={10} />}
+                                    {p === 'instagram' ? 'IG' : p === 'linkedin' ? 'IN' : 'TT'}
+                                  </span>
+                                );
+                              })}
+                            </div>
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">

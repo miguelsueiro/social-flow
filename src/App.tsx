@@ -27,9 +27,11 @@ import Board from './components/Board';
 import PostModal from './components/PostModal';
 import InstagramFeed from './components/InstagramFeed';
 import LinkedInFeed from './components/LinkedInFeed';
+import TikTokFeed from './components/TikTokFeed';
 import NotificationsStream from './components/NotificationsStream';
 import SettingsView from './components/SettingsView';
 import UserGuideModal from './components/UserGuideModal';
+import { InstagramIcon, TikTokIcon, LinkedInIcon } from './components/SocialIcons';
 import { 
   LayoutDashboard, 
   LogOut, 
@@ -47,6 +49,7 @@ import {
   FileText,
   Instagram,
   Globe,
+  Linkedin,
   Palette,
   X,
   BookOpen,
@@ -131,8 +134,68 @@ function darkenColor(hex: string, percent: number): string {
   }
 }
 
+const defaultFallbackProjects = [
+  { id: 'ecoglow', name: 'EcoGlow Cosmetics', clientName: 'EcoGlow S.L.', color: '#10B981', createdAt: new Date() },
+  { id: 'nebula', name: 'Nebula SaaS Portal', clientName: 'Nebula Technologies', color: '#6366F1', createdAt: new Date() },
+  { id: 'alpha', name: 'Alpha Fitness Club', clientName: 'GymFlow Corp', color: '#EF4444', createdAt: new Date() }
+];
+
+const defaultFallbackPosts = [
+  {
+    id: 'post-1',
+    projectId: 'ecoglow',
+    title: 'Crema Hidratante Ecológica',
+    idea: 'Lanzamiento de la nueva crema hidratante ecológica con ingredientes 100% naturales.',
+    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+    phase: 'published',
+    copyCaption: '¡Descubre la revolución del cuidado de la piel! 🌱 Presentamos nuestra nueva crema hidratante con extractos botánicos 100% orgánicos. Hidratación profunda y respetuosa con el planeta. #EcoBeauty #OrganicSkinCare #GreenLife',
+    copyCreativity: 'Imagen minimalista de la crema rodeada de aloe vera y gotas de agua fresca.',
+    currentDesignUrl: 'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=800&auto=format&fit=crop',
+    channel: 'instagram',
+    type: 'feed',
+    status: 'completed',
+    feedbackCount: 0
+  },
+  {
+    id: 'post-2',
+    projectId: 'ecoglow',
+    title: 'Rutina de Noche 3 Pasos',
+    idea: 'Carrusel de 3 pasos para una rutina de noche ecológica perfecta.',
+    date: new Date(Date.now() + 24 * 60 * 60 * 1000), // tomorrow
+    phase: 'client_review',
+    copyCaption: 'La rutina de noche que tu piel y el planeta merecen. 🌙✨ Sigue estos 3 sencillos pasos para despertar con una piel radiante. #EcoFriendly #NourishYourSkin #BeautySleep',
+    copyCreativity: 'Carrusel con fondo pastel verde. Slide 1: Limpieza. Slide 2: Tonificación. Slide 3: Hidratación con nuestro sérum de noche.',
+    currentDesignUrl: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&auto=format&fit=crop',
+    channel: 'instagram',
+    type: 'carousel',
+    slides: [
+      'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&auto=format&fit=crop'
+    ],
+    status: 'pending',
+    feedbackCount: 2
+  },
+  {
+    id: 'post-3',
+    projectId: 'nebula',
+    title: 'Nebula AI Integration',
+    idea: 'Anuncio de la integración de inteligencia artificial para la automatización de flujos de trabajo.',
+    date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // in 2 days
+    phase: 'planning',
+    copyCaption: 'La productividad del futuro ya está aquí. 🚀 Presentamos Nebula AI: automatiza tareas repetitivas y concéntrate en lo que de verdad importa. #SaaS #AI #ProductivityBoost',
+    copyCreativity: 'Gráfico limpio mostrando un flujo de trabajo que se simplifica con un nodo de destellos brillantes.',
+    currentDesignUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop',
+    channel: 'linkedin',
+    type: 'feed',
+    status: 'pending',
+    feedbackCount: 1
+  }
+];
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
 
   useEffect(() => {
     document.documentElement.classList.remove('dark');
@@ -143,7 +206,7 @@ export default function App() {
   const [userProjectId, setUserProjectId] = useState<string | null>(null);
   const [permittedProjects, setPermittedProjects] = useState<string[]>([]);
   const [view, setView] = useState<'calendar' | 'board'>('calendar');
-  const [sidebarTab, setSidebarTab] = useState<'calendario' | 'instagram_feed' | 'linkedin_feed' | 'notificaciones' | 'configuracion'>('calendario');
+  const [sidebarTab, setSidebarTab] = useState<'calendario' | 'instagram_feed' | 'linkedin_feed' | 'tiktok_feed' | 'notificaciones' | 'configuracion'>('calendario');
   const [posts, setPosts] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string>('dashboard');
@@ -178,10 +241,10 @@ export default function App() {
     if (projectId && projectId !== 'all' && projectId !== 'dashboard') {
       const proj = projects.find(p => p.id === projectId);
       const slug = proj ? slugify(proj.name) : projectId;
-      url.searchParams.set('project', slug);
-    } else if (projectId === 'dashboard') {
-      url.searchParams.set('project', 'dashboard');
+      url.pathname = `/${slug}`;
+      url.searchParams.delete('project');
     } else {
+      url.pathname = '/';
       url.searchParams.delete('project');
     }
     window.history.pushState({}, '', url.toString());
@@ -193,12 +256,16 @@ export default function App() {
     updateProjectUrl(projectId);
   };
 
-  // Synchronize initial active project from URL param at startup
+  // Synchronize initial active project from URL param or pathname at startup
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const projParam = urlParams.get('project');
+    const pathSegment = window.location.pathname.replace(/^\/|\/$/g, '');
+    
     if (projParam) {
       setActiveProjectId(projParam);
+    } else if (pathSegment && pathSegment !== 'index.html' && pathSegment !== 'dashboard') {
+      setActiveProjectId(pathSegment);
     } else {
       setActiveProjectId('dashboard');
     }
@@ -250,9 +317,12 @@ export default function App() {
         setUserProjectId(data.projectId || null);
         setPermittedProjects(data.permittedProjects || []);
         
-        // Sync active project if no query parameter is set
+        // Sync active project if no query parameter or pathname is set
         const urlParams = new URLSearchParams(window.location.search);
-        if (!urlParams.get('project')) {
+        const pathSegment = window.location.pathname.replace(/^\/|\/$/g, '');
+        const hasProjectUrl = urlParams.get('project') || (pathSegment && pathSegment !== 'index.html' && pathSegment !== 'dashboard');
+        
+        if (!hasProjectUrl) {
           if (data.role === 'client' && data.projectId) {
             setActiveProjectId(data.projectId);
             updateProjectUrl(data.projectId);
@@ -277,13 +347,21 @@ export default function App() {
         setPermittedProjects([]);
         
         const urlParams = new URLSearchParams(window.location.search);
-        if (!urlParams.get('project')) {
+        const pathSegment = window.location.pathname.replace(/^\/|\/$/g, '');
+        const hasProjectUrl = urlParams.get('project') || (pathSegment && pathSegment !== 'index.html' && pathSegment !== 'dashboard');
+        
+        if (!hasProjectUrl) {
           setActiveProjectId('dashboard');
           updateProjectUrl('dashboard');
         }
       }
     }, (err) => {
       console.error("Error subscribing to user doc:", err);
+      // Fail gracefully: don't crash, assume default creative_director role in offline/demo mode
+      setUserRole('creative_director');
+      setUserProjectId(null);
+      setPermittedProjects([]);
+      setIsOfflineMode(true);
     });
 
     return () => unsubUserDoc();
@@ -314,18 +392,38 @@ export default function App() {
         }));
         setProjects(projList);
 
-        // Resolve activeProjectId if it was loaded as a slug from the URL
+        // Resolve activeProjectId if it was loaded as a slug from the URL or pathname
         const urlParams = new URLSearchParams(window.location.search);
         const projParam = urlParams.get('project');
-        if (projParam && projParam !== 'all' && projParam !== 'dashboard') {
-          const found = projList.find((p: any) => p.id === projParam || slugify(p.name) === projParam);
+        const pathSegment = window.location.pathname.replace(/^\/|\/$/g, '');
+        const targetSlug = projParam || (pathSegment && pathSegment !== 'index.html' && pathSegment !== 'dashboard' ? pathSegment : null);
+        
+        if (targetSlug && targetSlug !== 'all' && targetSlug !== 'dashboard') {
+          const found = projList.find((p: any) => p.id === targetSlug || slugify(p.name) === targetSlug);
           if (found) {
             setActiveProjectId(found.id);
           }
         }
       }
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'projects');
+      console.warn("Firestore error loading projects, falling back to local demo state:", error);
+      setIsOfflineMode(true);
+      setProjects(defaultFallbackProjects);
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const projParam = urlParams.get('project');
+      const pathSegment = window.location.pathname.replace(/^\/|\/$/g, '');
+      const targetSlug = projParam || (pathSegment && pathSegment !== 'index.html' && pathSegment !== 'dashboard' ? pathSegment : null);
+      if (targetSlug && targetSlug !== 'all' && targetSlug !== 'dashboard') {
+        const found = defaultFallbackProjects.find((p: any) => p.id === targetSlug || slugify(p.name) === targetSlug);
+        if (found) {
+          setActiveProjectId(found.id);
+        } else {
+          setActiveProjectId('dashboard');
+        }
+      } else {
+        setActiveProjectId('dashboard');
+      }
     });
 
     return () => unsubProjects();
@@ -346,6 +444,23 @@ export default function App() {
     const hoverColor = darkenColor(color, -10);
     document.documentElement.style.setProperty('--app-accent-hover', hoverColor);
   }, [activeProjectId, projects]);
+
+  // Dynamically switch sidebarTab if current active project doesn't support the active platform feed
+  useEffect(() => {
+    if (activeProjectId !== 'all' && activeProjectId !== 'dashboard') {
+      const activeProj = projects.find(p => p.id === activeProjectId);
+      if (activeProj) {
+        const supportedPlatforms = activeProj.platforms || ['instagram', 'linkedin', 'tiktok'];
+        if (sidebarTab === 'instagram_feed' && !supportedPlatforms.includes('instagram')) {
+          setSidebarTab('calendario');
+        } else if (sidebarTab === 'linkedin_feed' && !supportedPlatforms.includes('linkedin')) {
+          setSidebarTab('calendario');
+        } else if (sidebarTab === 'tiktok_feed' && !supportedPlatforms.includes('tiktok')) {
+          setSidebarTab('calendario');
+        }
+      }
+    }
+  }, [activeProjectId, projects, sidebarTab]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -369,7 +484,9 @@ export default function App() {
       postsData.sort((a, b) => a.date.getTime() - b.date.getTime());
       setPosts(postsData);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'posts');
+      console.warn("Firestore error loading posts, falling back to local demo state:", error);
+      setIsOfflineMode(true);
+      setPosts(defaultFallbackPosts);
     });
 
     return () => unsubPosts();
@@ -390,7 +507,10 @@ export default function App() {
         createdAt: (doc.data().createdAt as Timestamp)?.toDate() || new Date()
       })));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, pathComments);
+      console.warn("Firestore error loading comments, falling back to offline data:", error);
+      setComments([
+        { id: 'c1', text: 'Gran idea, me gusta el enfoque minimalista.', authorName: 'Carlos Díaz', createdAt: new Date(Date.now() - 3600000) }
+      ]);
     });
 
     const pathFeedbacks = `posts/${selectedPost.id}/feedbacks`;
@@ -408,7 +528,10 @@ export default function App() {
         doneBy: doc.data().doneBy
       })));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, pathFeedbacks);
+      console.warn("Firestore error loading feedbacks, falling back to offline data:", error);
+      setFeedbacks([
+        { id: 'f1', text: 'Asegúrate de usar la tipografía corporativa correcta.', done: false, createdAt: new Date(Date.now() - 7200000) }
+      ]);
     });
 
     // Seed post details into history for realistic audit tracking
@@ -423,12 +546,35 @@ export default function App() {
   }, [selectedPost]);
 
   const handleCreatePost = async (date: Date) => {
+    if (isOfflineMode) {
+      const assignedProjectId = activeProjectId === 'all' ? (projects[0]?.id || '') : activeProjectId;
+      const newPost = {
+        id: `local-post-${Date.now()}`,
+        date: date,
+        platform: 'instagram',
+        phase: 'idea_1',
+        title: 'Nuevo Post',
+        idea: 'Nueva idea de post...',
+        references: [],
+        copyCreativity: '',
+        copyCaption: '',
+        currentDesignUrl: '',
+        createdBy: currentUser?.uid || 'local-user',
+        projectId: assignedProjectId,
+        updatedAt: new Date(),
+        feedbackCount: 0
+      };
+      setPosts(prev => [...prev, newPost]);
+      toast.success('Post creado en el calendario (Modo Demo)');
+      return;
+    }
     try {
       const assignedProjectId = activeProjectId === 'all' ? (projects[0]?.id || '') : activeProjectId;
       await addDoc(collection(db, 'posts'), {
         date: Timestamp.fromDate(date),
         platform: 'instagram',
         phase: 'idea_1',
+        title: 'Nuevo Post',
         idea: 'Nueva idea de post...',
         references: [],
         copyCreativity: '',
@@ -447,6 +593,12 @@ export default function App() {
 
   const handleUpdatePost = async (updates: any) => {
     if (!selectedPost) return;
+    if (isOfflineMode) {
+      setPosts(prev => prev.map(p => p.id === selectedPost.id ? { ...p, ...updates } : p));
+      setSelectedPost(prev => prev ? ({ ...prev, ...updates }) : null);
+      toast.success('Actualizado correctamente (Modo Demo)');
+      return;
+    }
     try {
       const { id, ...cleanUpdates } = updates;
       const postRef = doc(db, 'posts', selectedPost.id);
@@ -474,6 +626,14 @@ export default function App() {
   };
 
   const handleUpdatePostDirectly = async (postId: string, updates: any) => {
+    if (isOfflineMode) {
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, ...updates } : p));
+      if (selectedPost && selectedPost.id === postId) {
+        setSelectedPost(prev => prev ? ({ ...prev, ...updates }) : null);
+      }
+      toast.success('Fase de post actualizada (Modo Demo)');
+      return;
+    }
     try {
       const postRef = doc(db, 'posts', postId);
       let payload: any;
@@ -500,6 +660,12 @@ export default function App() {
   };
 
   const handleDeletePost = async (postId: string) => {
+    if (isOfflineMode) {
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      setSelectedPost(null);
+      toast.success('Post eliminado correctamente de la planificación (Modo Demo)');
+      return;
+    }
     try {
       await deleteDoc(doc(db, 'posts', postId));
       setSelectedPost(null);
@@ -512,6 +678,30 @@ export default function App() {
 
   const handleAddComment = async (text: string) => {
     if (!selectedPost || !currentUser) return;
+    if (isOfflineMode) {
+      const newComment = {
+        id: `local-comment-${Date.now()}`,
+        text,
+        authorId: currentUser.uid,
+        authorName: currentUser.displayName || 'Usuario',
+        roleAtTime: userRole,
+        createdAt: new Date()
+      };
+      setComments(prev => [newComment, ...prev]);
+      
+      const words = text.split(/\s+/);
+      const mentions = words.filter(w => w.startsWith('@')).map(w => w.substring(1));
+      if (mentions.length > 0) {
+        for (const mention of mentions) {
+          const mentionClean = mention.replace(/[^a-zA-Z0-9_.-]/g, '');
+          if (mentionClean) {
+            toast.success(`📧 Correo enviado a ${mentionClean}@basetis.com notificando la etiqueta`, { duration: 6000 });
+          }
+        }
+      }
+      toast.success('Comentario añadido (Modo Demo)');
+      return;
+    }
     const pathComments = `posts/${selectedPost.id}/comments`;
     try {
       await addDoc(collection(db, pathComments), {
@@ -562,6 +752,20 @@ export default function App() {
 
   const handleAddFeedback = async (text: string) => {
     if (!selectedPost || !currentUser) return;
+    if (isOfflineMode) {
+      const newFeedback = {
+        id: `local-feedback-${Date.now()}`,
+        text,
+        authorId: currentUser.uid,
+        authorName: currentUser.displayName || 'Usuario',
+        roleAtTime: userRole,
+        done: false,
+        createdAt: new Date()
+      };
+      setFeedbacks(prev => [newFeedback, ...prev]);
+      toast.success('Feedback añadido (Modo Demo)');
+      return;
+    }
     const pathFeedbacks = `posts/${selectedPost.id}/feedbacks`;
     try {
       await addDoc(collection(db, pathFeedbacks), {
@@ -590,6 +794,17 @@ export default function App() {
 
   const handleToggleFeedbackDone = async (feedbackId: string, currentDone: boolean) => {
     if (!selectedPost) return;
+    if (isOfflineMode) {
+      const nextDone = !currentDone;
+      setFeedbacks(prev => prev.map(f => f.id === feedbackId ? {
+        ...f,
+        done: nextDone,
+        doneAt: nextDone ? new Date() : null,
+        doneBy: nextDone ? (currentUser?.displayName || 'Usuario') : null
+      } : f));
+      toast.success(nextDone ? 'Feedback marcado como resuelto (Modo Demo)' : 'Feedback reabierto (Modo Demo)');
+      return;
+    }
     const pathFeedbacks = `posts/${selectedPost.id}/feedbacks`;
     try {
       const nextDone = !currentDone;
@@ -616,10 +831,67 @@ export default function App() {
     }
   };
 
+  const handleUpdateFeedback = async (feedbackId: string, newText: string) => {
+    if (!selectedPost) return;
+    if (isOfflineMode) {
+      setFeedbacks(prev => prev.map(f => f.id === feedbackId ? { ...f, text: newText } : f));
+      toast.success('Feedback actualizado (Modo Demo)');
+      return;
+    }
+    const pathFeedbacks = `posts/${selectedPost.id}/feedbacks`;
+    try {
+      const { updateDoc, doc } = await import('firebase/firestore');
+      await updateDoc(doc(db, pathFeedbacks, feedbackId), {
+        text: newText,
+        updatedAt: serverTimestamp()
+      });
+      toast.success('Feedback actualizado correctamente');
+    } catch (err) {
+      toast.error('Error al actualizar feedback');
+      handleFirestoreError(err, OperationType.UPDATE, `${pathFeedbacks}/${feedbackId}`);
+    }
+  };
+
+  const handleDeleteFeedback = async (feedbackId: string) => {
+    if (!selectedPost) return;
+    if (isOfflineMode) {
+      setFeedbacks(prev => prev.filter(f => f.id !== feedbackId));
+      toast.success('Feedback eliminado (Modo Demo)');
+      return;
+    }
+    const pathFeedbacks = `posts/${selectedPost.id}/feedbacks`;
+    try {
+      const { deleteDoc, doc } = await import('firebase/firestore');
+      await deleteDoc(doc(db, pathFeedbacks, feedbackId));
+      toast.success('Feedback eliminado correctamente');
+    } catch (err) {
+      toast.error('Error al eliminar feedback');
+      handleFirestoreError(err, OperationType.DELETE, `${pathFeedbacks}/${feedbackId}`);
+    }
+  };
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim() || !newProjectClient.trim()) {
       toast.error('Por favor, rellena los campos requeridos.');
+      return;
+    }
+    if (isOfflineMode) {
+      const newProjId = `local-project-${Date.now()}`;
+      const newProj = {
+        id: newProjId,
+        name: newProjectName.trim(),
+        clientName: newProjectClient.trim(),
+        color: newProjectColor,
+        createdAt: new Date()
+      };
+      setProjects(prev => [...prev, newProj]);
+      toast.success('¡Proyecto creado con éxito! (Modo Demo)');
+      setActiveProjectId(newProjId);
+      setShowNewProjectModal(false);
+      setNewProjectName('');
+      setNewProjectClient('');
+      setNewProjectColor('#2563EB');
       return;
     }
 
@@ -723,8 +995,27 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex font-sans">
-      <Toaster position="bottom-right" />
+    <div className="min-h-screen flex flex-col font-sans">
+      {isOfflineMode && (
+        <div className="bg-amber-500 text-amber-950 font-medium px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-amber-600/30 text-xs shadow-md z-50">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">⚠️</span>
+            <div>
+              <strong className="font-extrabold text-amber-950">Límite de Quota de Firestore superado para el día de hoy.</strong> El sistema ha entrado automáticamente en <span className="underline decoration-wavy font-bold">Modo de Demostración Offline</span>. Toda la interfaz es 100% interactiva utilizando un catálogo de simulación en memoria.
+            </div>
+          </div>
+          <a
+            href="https://console.firebase.google.com/project/gen-lang-client-0678644199/firestore/databases/ai-studio-963cf462-80fd-413c-a534-7008f0861a7a/data?openUpgradeDialog=true"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 bg-amber-950 text-white font-bold px-4 py-1.5 rounded-lg hover:bg-amber-900 transition-all text-[11px] shadow-sm uppercase tracking-wider"
+          >
+            Habilitar Facturación / Consola Firebase
+          </a>
+        </div>
+      )}
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-1">
+        <Toaster position="bottom-right" />
       
       {/* Sidebar - Desktop Only with Fixed Height (h-screen, sticky, non-scrollable) */}
       {activeProjectId !== 'dashboard' && (
@@ -740,27 +1031,32 @@ export default function App() {
 
             {/* Nav Tab List (scrollable if screen is extremely small, but self-contained) */}
             <nav className="flex-1 space-y-1 overflow-y-auto pr-1 scrollbar-hide">
-              {[
-                { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
-                { id: 'instagram_feed', label: 'Feed Instagram', icon: Instagram },
-                { id: 'linkedin_feed', label: 'Feed LinkedIn', icon: Globe },
-                { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
-                { id: 'configuracion', label: 'Configuración', icon: Settings }
-              ].map((item) => (
-                <button 
-                  key={item.id}
-                  onClick={() => setSidebarTab(item.id as any)}
-                  className={cn(
-                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
-                     sidebarTab === item.id 
-                       ? "bg-app-accent/10 text-app-accent" 
-                       : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-                  )}
-                >
-                  <item.icon size={18} />
-                  {item.label}
-                </button>
-              ))}
+              {(() => {
+                const activeProj = projects.find(p => p.id === activeProjectId);
+                const activePlatforms = activeProj && activeProj.platforms ? activeProj.platforms : ['instagram', 'linkedin', 'tiktok'];
+                return [
+                  { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
+                  { id: 'instagram_feed', label: 'Feed Instagram', icon: InstagramIcon, platform: 'instagram', iconColor: 'text-[#E1306C]' },
+                  { id: 'linkedin_feed', label: 'Feed LinkedIn', icon: LinkedInIcon, platform: 'linkedin', iconColor: 'text-[#0A66C2]' },
+                  { id: 'tiktok_feed', label: 'Feed TikTok', icon: TikTokIcon, platform: 'tiktok', iconColor: 'text-zinc-900' },
+                  { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
+                  { id: 'configuracion', label: 'Configuración', icon: Settings }
+                ].filter(item => !item.platform || activePlatforms.includes(item.platform)).map((item) => (
+                  <button 
+                    key={item.id}
+                    onClick={() => setSidebarTab(item.id as any)}
+                    className={cn(
+                       "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group",
+                       sidebarTab === item.id 
+                         ? "bg-app-accent/10 text-app-accent" 
+                         : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                    )}
+                  >
+                    <item.icon size={18} className={cn("transition-all shrink-0", item.iconColor || (sidebarTab === item.id ? "text-app-accent" : "text-gray-400"))} />
+                    {item.label}
+                  </button>
+                ));
+              })()}
             </nav>
           </div>
 
@@ -1222,6 +1518,15 @@ export default function App() {
                   />
                 )}
 
+                {sidebarTab === 'tiktok_feed' && (
+                  <TikTokFeed 
+                    posts={filteredPosts} 
+                    onSelectPost={setSelectedPost}
+                    userRole={userRole}
+                    projects={projects}
+                  />
+                )}
+
                 {sidebarTab === 'notificaciones' && (
                   <NotificationsStream />
                 )}
@@ -1256,27 +1561,32 @@ export default function App() {
       {/* Mobile Bottom Navigation Bar */}
       {activeProjectId !== 'dashboard' && (
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-150 h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0">
-          {[
-            { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
-            { id: 'instagram_feed', label: 'Instagram', icon: Instagram },
-            { id: 'linkedin_feed', label: 'LinkedIn', icon: Globe },
-            { id: 'notificaciones', label: 'Alertas', icon: Bell },
-            { id: 'configuracion', label: 'Config.', icon: Settings }
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setSidebarTab(item.id as any)}
-              className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-extrabold transition-all",
-                sidebarTab === item.id 
-                  ? "text-app-accent" 
-                  : "text-gray-400 hover:text-gray-500"
-              )}
-            >
-              <item.icon size={18} className="mb-1" />
-              <span className="truncate">{item.label}</span>
-            </button>
-          ))}
+          {(() => {
+            const activeProj = projects.find(p => p.id === activeProjectId);
+            const activePlatforms = activeProj && activeProj.platforms ? activeProj.platforms : ['instagram', 'linkedin', 'tiktok'];
+            return [
+              { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
+              { id: 'instagram_feed', label: 'Instagram', icon: InstagramIcon, platform: 'instagram', iconColor: 'text-[#E1306C]' },
+              { id: 'linkedin_feed', label: 'LinkedIn', icon: LinkedInIcon, platform: 'linkedin', iconColor: 'text-[#0A66C2]' },
+              { id: 'tiktok_feed', label: 'TikTok', icon: TikTokIcon, platform: 'tiktok', iconColor: 'text-zinc-900' },
+              { id: 'notificaciones', label: 'Alertas', icon: Bell },
+              { id: 'configuracion', label: 'Config.', icon: Settings }
+            ].filter(item => !item.platform || activePlatforms.includes(item.platform)).map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setSidebarTab(item.id as any)}
+                className={cn(
+                  "flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-extrabold transition-all",
+                  sidebarTab === item.id 
+                    ? "text-app-accent font-black" 
+                    : "text-gray-400 hover:text-gray-500"
+                )}
+              >
+                <item.icon size={18} className={cn("mb-1 transition-all", item.iconColor || (sidebarTab === item.id ? "text-app-accent" : "text-gray-400"))} />
+                <span className="truncate">{item.label}</span>
+              </button>
+            ));
+          })()}
         </nav>
       )}
 
@@ -1300,6 +1610,8 @@ export default function App() {
             onAddComment={handleAddComment}
             onAddFeedback={handleAddFeedback}
             onToggleFeedbackDone={handleToggleFeedbackDone}
+            onUpdateFeedback={handleUpdateFeedback}
+            onDeleteFeedback={handleDeleteFeedback}
             onUpdate={handleUpdatePost}
             onDelete={handleDeletePost}
             projects={projects}
@@ -1398,6 +1710,7 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

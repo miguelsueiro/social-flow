@@ -51,4 +51,6 @@ export interface Post {
   currentDesignUrl?: string;
   carouselUrls?: string[]; // Slide image URLs for Carousel format
   videoUrl?: string; // Video simulation for Reels format
+  title?: string;
+  language?: string;
 }

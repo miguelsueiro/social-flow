@@ -1,15 +1,19 @@
 import React from 'react';
 import { PHASES, Phase, cn } from '../lib/utils';
 import { motion } from 'motion/react';
-import { Instagram, Video, Clock, MessageSquare, ChevronRight } from 'lucide-react';
+import { Clock, MessageSquare, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
+import { InstagramIcon, TikTokIcon, LinkedInIcon } from './SocialIcons';
 
 interface Post {
   id: string;
   date: Date;
-  platform: 'instagram' | 'tiktok';
+  platform: 'instagram' | 'tiktok' | 'linkedin';
   phase: Phase;
   idea: string;
+  title?: string;
+  currentDesignUrl?: string;
+  carouselUrls?: string[];
 }
 
 interface BoardProps {
@@ -113,7 +117,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: B
                   onDragEnd={handleDragEnd}
                   onClick={() => onSelectPost(post)}
                   className={cn(
-                    "p-4 rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer group",
+                    "p-3 rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer group",
                     userRole !== 'client' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
                     post.phase === 'idea_1' && "bg-slate-50/95 border-slate-200/60 text-slate-800",
                     post.phase === 'idea_2' && "bg-sky-50/95 border-sky-200/60 text-sky-800",
@@ -125,30 +129,54 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole }: B
                   )}
                   whileHover={{ y: -2 }}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1.5">
-                      {post.platform === 'instagram' ? 
-                        <Instagram size={14} className="text-pink-600" /> : 
-                        <Video size={14} className="text-black" />
-                      }
-                      <span className="text-xs font-semibold text-gray-500 capitalize">{post.platform}</span>
+                  <div className="flex gap-3 items-start mb-2.5">
+                    {/* Miniature Design Thumbnail Preview */}
+                    <div className="w-14 h-14 rounded-lg bg-gray-200/80 border border-gray-300/30 overflow-hidden shrink-0 flex items-center justify-center relative shadow-sm">
+                      {post.currentDesignUrl ? (
+                        <img 
+                          src={post.currentDesignUrl} 
+                          className="w-full h-full object-cover animate-fade-in" 
+                          alt="preview"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : post.carouselUrls && post.carouselUrls.length > 0 ? (
+                        <img 
+                          src={post.carouselUrls[0]} 
+                          className="w-full h-full object-cover animate-fade-in" 
+                          alt="preview"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <span className="text-base opacity-75">🎨</span>
+                      )}
                     </div>
-                    <span className="text-xs font-semibold text-gray-400">{format(post.date, 'dd MMM')}</span>
-                  </div>
-                  
-                  <p className="text-sm font-medium text-gray-800 line-clamp-2 mb-3 leading-snug">
-                    {post.idea}
-                  </p>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-200/40">
-                    <div className="flex -space-x-2">
-                      <div className="w-6 h-6 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-xs font-medium text-blue-600">JD</div>
-                      <div className="w-6 h-6 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-xs font-medium text-indigo-600">MS</div>
+                    {/* Card details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {post.platform === 'instagram' && <InstagramIcon size={12} className="text-[#E1306C] shrink-0" />}
+                          {post.platform === 'linkedin' && <LinkedInIcon size={12} className="text-[#0A66C2] shrink-0" />}
+                          {post.platform === 'tiktok' && <TikTokIcon size={12} className="text-zinc-900 shrink-0" />}
+                          <span className="text-[9px] font-extrabold text-gray-500 uppercase truncate tracking-wider">{post.platform}</span>
+                        </div>
+                        <span className="text-[10px] font-semibold text-gray-400 shrink-0">{format(post.date, 'dd MMM')}</span>
+                      </div>
+                      
+                      <h4 className="text-xs sm:text-sm font-extrabold text-gray-900 line-clamp-1 leading-tight mb-0.5">
+                        {post.title || "Post sin título"}
+                      </h4>
+                      <p className="text-[11px] text-gray-500 line-clamp-2 leading-snug">
+                        {post.idea}
+                      </p>
                     </div>
+                  </div>
+
+                  <div className="flex items-center justify-end pt-2 border-t border-gray-200/40">
                     <div className="flex items-center gap-2 text-gray-400">
-                      <div className="flex items-center gap-0.5 text-xs font-medium">
-                        <MessageSquare size={12} />
-                        2
+                      <div className="flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-gray-500 transition-colors">
+                        <MessageSquare size={11} />
+                        Detalles
                       </div>
                       <div className="p-1 rounded bg-gray-50 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                         <ChevronRight size={14} />

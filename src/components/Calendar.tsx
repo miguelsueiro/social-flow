@@ -21,6 +21,7 @@ interface Post {
   platform: 'instagram' | 'tiktok';
   phase: Phase;
   idea: string;
+  title?: string;
 }
 
 interface CalendarProps {
@@ -179,7 +180,8 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                         {post.platform === 'instagram' ? <Instagram size={9} /> : <Video size={9} />}
                         <span className="font-semibold capitalize opacity-75 tracking-normal truncate">{post.platform}</span>
                       </div>
-                      <p className="line-clamp-2 font-medium leading-normal">{post.idea}</p>
+                      <p className="font-bold truncate text-[11px] text-gray-900">{post.title || "Post sin título"}</p>
+                      <p className="line-clamp-1 opacity-75 text-[10px] leading-tight text-gray-500 mt-0.5">{post.idea}</p>
                     </motion.button>
                   );
                 })}

@@ -16,9 +16,12 @@ import {
   Video,
   Film,
   Square,
-  CheckSquare
+  CheckSquare,
+  Edit2,
+  Save
 } from 'lucide-react';
 import { cn, PHASES, Phase, Role, ROLES, compressImage } from '../lib/utils';
+import { InstagramIcon, TikTokIcon, LinkedInIcon } from './SocialIcons';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { db, auth } from '../lib/firebase';
@@ -85,6 +88,8 @@ interface Post {
   creativityVersions?: VersionItem[];
   designVersions?: VersionItem[];
   videoUrl?: string;
+  title?: string;
+  language?: string;
 }
 
 interface PostModalProps {
@@ -98,6 +103,8 @@ interface PostModalProps {
   feedbacks: FeedbackItem[];
   onAddFeedback: (text: string) => void;
   onToggleFeedbackDone: (feedbackId: string, currentDone: boolean) => void;
+  onUpdateFeedback?: (feedbackId: string, text: string) => void;
+  onDeleteFeedback?: (feedbackId: string) => void;
   history: PostVersion[];
   projects?: any[];
 }
@@ -455,15 +462,86 @@ export default function PostModal({
   feedbacks = [],
   onAddFeedback,
   onToggleFeedbackDone,
+  onUpdateFeedback,
+  onDeleteFeedback,
   history,
   projects = []
 }: PostModalProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'history' | 'comments' | 'feedback'>('details');
   const [commentText, setCommentText] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
+  const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null);
+  const [editingFeedbackText, setEditingFeedbackText] = useState('');
   const [localPost, setLocalPost] = useState<Post | null>(post);
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isTranslatingCopy, setIsTranslatingCopy] = useState(false);
+  const [isTranslatingCaption, setIsTranslatingCaption] = useState(false);
+
+  const handleTranslate = async (fieldType: 'copy' | 'caption') => {
+    if (!localPost) return;
+    
+    const textToTranslate = fieldType === 'copy' ? localPost.copyCreativity : localPost.copyCaption;
+    if (!textToTranslate || !textToTranslate.trim()) {
+      toast.error('Por favor escribe un texto primero antes de traducir.');
+      return;
+    }
+
+    const targetLangCode = localPost.language || 'es';
+    const langNames: Record<string, string> = {
+      es: 'castellano',
+      en: 'inglés',
+      ca: 'catalán',
+      fr: 'francés',
+      pt: 'portugués'
+    };
+    const targetLangName = langNames[targetLangCode] || 'castellano';
+
+    if (fieldType === 'copy') {
+      setIsTranslatingCopy(true);
+    } else {
+      setIsTranslatingCaption(true);
+    }
+
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: textToTranslate,
+          targetLanguage: targetLangName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al conectar con el servidor de traducción');
+      }
+
+      const data = await response.json();
+      if (data.translatedText) {
+        const updated = {
+          ...localPost,
+          [fieldType === 'copy' ? 'copyCreativity' : 'copyCaption']: data.translatedText,
+        };
+        setLocalPost(updated);
+        onUpdate(updated);
+        toast.success(`Traducido al ${targetLangName} con éxito ✨`);
+      } else {
+        throw new Error('Respuesta inválida del servidor de traducción');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Ocurrió un error al traducir el contenido');
+    } finally {
+      if (fieldType === 'copy') {
+        setIsTranslatingCopy(false);
+      } else {
+        setIsTranslatingCaption(false);
+      }
+    }
+  };
 
   const getFormattedDateForInput = (d: any) => {
     if (!d) return '';
@@ -627,6 +705,8 @@ export default function PostModal({
     if (!localPost) return;
 
     const hasChanged = 
+      (localPost.title || '') !== (post.title || '') ||
+      (localPost.language || '') !== (post.language || '') ||
       (localPost.idea || '') !== (post.idea || '') ||
       (localPost.copyCreativity || '') !== (post.copyCreativity || '') ||
       (localPost.copyCaption || '') !== (post.copyCaption || '') ||
@@ -795,13 +875,20 @@ export default function PostModal({
               {PHASES[localPost.phase].label}
             </div>
             <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
-              <span className="capitalize">{localPost.platform} — {format(displayDate, 'dd/MM/yyyy')}</span>
+              <span className="flex items-center gap-1.5 font-extrabold">
+                {localPost.platform === 'instagram' && <InstagramIcon size={20} className="text-[#E1306C]" />}
+                {localPost.platform === 'linkedin' && <LinkedInIcon size={20} className="text-[#0A66C2]" />}
+                {localPost.platform === 'tiktok' && <TikTokIcon size={20} className="text-zinc-900" />}
+                <span className="capitalize">{localPost.platform}</span>
+              </span>
+              <span className="text-gray-350 font-normal mx-0.5">|</span>
+              <span className="text-gray-600 font-medium text-lg">{format(displayDate, 'dd/MM/yyyy')}</span>
               {projectInfo && (
                 <span 
-                  className="px-2.5 py-0.5 text-white border rounded-full text-xs font-semibold shadow-sm"
+                  className="px-2.5 py-0.5 text-white border rounded-full text-xs font-semibold shadow-sm ml-1.5"
                   style={{ backgroundColor: projectInfo.color || '#3b82f6', borderColor: 'transparent' }}
                 >
-                  💼 {projectInfo.name}
+                  {projectInfo.name}
                 </span>
               )}
             </h3>
@@ -894,6 +981,22 @@ export default function PostModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-6">
                     <section>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Título del Post</label>
+                      <input
+                        type="text"
+                        disabled={!canEditIdea}
+                        value={localPost.title || ''}
+                        onChange={e => {
+                          const updated = { ...localPost, title: e.target.value };
+                          setLocalPost(updated);
+                        }}
+                        onBlur={handleUpdate}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all text-sm font-semibold disabled:opacity-75 disabled:cursor-not-allowed"
+                        placeholder="Introduce un título descriptivo para la card..."
+                      />
+                    </section>
+
+                    <section>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">La Idea (Fase 1/2)</label>
                       <textarea
                         disabled={!canEditIdea}
@@ -908,18 +1011,30 @@ export default function PostModal({
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <section>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Plataforma</label>
-                        <select
-                          value={localPost.platform}
-                          onChange={e => {
-                            const updated = { ...localPost, platform: e.target.value as any };
-                            setLocalPost(updated);
-                            onUpdate(updated);
-                          }}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
-                        >
-                          <option value="instagram">📸 Instagram</option>
-                          <option value="linkedin">💼 LinkedIn</option>
-                        </select>
+                        {(() => {
+                          const postProject = projects?.find(p => p.id === localPost?.projectId);
+                          const activePlatforms = postProject && postProject.platforms ? postProject.platforms : ['instagram', 'linkedin', 'tiktok'];
+                          const platformsToDisplay = Array.from(new Set(
+                            localPost?.platform ? [localPost.platform, ...activePlatforms] : activePlatforms
+                          ));
+                          return (
+                            <select
+                              value={localPost?.platform}
+                              onChange={e => {
+                                if (localPost) {
+                                  const updated = { ...localPost, platform: e.target.value as any };
+                                  setLocalPost(updated);
+                                  onUpdate(updated);
+                                }
+                              }}
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
+                            >
+                              {platformsToDisplay.includes('instagram') && <option value="instagram">Instagram</option>}
+                              {platformsToDisplay.includes('linkedin') && <option value="linkedin">LinkedIn</option>}
+                              {platformsToDisplay.includes('tiktok') && <option value="tiktok">TikTok</option>}
+                            </select>
+                          );
+                        })()}
                       </section>
 
                       <section>
@@ -1090,8 +1205,45 @@ export default function PostModal({
                   </div>
 
                   <div className="space-y-6">
+                    {/* Idioma de Trabajo / Traducción */}
+                    <section className="bg-gray-50 border border-gray-200/60 rounded-xl p-3 flex items-center justify-between gap-4 shadow-sm">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-lg">🌎</span>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-800">Idioma del Post</label>
+                          <span className="block text-[10px] text-gray-500 font-medium">Selecciona el idioma objetivo</span>
+                        </div>
+                      </div>
+                      <select
+                        value={localPost.language || 'es'}
+                        onChange={e => {
+                          const updated = { ...localPost, language: e.target.value };
+                          setLocalPost(updated);
+                          onUpdate(updated);
+                        }}
+                        className="bg-white border border-gray-200 rounded-lg py-1.5 px-3 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all cursor-pointer shadow-sm"
+                      >
+                        <option value="es">🇪🇸 Castellano</option>
+                        <option value="en">🇬🇧 Inglés</option>
+                        <option value="ca">🟨 Catalán</option>
+                        <option value="fr">🇫🇷 Francés</option>
+                        <option value="pt">🇵🇹 Portugués</option>
+                      </select>
+                    </section>
+
                     <section>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Copy en la Creatividad (Diseños)</label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-semibold text-gray-700">Copy en la Creatividad (Diseños)</label>
+                        <button
+                          type="button"
+                          onClick={() => handleTranslate('copy')}
+                          disabled={isTranslatingCopy || !localPost.copyCreativity}
+                          className="text-[11px] font-bold text-app-accent hover:text-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-all bg-app-accent/5 hover:bg-app-accent/10 px-2 py-1 rounded-lg"
+                          title="Traducir el texto de la creatividad al idioma seleccionado"
+                        >
+                          {isTranslatingCopy ? 'Traduciendo...' : '🪄 Traducir'}
+                        </button>
+                      </div>
                       <textarea
                         disabled={!canEditCopy}
                         value={localPost.copyCreativity}
@@ -1113,7 +1265,18 @@ export default function PostModal({
                     </section>
 
                     <section>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Post Caption (Texto de Publicación)</label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-semibold text-gray-700">Post Caption (Texto de Publicación)</label>
+                        <button
+                          type="button"
+                          onClick={() => handleTranslate('caption')}
+                          disabled={isTranslatingCaption || !localPost.copyCaption}
+                          className="text-[11px] font-bold text-app-accent hover:text-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-all bg-app-accent/5 hover:bg-app-accent/10 px-2 py-1 rounded-lg"
+                          title="Traducir el pie de publicación al idioma seleccionado"
+                        >
+                          {isTranslatingCaption ? 'Traduciendo...' : '🪄 Traducir'}
+                        </button>
+                      </div>
                       <textarea
                         disabled={!canEditCopy}
                         value={localPost.copyCaption}
@@ -1420,7 +1583,7 @@ export default function PostModal({
                     </div>
                   )}
                   {feedbacks.map((f) => (
-                    <div key={f.id} className={cn("flex gap-3 p-3 rounded-2xl border transition-all", f.done ? "bg-gray-50/50 border-gray-100 opacity-60" : "bg-white border-gray-100 shadow-sm")}>
+                    <div key={f.id} className={cn("flex gap-3 p-3 rounded-2xl border transition-all relative group", f.done ? "bg-gray-50/50 border-gray-100 opacity-60" : "bg-white border-gray-100 shadow-sm")}>
                       <button 
                         onClick={() => onToggleFeedbackDone(f.id, f.done)}
                         className="p-1 rounded-lg text-gray-400 hover:text-blue-600 transition-colors shrink-0 self-start"
@@ -1434,16 +1597,82 @@ export default function PostModal({
                       </button>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2 mb-1 flex-wrap">
-                          <span className="text-sm font-bold text-gray-900">{f.authorName}</span>
-                          <span className="text-[9px] bg-blue-50 text-blue-600 font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider">{f.roleAtTime}</span>
-                          <span className="text-[10px] text-gray-400">
-                            {f.createdAt instanceof Date ? format(f.createdAt, 'HH:mm dd/MM') : 'Ahora'}
-                          </span>
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <span className="text-sm font-bold text-gray-900">{f.authorName}</span>
+                            <span className="text-[9px] bg-blue-50 text-blue-600 font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider">{f.roleAtTime}</span>
+                            <span className="text-[10px] text-gray-400">
+                              {f.createdAt instanceof Date ? format(f.createdAt, 'HH:mm dd/MM') : 'Ahora'}
+                            </span>
+                          </div>
+                          
+                          {/* Edit / Delete Buttons on Hover / Action */}
+                          {editingFeedbackId !== f.id && (
+                            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingFeedbackId(f.id);
+                                  setEditingFeedbackText(f.text);
+                                }}
+                                className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                                title="Editar feedback"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm('¿Estás seguro de que deseas eliminar este feedback?') && onDeleteFeedback) {
+                                    onDeleteFeedback(f.id);
+                                  }
+                                }}
+                                className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                title="Eliminar feedback"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        <div className={cn("text-xs sm:text-sm text-gray-700", f.done && "line-through text-gray-400 font-medium")}>
-                          {f.text}
-                        </div>
+
+                        {editingFeedbackId === f.id ? (
+                          <div className="mt-1 space-y-2">
+                            <textarea
+                              value={editingFeedbackText}
+                              onChange={(e) => setEditingFeedbackText(e.target.value)}
+                              className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent resize-y"
+                              rows={2}
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                type="button"
+                                onClick={() => setEditingFeedbackId(null)}
+                                className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (editingFeedbackText.trim() && onUpdateFeedback) {
+                                    onUpdateFeedback(f.id, editingFeedbackText.trim());
+                                    setEditingFeedbackId(null);
+                                  }
+                                }}
+                                className="px-3 py-1 bg-app-accent text-white rounded-lg text-xs font-semibold hover:bg-app-accent-hover transition-colors flex items-center gap-1"
+                              >
+                                <Save size={12} />
+                                Guardar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={cn("text-xs sm:text-sm text-gray-700", f.done && "line-through text-gray-400 font-medium")}>
+                            {f.text}
+                          </div>
+                        )}
+
                         {f.done && f.doneBy && (
                           <p className="text-[10px] text-green-600 font-extrabold mt-1.5 flex items-center gap-1">
                             ✓ Hecho por {f.doneBy}
