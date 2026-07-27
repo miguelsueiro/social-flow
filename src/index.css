@@ -4,16 +4,23 @@
 @theme {
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
-  
+
   --radius-3xl: 12px;
   --radius-2xl: 10px;
   --radius-xl: 8px;
   --radius-lg: 6px;
   --radius-md: 4px;
-  
+
   --font-weight-bold: 500;
   --font-weight-extrabold: 600;
   --font-weight-black: 600;
+
+  /* Registering these as real theme colors (not just hand-written .bg-app-accent
+     classes) makes Tailwind generate every variant for free: bg/text/border/ring,
+     hover:, and opacity modifiers like bg-app-accent/10 — none of which worked
+     before, since a plain CSS custom property isn't a color Tailwind knows about. */
+  --color-app-accent: var(--app-accent);
+  --color-app-accent-hover: var(--app-accent-hover);
 }
 
 @layer base {
@@ -25,22 +32,6 @@
 :root {
   --app-accent: #2563eb;
   --app-accent-hover: #1d4ed8;
-}
-
-.bg-app-accent {
-  background-color: var(--app-accent);
-}
-.hover\:bg-app-accent-hover:hover {
-  background-color: var(--app-accent-hover);
-}
-.text-app-accent {
-  color: var(--app-accent);
-}
-.border-app-accent {
-  border-color: var(--app-accent);
-}
-.focus\:ring-app-accent:focus {
-  --tw-ring-color: var(--app-accent);
 }
 
 .scrollbar-hide::-webkit-scrollbar {

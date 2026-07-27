@@ -82,15 +82,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
           <div key={phase} className="flex-shrink-0 w-80 flex flex-col gap-4">
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-2">
-                <span className={cn(
-                  "w-2 h-2 rounded-full",
-                  phase === 'idea_1' && "bg-slate-400",
-                  phase === 'copy' && "bg-purple-400",
-                  phase === 'design' && "bg-amber-400",
-                  phase === 'client_review' && "bg-rose-400",
-                  phase === 'approved' && "bg-emerald-400",
-                  phase === 'published' && "bg-indigo-400"
-                )} />
+                <span className={cn("w-2 h-2 rounded-full", phaseInfo.dotColor)} />
                 <h3 className="font-semibold text-gray-700 text-sm">{phaseInfo.label}</h3>
               </div>
               <span className="bg-gray-200 text-gray-500 text-xs font-semibold px-2 py-0.5 rounded-full">
@@ -128,13 +120,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                   className={cn(
                     "p-3 rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer group",
                     userRole !== 'client' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
-                    post.phase === 'idea_1' && "bg-slate-50/95 border-slate-200/60 text-slate-800",
-                    post.phase === 'idea_2' && "bg-sky-50/95 border-sky-200/60 text-sky-800",
-                    post.phase === 'copy' && "bg-purple-50/95 border-purple-200/60 text-purple-800",
-                    post.phase === 'design' && "bg-amber-50/95 border-amber-200/60 text-amber-800",
-                    post.phase === 'client_review' && "bg-rose-50/95 border-rose-200/60 text-rose-800",
-                    post.phase === 'approved' && "bg-emerald-50/95 border-emerald-200/60 text-emerald-800",
-                    post.phase === 'published' && "bg-indigo-50/95 border-indigo-200/60 text-indigo-800"
+                    PHASES[post.phase].cardClass
                   )}
                   whileHover={{ y: -2 }}
                 >

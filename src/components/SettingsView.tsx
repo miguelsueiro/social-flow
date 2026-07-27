@@ -26,6 +26,7 @@ import { InstagramIcon, TikTokIcon, LinkedInIcon } from './SocialIcons';
 import ConfirmInline from './ConfirmInline';
 import NewProjectModal, { NewProjectData } from './NewProjectModal';
 import TagListEditor from './TagListEditor';
+import Button from './Button';
 import { toast } from 'react-hot-toast';
 import { db, auth } from '../lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -307,7 +308,7 @@ export default function SettingsView({
       {userRole === 'admin' && (
       <div className="bg-white rounded-3xl border border-amber-200 shadow-sm overflow-hidden p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl">
+          <div className="p-2.5 bg-app-accent/10 text-app-accent rounded-2xl">
             <ShieldCheck size={22} />
           </div>
           <div>
@@ -330,16 +331,16 @@ export default function SettingsView({
                 onClick={() => onRoleChange(key as Role)}
                 className={`p-4 rounded-2xl border text-left flex flex-col justify-between h-24 transition-all relative ${
                   isSelected
-                    ? 'border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-500/10'
+                    ? 'border-app-accent bg-app-accent/10 ring-2 ring-app-accent/10'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
                 <div className="flex items-center justify-between w-full">
-                  <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-indigo-600' : 'text-gray-400'}`}>
+                  <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-app-accent' : 'text-gray-400'}`}>
                     {key === 'client' ? 'Externo' : 'Agencia'}
                   </span>
                   {isSelected && (
-                    <div className="bg-indigo-600 text-white rounded-full p-0.5">
+                    <div className="bg-app-accent text-white rounded-full p-0.5">
                       <Check size={10} />
                     </div>
                   )}
@@ -358,7 +359,7 @@ export default function SettingsView({
       {/* 1. Project switching panel (moved from sidebar/topbar) */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Folder size={20} className="text-blue-600" />
+          <Folder size={20} className="text-app-accent" />
           <div>
             <h3 className="font-extrabold text-gray-900 text-sm">Cambiar de Proyecto de Trabajo Activo</h3>
             <p className="text-xs text-gray-400">Selecciona el espacio de trabajo que quieres planificar en el calendario y ver en el tablero.</p>
@@ -371,7 +372,7 @@ export default function SettingsView({
               onClick={() => setActiveProjectId('all')}
               className={`p-4 rounded-2xl border text-left flex flex-col justify-between h-28 transition-all ${
                 activeProjectId === 'all'
-                  ? 'border-blue-600 bg-blue-50/20 ring-2 ring-blue-500/10'
+                  ? 'border-app-accent bg-app-accent/10 ring-2 ring-app-accent/10'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >
@@ -425,18 +426,15 @@ export default function SettingsView({
           <div className="p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
-                <Users size={18} className="text-indigo-600" />
+                <Users size={18} className="text-app-accent" />
                 Gestión de Usuarios y Permisos de Proyectos
               </h3>
               <p className="text-xs text-gray-400 mt-1">Como administrador, puedes invitar colaboradores, asignar roles de la agencia y habilitar o deshabilitar el acceso a proyectos específicos.</p>
             </div>
-            <button
-              onClick={() => setShowInviteModal(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-md flex items-center gap-1.5 transition-all self-start md:self-auto shrink-0 animate-fade-in"
-            >
+            <Button variant="primary" onClick={() => setShowInviteModal(true)} className="py-2 self-start md:self-auto shrink-0 animate-fade-in">
               <UserPlus size={14} />
               Invitar Usuario
-            </button>
+            </Button>
           </div>
 
           <div className="p-6 space-y-6">
@@ -447,7 +445,7 @@ export default function SettingsView({
                 placeholder="Buscar usuarios por nombre o correo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-2 pl-10 pr-4 text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-2 pl-10 pr-4 text-xs focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 outline-none transition-all"
               />
             </div>
 
@@ -487,7 +485,7 @@ export default function SettingsView({
                                   type="text"
                                   value={editUserName}
                                   onChange={(e) => setEditUserName(e.target.value)}
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all"
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-app-accent transition-all"
                                   placeholder="Nombre completo"
                                 />
                               </div>
@@ -497,7 +495,7 @@ export default function SettingsView({
                                   type="email"
                                   value={editUserEmail}
                                   onChange={(e) => setEditUserEmail(e.target.value)}
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all"
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-app-accent transition-all"
                                   placeholder="correo@ejemplo.com"
                                 />
                               </div>
@@ -506,7 +504,7 @@ export default function SettingsView({
                                 <select
                                   value={editUserStatus}
                                   onChange={(e) => setEditUserStatus(e.target.value)}
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-app-accent transition-all cursor-pointer"
                                 >
                                   <option value="active">Activo</option>
                                   <option value="pending">Pendiente</option>
@@ -550,14 +548,14 @@ export default function SettingsView({
                               <div className="flex flex-col">
                                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rol / Permisos</span>
                                 {isUserAdmin ? (
-                                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 font-bold rounded-xl text-xs">
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-app-accent/10 text-app-accent font-bold rounded-xl text-xs">
                                     {ROLES.admin}
                                   </span>
                                 ) : (
                                   <select
                                     value={usr.role || 'client'}
                                     onChange={(e) => handleRoleChangeInDb(usr.id, e.target.value as Role)}
-                                    className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                                    className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-app-accent transition-all cursor-pointer"
                                   >
                                     {Object.entries(ROLES).map(([key, label]) => (
                                       <option key={key} value={key}>{label}</option>
@@ -591,7 +589,7 @@ export default function SettingsView({
                                             );
                                           })}
                                           {userPermitted.length > 1 && (
-                                            <span className="inline-flex items-center bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-xl text-[10px] text-indigo-600 font-bold shrink-0">
+                                            <span className="inline-flex items-center bg-app-accent/10 border border-app-accent/20 px-2 py-1 rounded-xl text-[10px] text-app-accent font-bold shrink-0">
                                               +{userPermitted.length - 1}
                                             </span>
                                           )}
@@ -630,7 +628,7 @@ export default function SettingsView({
                                                 placeholder="Buscar proyecto..."
                                                 value={popoverSearch}
                                                 onChange={(e) => setPopoverSearch(e.target.value)}
-                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl py-1 pl-7 pr-3 text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-gray-800"
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl py-1 pl-7 pr-3 text-xs outline-none focus:bg-white focus:border-app-accent transition-all text-gray-800"
                                               />
                                             </div>
                                           )}
@@ -665,7 +663,7 @@ export default function SettingsView({
                                                       }
                                                     }}
                                                     className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all text-xs hover:bg-gray-50 ${
-                                                      hasPerm ? 'text-indigo-700 font-bold' : 'text-gray-600'
+                                                      hasPerm ? 'text-app-accent font-bold' : 'text-gray-600'
                                                     }`}
                                                   >
                                                     <div className="flex items-center gap-2">
@@ -676,7 +674,7 @@ export default function SettingsView({
                                                       </div>
                                                     </div>
                                                     <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${
-                                                      hasPerm ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-200 bg-white'
+                                                      hasPerm ? 'bg-app-accent border-app-accent text-white' : 'border-gray-200 bg-white'
                                                     }`}>
                                                       {hasPerm && <Check size={10} className="stroke-[3]" />}
                                                     </div>
@@ -747,19 +745,16 @@ export default function SettingsView({
           <div className="p-6 border-b border-gray-50 flex items-center justify-between">
             <div>
               <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
-                <Folder size={18} className="text-blue-600" />
+                <Folder size={18} className="text-app-accent" />
                 Administración de Proyectos y Clientes
               </h3>
               <p className="text-xs text-gray-400 mt-1">Crea, modifica y elimina tus cuentas de clientes o marcas activas en el sistema.</p>
             </div>
             {!isAdding && (
-              <button
-                onClick={() => setIsAdding(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-md flex items-center gap-1.5 transition-all"
-              >
+              <Button variant="primary" onClick={() => setIsAdding(true)} className="py-2">
                 <Plus size={14} />
                 Nuevo Proyecto
-              </button>
+              </Button>
             )}
           </div>
 
@@ -910,7 +905,7 @@ export default function SettingsView({
                               </button>
                               <button
                                 onClick={() => handleUpdateProject(proj.id)}
-                                className="text-[10px] font-bold bg-green-500 text-white rounded px-2.5 py-1 hover:bg-green-600"
+                                className="text-[10px] font-bold bg-app-accent text-white rounded px-2.5 py-1 hover:bg-app-accent-hover"
                               >
                                 Guardar
                               </button>
@@ -919,7 +914,7 @@ export default function SettingsView({
                             <div className="flex justify-end gap-2.5">
                               <button
                                 onClick={() => startEditProject(proj)}
-                                className="text-[10px] font-bold text-blue-600 hover:underline"
+                                className="text-[10px] font-bold text-app-accent hover:underline"
                               >
                                 Modificar
                               </button>
@@ -947,7 +942,7 @@ export default function SettingsView({
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-50">
           <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
-            <Settings size={18} className="text-blue-600" />
+            <Settings size={18} className="text-app-accent" />
             Configuración del Workspace
           </h3>
           <p className="text-xs text-gray-400 mt-1">Establece los parámetros generales y las preferencias de notificación de tu agencia.</p>
@@ -968,7 +963,7 @@ export default function SettingsView({
                   type="text" 
                   value={agencyName}
                   onChange={(e) => setAgencyName(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:bg-white transition-all"
                   required
                 />
               </div>
@@ -978,7 +973,7 @@ export default function SettingsView({
                 <select 
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:bg-white transition-all"
                 >
                   <option value="Europe/Madrid">Madrid (CET) - Europe/Madrid</option>
                   <option value="America/New_York">New York (EST) - America/New_York</option>
@@ -1010,7 +1005,7 @@ export default function SettingsView({
                   aria-checked={notifyEmail}
                   aria-label="Alertas por correo"
                   onClick={() => setNotifyEmail(!notifyEmail)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifyEmail ? 'bg-blue-600' : 'bg-gray-200'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifyEmail ? 'bg-app-accent' : 'bg-gray-200'}`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notifyEmail ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
@@ -1027,7 +1022,7 @@ export default function SettingsView({
                   aria-checked={notifySlack}
                   aria-label="Notificaciones en Slack"
                   onClick={() => setNotifySlack(!notifySlack)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifySlack ? 'bg-blue-600' : 'bg-gray-200'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifySlack ? 'bg-app-accent' : 'bg-gray-200'}`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notifySlack ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
@@ -1044,7 +1039,7 @@ export default function SettingsView({
                   aria-checked={notifyClientApprove}
                   aria-label="Flujo de aprobación de cliente"
                   onClick={() => setNotifyClientApprove(!notifyClientApprove)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifyClientApprove ? 'bg-blue-600' : 'bg-gray-200'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifyClientApprove ? 'bg-app-accent' : 'bg-gray-200'}`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notifyClientApprove ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
@@ -1053,14 +1048,10 @@ export default function SettingsView({
           </div>
 
           <div className="pt-4 border-t border-gray-100 flex justify-end">
-            <button
-              type="submit"
-              disabled={isSavingAgencySettings}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-xs py-2.5 px-6 rounded-xl shadow-md flex items-center gap-2 transition-all active:scale-95"
-            >
+            <Button type="submit" variant="primary" disabled={isSavingAgencySettings} className="gap-2 px-6 py-2.5">
               <Save size={16} />
               {isSavingAgencySettings ? 'Guardando...' : 'Guardar Configuración'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -1121,7 +1112,7 @@ export default function SettingsView({
             className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-gray-100"
           >
             <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+              <div className="p-3 bg-app-accent/10 text-app-accent rounded-2xl">
                 <UserPlus size={24} />
               </div>
               <button
@@ -1148,7 +1139,7 @@ export default function SettingsView({
                   value={inviteName}
                   onChange={(e) => setInviteName(e.target.value)}
                   placeholder="Ej. Ana Belén"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all text-gray-800"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-app-accent focus:bg-white transition-all text-gray-800"
                   required
                 />
               </div>
@@ -1160,7 +1151,7 @@ export default function SettingsView({
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="Ej. ana.client@basetis.com"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all text-gray-800"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-app-accent focus:bg-white transition-all text-gray-800"
                   required
                 />
               </div>
@@ -1170,7 +1161,7 @@ export default function SettingsView({
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as Role)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-app-accent focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
                 >
                   {ASSIGNABLE_ROLES.map((key) => (
                     <option key={key} value={key}>{ROLES[key]}</option>
@@ -1185,7 +1176,7 @@ export default function SettingsView({
                     value={inviteProjectId}
                     onChange={(e) => setInviteProjectId(e.target.value)}
                     required
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-app-accent focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
                   >
                     <option value="">Selecciona un proyecto...</option>
                     {projects.map(p => (
@@ -1196,19 +1187,17 @@ export default function SettingsView({
               )}
 
               <div className="flex gap-3 pt-4">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={() => setShowInviteModal(false)}
-                  className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all"
+                  className="flex-1 border-transparent bg-gray-100 hover:bg-gray-200"
                 >
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/10"
-                >
+                </Button>
+                <Button type="submit" variant="primary" className="flex-1">
                   Enviar invitación
-                </button>
+                </Button>
               </div>
             </form>
           </motion.div>

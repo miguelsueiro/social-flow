@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useModalA11y } from '../lib/useModalA11y';
 import { InstagramIcon, TikTokIcon, LinkedInIcon } from './SocialIcons';
 import TagListEditor from './TagListEditor';
+import Button from './Button';
 
 const PLATFORM_OPTIONS = [
   { id: 'instagram', label: 'Instagram', icon: InstagramIcon, color: 'text-[#E1306C] border-[#E1306C]/20 bg-[#E1306C]/5' },
@@ -179,20 +180,12 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t border-gray-50">
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-xs text-gray-500 hover:text-gray-700 font-bold px-4 py-2 hover:bg-gray-50 rounded-xl transition-all"
-            >
+            <Button type="button" variant="ghost" onClick={onClose}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-app-accent text-white hover:bg-app-accent-hover disabled:opacity-60 disabled:cursor-not-allowed text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition-all"
-            >
+            </Button>
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting ? 'Creando...' : 'Crear Proyecto'}
-            </button>
+            </Button>
           </div>
         </form>
       </motion.div>

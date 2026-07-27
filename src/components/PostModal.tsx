@@ -1650,7 +1650,7 @@ export default function PostModal({
                            </div>
                          )}
                          {localPost.phase === 'approved' && (
-                           <p className="text-[10px] text-green-600 font-semibold text-center">✓ Post aprobado por el cliente</p>
+                           <p className="text-[10px] text-emerald-600 font-semibold text-center">✓ Post aprobado por el cliente</p>
                          )}
                       </div>
                     </div>
@@ -1781,7 +1781,7 @@ export default function PostModal({
                         aria-label={f.done ? "Marcar como pendiente" : "Marcar como hecho"}
                       >
                         {f.done ? (
-                          <CheckSquare className="text-green-600" size={20} />
+                          <CheckSquare className="text-emerald-600" size={20} />
                         ) : (
                           <Square size={20} className="text-gray-300 hover:text-gray-500" />
                         )}
@@ -1883,7 +1883,7 @@ export default function PostModal({
                         )}
 
                         {f.done && f.doneBy && (
-                          <p className="text-[10px] text-green-600 font-extrabold mt-1.5 flex items-center gap-1">
+                          <p className="text-[10px] text-emerald-600 font-extrabold mt-1.5 flex items-center gap-1">
                             ✓ Hecho por {f.doneBy}
                           </p>
                         )}

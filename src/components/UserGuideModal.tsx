@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useModalA11y } from '../lib/useModalA11y';
+import Button from './Button';
 import { 
   X, 
   Sparkles, 
@@ -190,7 +191,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
         <div className="w-full md:w-52 bg-slate-50 border-r border-slate-100 p-6 flex flex-col justify-between shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-6">
-              <div className="p-1.5 bg-indigo-600 text-white rounded-lg">
+              <div className="p-1.5 bg-app-accent text-white rounded-lg">
                 <BookOpen size={14} />
               </div>
               <span className="text-[11px] font-extrabold text-slate-800 uppercase tracking-widest">Guía de Uso</span>
@@ -202,12 +203,12 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
                   key={idx}
                   onClick={() => setCurrentStep(idx)}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2.5 ${
-                    currentStep === idx 
-                      ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' 
+                    currentStep === idx
+                      ? 'bg-white text-app-accent shadow-sm border border-slate-100'
                       : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${currentStep === idx ? 'bg-indigo-600' : 'bg-slate-300'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${currentStep === idx ? 'bg-app-accent' : 'bg-slate-300'}`} />
                   <span className="truncate">{s.title.split('. ').pop()}</span>
                 </button>
               ))}
@@ -228,7 +229,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
                 <IconComponent size={24} />
               </div>
               <div>
-                <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-md">
+                <span className="text-[9px] font-extrabold text-app-accent uppercase tracking-widest bg-app-accent/10 px-2 py-0.5 rounded-md">
                   PASO {currentStep + 1} DE {steps.length}
                 </span>
                 <h3 id="user-guide-title" className="text-lg font-black text-slate-900 tracking-tight mt-1">
@@ -303,20 +304,14 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
             </button>
 
             <div className="flex gap-2">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-600"
-              >
+              <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-slate-600">
                 Saltar guía
-              </button>
-              
-              <button
-                onClick={handleNext}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold rounded-xl transition-all shadow-md shadow-indigo-600/10 active:scale-95"
-              >
+              </Button>
+
+              <Button variant="primary" onClick={handleNext} className="shadow-app-accent/10">
                 {currentStep === steps.length - 1 ? 'Entendido, ¡empezar!' : 'Siguiente'}
                 {currentStep < steps.length - 1 && <ChevronRight size={16} />}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

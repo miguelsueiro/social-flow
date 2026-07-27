@@ -1576,7 +1576,7 @@ export default function App() {
                               </div>
                               <div className="space-y-1">
                                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">Aprobados</p>
-                                <p className="text-xl sm:text-2xl font-black text-green-600">{aprobados}</p>
+                                <p className="text-xl sm:text-2xl font-black text-emerald-600">{aprobados}</p>
                               </div>
                               <div className="space-y-1">
                                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">Publicados</p>
@@ -1608,7 +1608,7 @@ export default function App() {
                   {[
                     { label: 'Total Posts', value: stats.total, icon: FileText, color: 'text-app-accent', bg: 'bg-app-accent/10' },
                     { label: 'En Producción', value: stats.pending, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
-                    { label: 'Aprobados', value: stats.approved, icon: Trophy, color: 'text-green-600', bg: 'bg-green-50' },
+                    { label: 'Aprobados', value: stats.approved, icon: Trophy, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                     { label: 'Publicados', value: stats.published, icon: ShieldCheck, color: 'text-indigo-600', bg: 'bg-indigo-50' }
                   ].map((stat, i) => (
                     <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:scale-[1.02]">

@@ -190,13 +190,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                       className={cn(
                         "w-full text-left p-1.5 rounded-lg border text-xs leading-tight transition-all hover:scale-[1.02] shadow-sm flex flex-col font-medium",
                         userRole !== 'client' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
-                        post.phase === 'idea_1' && "bg-slate-100/90 border-slate-200/80 text-slate-700",
-                        post.phase === 'idea_2' && "bg-sky-100/90 border-sky-200/80 text-sky-800",
-                        post.phase === 'copy' && "bg-purple-100/90 border-purple-200/80 text-purple-800",
-                        post.phase === 'design' && "bg-amber-100/90 border-amber-200/80 text-amber-800",
-                        post.phase === 'client_review' && "bg-rose-100/90 border-rose-200/80 text-rose-800",
-                        post.phase === 'approved' && "bg-emerald-100/90 border-emerald-200/80 text-emerald-800",
-                        post.phase === 'published' && "bg-indigo-100/90 border-indigo-200/80 text-indigo-800"
+                        phaseInfo.cardClass
                       )}
                     >
                       <div className="flex items-center gap-1 mb-0.5">
