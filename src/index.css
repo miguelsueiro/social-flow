@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --radius-3xl: 12px;
+  --radius-2xl: 10px;
+  --radius-xl: 8px;
+  --radius-lg: 6px;
+  --radius-md: 4px;
+  
+  --font-weight-bold: 500;
+  --font-weight-extrabold: 600;
+  --font-weight-black: 600;
+}
+
+@layer base {
+  body {
+    @apply font-sans;
+  }
+}
+
+:root {
+  --app-accent: #2563eb;
+  --app-accent-hover: #1d4ed8;
+}
+
+.bg-app-accent {
+  background-color: var(--app-accent);
+}
+.hover\:bg-app-accent-hover:hover {
+  background-color: var(--app-accent-hover);
+}
+.text-app-accent {
+  color: var(--app-accent);
+}
+.border-app-accent {
+  border-color: var(--app-accent);
+}
+.focus\:ring-app-accent:focus {
+  --tw-ring-color: var(--app-accent);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom subtle scrollbar styling for the whole app */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Fallback class overrides to guarantee consistent rendering across browsers */
+.font-black {
+  font-weight: 600 !important;
+}
+.font-extrabold {
+  font-weight: 600 !important;
+}
+.font-bold {
+  font-weight: 500 !important;
+}
+
+/* Avoid uppercase text styling globally as per user request */
+.uppercase,
+[class*="uppercase"] {
+  text-transform: none !important;
+}
+
+
+
+
+
