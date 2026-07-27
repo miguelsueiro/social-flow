@@ -14,6 +14,7 @@ interface Post {
   title?: string;
   currentDesignUrl?: string;
   carouselUrls?: string[];
+  assigneeName?: string;
 }
 
 interface BoardProps {
@@ -64,10 +65,10 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
     }
   };
   
-  // Filter phases for clients: only Fase 4 and Fase 5
+  // Filter phases for clients: only the phases they actually interact with
   const visiblePhases = phaseKeys.filter(phase => {
     if (userRole === 'client') {
-      return phase === 'client_review' || phase === 'approved';
+      return phase === 'client_review' || phase === 'changes_requested' || phase === 'approved';
     }
     return true;
   });
@@ -182,7 +183,17 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end pt-2 border-t border-gray-200/40">
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-200/40">
+                    {post.assigneeName ? (
+                      <div
+                        className="w-5 h-5 rounded-full bg-app-accent/10 text-app-accent flex items-center justify-center text-[9px] font-bold shrink-0"
+                        title={post.assigneeName}
+                      >
+                        {post.assigneeName[0].toUpperCase()}
+                      </div>
+                    ) : (
+                      <span className="text-[9px] text-gray-300 font-semibold">Sin asignar</span>
+                    )}
                     <div className="flex items-center gap-2 text-gray-400">
                       <div className="flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-gray-500 transition-colors">
                         <MessageSquare size={11} />

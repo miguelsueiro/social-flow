@@ -207,6 +207,10 @@ export default function App() {
   const [userProjectId, setUserProjectId] = useState<string | null>(null);
   const [permittedProjects, setPermittedProjects] = useState<string[]>([]);
   const [view, setView] = useState<'calendar' | 'board'>('calendar');
+  const [filterPhase, setFilterPhase] = useState<Phase | 'all'>('all');
+  const [filterPlatform, setFilterPlatform] = useState<'instagram' | 'linkedin' | 'tiktok' | 'all'>('all');
+  const [filterTerritory, setFilterTerritory] = useState<string>('all');
+  const [filterAssignedToMe, setFilterAssignedToMe] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<'calendario' | 'instagram_feed' | 'linkedin_feed' | 'tiktok_feed' | 'notificaciones' | 'configuracion'>('calendario');
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -514,7 +518,7 @@ export default function App() {
     // Scope the query itself to what this user is allowed to see, instead of
     // relying only on client-side filtering — a restricted user should never
     // download another client's material to their browser in the first place.
-    const clientVisiblePhases = ['client_review', 'approved', 'published'];
+    const clientVisiblePhases = ['client_review', 'changes_requested', 'approved', 'published'];
     const scopedProjectIds = permittedProjects.slice(0, 30);
 
     const q = userRole === 'client'
@@ -663,10 +667,13 @@ export default function App() {
 
       let payload: any;
       if (userRole === 'client') {
-        payload = {
-          phase: cleanUpdates.phase,
-          updatedAt: serverTimestamp()
-        };
+        // Clients can only ever change the phase itself, plus the small set of
+        // status fields tied to approving or requesting changes (matches what
+        // firestore.rules allows for the client branch) — never post content.
+        payload = { phase: cleanUpdates.phase, updatedAt: serverTimestamp() };
+        for (const key of ['approvedBy', 'approvedAt', 'changesRequestedReason', 'changesRequestedAt', 'changesRequestedBy']) {
+          if (cleanUpdates[key] !== undefined) payload[key] = cleanUpdates[key];
+        }
       } else {
         payload = {
           ...cleanUpdates,
@@ -1058,11 +1065,23 @@ export default function App() {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
     return (
+      (post.title || '').toLowerCase().includes(query) ||
       (post.idea || '').toLowerCase().includes(query) ||
       (post.copyCaption || '').toLowerCase().includes(query) ||
       (post.copyCreativity || '').toLowerCase().includes(query) ||
       (post.platform || '').toLowerCase().includes(query)
     );
+  });
+
+  // Extra filters (fase/plataforma/territorio/responsable) apply only to the
+  // Calendar/Board view, not to the feed simulators — those already filter by
+  // their own platform and would behave confusingly if these silently applied too.
+  const calendarBoardPosts = filteredPosts.filter(post => {
+    if (filterPhase !== 'all' && post.phase !== filterPhase) return false;
+    if (filterPlatform !== 'all' && post.platform !== filterPlatform) return false;
+    if (filterTerritory !== 'all' && (post.territory || '') !== filterTerritory) return false;
+    if (filterAssignedToMe && post.assigneeId !== currentUser?.uid) return false;
+    return true;
   });
 
   const matchingSuggestions = searchQuery.trim()
@@ -1638,7 +1657,7 @@ export default function App() {
                       <CalendarIcon size={14} />
                       Calendario
                     </button>
-                    <button 
+                    <button
                       onClick={() => setView('board')}
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
@@ -1649,6 +1668,79 @@ export default function App() {
                       Producción (Board)
                     </button>
                   </div>
+
+                  {(() => {
+                    const activeProj = projects.find(p => p.id === activeProjectId);
+                    const projectTerritories: string[] = activeProj?.territories || [];
+                    const hasActiveFilters = filterPhase !== 'all' || filterPlatform !== 'all' || filterTerritory !== 'all' || filterAssignedToMe;
+                    return (
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <select
+                          value={filterPhase}
+                          onChange={e => setFilterPhase(e.target.value as Phase | 'all')}
+                          aria-label="Filtrar por fase"
+                          className="bg-white border border-gray-200 rounded-lg py-1.5 px-2.5 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent cursor-pointer"
+                        >
+                          <option value="all">Todas las fases</option>
+                          {(Object.keys(PHASES) as Phase[]).filter(p => p !== 'idea_2').map(p => (
+                            <option key={p} value={p}>{PHASES[p].label}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={filterPlatform}
+                          onChange={e => setFilterPlatform(e.target.value as any)}
+                          aria-label="Filtrar por plataforma"
+                          className="bg-white border border-gray-200 rounded-lg py-1.5 px-2.5 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent cursor-pointer"
+                        >
+                          <option value="all">Todas las plataformas</option>
+                          <option value="instagram">Instagram</option>
+                          <option value="linkedin">LinkedIn</option>
+                          <option value="tiktok">TikTok</option>
+                        </select>
+                        {projectTerritories.length > 0 && (
+                          <select
+                            value={filterTerritory}
+                            onChange={e => setFilterTerritory(e.target.value)}
+                            aria-label="Filtrar por territorio"
+                            className="bg-white border border-gray-200 rounded-lg py-1.5 px-2.5 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent cursor-pointer"
+                          >
+                            <option value="all">Todos los territorios</option>
+                            {projectTerritories.map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                        )}
+                        {userRole !== 'client' && (
+                          <button
+                            type="button"
+                            onClick={() => setFilterAssignedToMe(!filterAssignedToMe)}
+                            className={cn(
+                              "text-xs font-bold px-3 py-1.5 rounded-full border transition-all",
+                              filterAssignedToMe
+                                ? "bg-app-accent/10 border-app-accent text-app-accent"
+                                : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                            )}
+                          >
+                            Asignado a mí
+                          </button>
+                        )}
+                        {hasActiveFilters && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFilterPhase('all');
+                              setFilterPlatform('all');
+                              setFilterTerritory('all');
+                              setFilterAssignedToMe(false);
+                            }}
+                            className="text-xs font-bold text-gray-400 hover:text-gray-600 px-2 py-1.5"
+                          >
+                            Limpiar filtros
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -1656,7 +1748,7 @@ export default function App() {
                 {sidebarTab === 'calendario' && (
                   view === 'calendar' ? (
                     <Calendar
-                      posts={filteredPosts}
+                      posts={calendarBoardPosts}
                       userRole={userRole}
                       onAddPost={handleCreatePost}
                       onSelectPost={setSelectedPost}
@@ -1665,7 +1757,7 @@ export default function App() {
                     />
                   ) : (
                     <Board
-                      posts={filteredPosts}
+                      posts={calendarBoardPosts}
                       userRole={userRole}
                       onSelectPost={setSelectedPost}
                       onUpdatePost={handleUpdatePostDirectly}

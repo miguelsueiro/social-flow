@@ -90,6 +90,13 @@ interface Post {
   title?: string;
   language?: string;
   territory?: string;
+  assigneeId?: string;
+  assigneeName?: string;
+  changesRequestedReason?: string;
+  changesRequestedAt?: string;
+  changesRequestedBy?: string;
+  approvedBy?: string;
+  approvedAt?: string;
 }
 
 interface PostModalProps {
@@ -425,6 +432,8 @@ export default function PostModal({
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
+  const [showRequestChangesForm, setShowRequestChangesForm] = useState(false);
+  const [changesRequestReason, setChangesRequestReason] = useState('');
   const [historyFilter, setHistoryFilter] = useState<'all' | VersionType>('all');
   const [confirmingRestoreKey, setConfirmingRestoreKey] = useState<string | null>(null);
   const [isTranslatingCopy, setIsTranslatingCopy] = useState(false);
@@ -569,6 +578,10 @@ export default function PostModal({
     return u.projectId === localPost.projectId;
   });
 
+  // Only agency members can be the responsible/assignee for a post — clients
+  // review and approve, they aren't the ones producing the content.
+  const agencyUsers = allUsers.filter(u => u.role !== 'client' && u.role !== 'pending');
+
   const getMentionHandle = (user: User) => {
     if (user.email) {
       return user.email.split('@')[0];
@@ -670,6 +683,44 @@ export default function PostModal({
   const canAdvancePhase = isAgencyMember || (userRole === 'client' && localPost.phase === 'client_review');
   const canGoBackPhase = isAgencyMember && localPost.phase !== 'idea_1';
   const isClientApprovalAction = userRole === 'client' && localPost.phase === 'client_review';
+  const isAgencyResumeAction = isAgencyMember && localPost.phase === 'changes_requested';
+
+  const handleApprove = () => {
+    const updated = {
+      ...localPost,
+      phase: 'approved' as Phase,
+      approvedBy: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Cliente',
+      approvedAt: new Date().toISOString()
+    };
+    setLocalPost(updated);
+    onUpdate(updated);
+  };
+
+  const handleRequestChanges = () => {
+    if (!changesRequestReason.trim()) {
+      toast.error('Describe qué cambios necesitas antes de enviar');
+      return;
+    }
+    const updated = {
+      ...localPost,
+      phase: 'changes_requested' as Phase,
+      changesRequestedReason: changesRequestReason.trim(),
+      changesRequestedAt: new Date().toISOString(),
+      changesRequestedBy: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Cliente'
+    };
+    setLocalPost(updated);
+    onUpdate(updated);
+    setShowRequestChangesForm(false);
+    setChangesRequestReason('');
+    toast.success('Cambios solicitados a la agencia');
+  };
+
+  const handleResumeProduction = () => {
+    const updated = { ...localPost, phase: 'design' as Phase };
+    setLocalPost(updated);
+    onUpdate(updated);
+    toast.success('Post reanudado en Diseño');
+  };
 
   const buildHistoryEntries = (arr: VersionItem[] | undefined, type: VersionType): HistoryEntry[] =>
     (arr || []).map((version, i) => ({ type, version, versionNumber: (arr || []).length - i }));
@@ -1050,7 +1101,10 @@ export default function PostModal({
             />
           </section>
 
-          <div className={cn("grid grid-cols-2 gap-3", hasTerritories ? "sm:grid-cols-5" : "sm:grid-cols-4")}>
+          <div className={cn(
+            "grid grid-cols-2 gap-3",
+            (hasTerritories && isAgencyMember) ? "sm:grid-cols-6" : (hasTerritories || isAgencyMember) ? "sm:grid-cols-5" : "sm:grid-cols-4"
+          )}>
             <section>
               <label htmlFor="post-platform-select" className="block text-xs font-semibold text-gray-500 mb-1">Plataforma</label>
               {(() => {
@@ -1146,6 +1200,28 @@ export default function PostModal({
                   <option value="">Sin especificar</option>
                   {projectTerritories.map(t => (
                     <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </section>
+            )}
+
+            {isAgencyMember && (
+              <section>
+                <label htmlFor="post-assignee-select" className="block text-xs font-semibold text-gray-500 mb-1">Responsable</label>
+                <select
+                  id="post-assignee-select"
+                  value={localPost.assigneeId || ''}
+                  onChange={e => {
+                    const selected = agencyUsers.find(u => u.id === e.target.value);
+                    const updated = { ...localPost, assigneeId: selected?.id || '', assigneeName: selected?.name || '' };
+                    setLocalPost(updated);
+                    onUpdate(updated);
+                  }}
+                  className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
+                >
+                  <option value="">Sin asignar</option>
+                  {agencyUsers.map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
                 </select>
               </section>
@@ -1617,18 +1693,72 @@ export default function PostModal({
                                confirmLabel="Sí, aprobar"
                                cancelLabel="Cancelar"
                                tone="success"
-                               onConfirm={() => { nextPhase(); setShowApproveConfirm(false); }}
+                               onConfirm={() => { handleApprove(); setShowApproveConfirm(false); }}
                                onCancel={() => setShowApproveConfirm(false)}
                              />
+                           ) : showRequestChangesForm ? (
+                             <div className="space-y-2">
+                               <textarea
+                                 autoFocus
+                                 value={changesRequestReason}
+                                 onChange={e => setChangesRequestReason(e.target.value)}
+                                 placeholder="¿Qué hay que cambiar? Sé específico para que la agencia no tenga que preguntar."
+                                 className="w-full bg-orange-50/50 border border-orange-200 rounded-xl p-2.5 text-xs text-gray-800 outline-none focus:border-orange-400 resize-none h-20"
+                               />
+                               <div className="flex gap-2">
+                                 <button
+                                   onClick={() => { setShowRequestChangesForm(false); setChangesRequestReason(''); }}
+                                   className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-xl font-semibold transition-all text-xs"
+                                 >
+                                   Cancelar
+                                 </button>
+                                 <button
+                                   onClick={handleRequestChanges}
+                                   className="flex-1 bg-orange-600 text-white hover:bg-orange-700 px-3 py-2 rounded-xl font-semibold transition-all shadow-md text-xs"
+                                 >
+                                   Enviar solicitud
+                                 </button>
+                               </div>
+                             </div>
                            ) : (
-                             <button
-                               onClick={() => setShowApproveConfirm(true)}
-                               className="w-full bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
-                             >
-                               <CheckCircle size={16} />
-                               Aprobar Post
-                             </button>
+                             <div className="flex gap-2">
+                               <button
+                                 onClick={() => setShowRequestChangesForm(true)}
+                                 className="flex-1 bg-white border border-orange-300 text-orange-700 hover:bg-orange-50 px-3 py-2.5 rounded-xl font-semibold transition-all text-xs flex items-center justify-center gap-1.5"
+                               >
+                                 Solicitar Cambios
+                               </button>
+                               <button
+                                 onClick={() => setShowApproveConfirm(true)}
+                                 className="flex-[1.5] bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
+                               >
+                                 <CheckCircle size={16} />
+                                 Aprobar Post
+                               </button>
+                             </div>
                            )
+                         ) : (isClient && localPost.phase === 'changes_requested') ? (
+                           <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-2.5 text-center">
+                             <p className="text-xs text-orange-900 font-semibold">Has solicitado cambios en este post.</p>
+                             <p className="text-[10px] text-orange-700 mt-0.5">La agencia lo está revisando y volverá a enviártelo cuando esté listo.</p>
+                           </div>
+                         ) : isAgencyResumeAction ? (
+                           <div className="space-y-2">
+                             <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-2.5">
+                               <p className="text-[10px] font-bold text-orange-800 mb-1">
+                                 Cambios solicitados por {localPost.changesRequestedBy || 'el cliente'}
+                                 {localPost.changesRequestedAt && ` · ${format(new Date(localPost.changesRequestedAt), 'dd/MM HH:mm')}`}
+                               </p>
+                               <p className="text-xs text-orange-900 leading-relaxed">{localPost.changesRequestedReason}</p>
+                             </div>
+                             <button
+                               onClick={handleResumeProduction}
+                               className="w-full bg-app-accent text-white hover:bg-app-accent-hover px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
+                             >
+                               Reanudar en Diseño
+                               <ChevronRight size={16} />
+                             </button>
+                           </div>
                          ) : (
                            <div className="flex gap-2">
                              <button
@@ -1650,7 +1780,9 @@ export default function PostModal({
                            </div>
                          )}
                          {localPost.phase === 'approved' && (
-                           <p className="text-[10px] text-emerald-600 font-semibold text-center">✓ Post aprobado por el cliente</p>
+                           <p className="text-[10px] text-emerald-600 font-semibold text-center">
+                             ✓ Post aprobado{localPost.approvedBy ? ` por ${localPost.approvedBy}` : ''}
+                           </p>
                          )}
                       </div>
                     </div>

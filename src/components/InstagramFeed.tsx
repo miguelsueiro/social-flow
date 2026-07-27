@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Grid, 
-  Tv, 
-  Heart, 
-  MessageCircle, 
-  Camera, 
+  Grid,
+  Tv,
+  Camera,
   CheckCircle, 
   Layers,
   Sparkles,
@@ -132,10 +130,15 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
     return true;
   });
 
-  const feedPosts = visiblePosts.filter(p => {
-    if (activeTab === 'posts') return true;
-    return p.idea.toLowerCase().includes('video') || p.idea.toLowerCase().includes('reels') || p.idea.toLowerCase().includes('reel');
-  });
+  // Most recent first — matches how every real feed grid reads, top-left to
+  // bottom-right. The posts array itself is sorted oldest-first for the
+  // calendar, so this view needs its own reverse.
+  const feedPosts = visiblePosts
+    .filter(p => {
+      if (activeTab === 'posts') return true;
+      return p.idea.toLowerCase().includes('video') || p.idea.toLowerCase().includes('reels') || p.idea.toLowerCase().includes('reel');
+    })
+    .sort((a, b) => b.date.getTime() - a.date.getTime());
 
   // Helper to generate a clean gradient background or show the design URL (no technical info overlays!)
   const getPostMedia = (post: Post) => {
@@ -223,16 +226,12 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
             </h2>
           </div>
 
-          {/* Stats count */}
+          {/* Stats count — only real numbers derived from actual posts; no
+              fabricated followers/following, this is a planning mockup, not
+              a live account. */}
           <div className="flex justify-center md:justify-start gap-4 text-xs">
             <div>
               <span className="font-bold text-gray-900">{postsCount}</span> <span className="text-gray-400">publicaciones</span>
-            </div>
-            <div>
-              <span className="font-bold text-gray-900">18.4k</span> <span className="text-gray-400">seguidores</span>
-            </div>
-            <div>
-              <span className="font-bold text-gray-900">485</span> <span className="text-gray-400">seguidos</span>
             </div>
           </div>
 
@@ -266,35 +265,26 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
 
     return (
       <div className="grid grid-cols-3 gap-[0.5px] md:gap-0.5 bg-gray-200/60">
-        {feedPosts.map((post) => {
-          const seed = post.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-          const likes = (seed % 150) + 10;
-          const commentsCount = (seed % 25) + 2;
+        {feedPosts.map((post) => (
+          <motion.div
+            layoutId={`feed-${post.id}`}
+            key={post.id}
+            onClick={() => setSelectedIgPost(post)}
+            className="relative aspect-[4/5] bg-gray-100 overflow-hidden group cursor-pointer border border-transparent shadow-none transition-all rounded-none"
+            whileHover={{ scale: 0.99 }}
+          >
+            {getPostMedia(post)}
 
-          return (
-            <motion.div
-              layoutId={`feed-${post.id}`}
-              key={post.id}
-              onClick={() => setSelectedIgPost(post)}
-              className="relative aspect-[4/5] bg-gray-100 overflow-hidden group cursor-pointer border border-transparent shadow-none transition-all rounded-none"
-              whileHover={{ scale: 0.99 }}
-            >
-              {getPostMedia(post)}
-
-              {/* Hover overlay with pure IG stats (strictly NO technical/phase labels on top of the image) */}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-4 text-white text-xs font-bold z-20">
-                <span className="flex items-center gap-1">
-                  <Heart size={14} fill="currentColor" />
-                  {likes}
-                </span>
-                <span className="flex items-center gap-1">
-                  <MessageCircle size={14} fill="currentColor" />
-                  {commentsCount}
-                </span>
-              </div>
-            </motion.div>
-          );
-        })}
+            {/* Hover overlay — no engagement numbers, this is a planning
+                mockup and doesn't have real likes/comments to show. */}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center text-white text-xs font-bold z-20">
+              <span className="flex items-center gap-1.5">
+                <Camera size={14} />
+                Ver publicación
+              </span>
+            </div>
+          </motion.div>
+        ))}
       </div>
     );
   };

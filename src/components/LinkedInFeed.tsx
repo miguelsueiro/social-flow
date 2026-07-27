@@ -51,16 +51,18 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
   // Filter posts for LinkedIn platform
   const linkedInPosts = posts.filter(p => p.platform === 'linkedin');
 
-  // Filter based on roles and selection
-  const visiblePosts = linkedInPosts.filter(p => {
-    const isVisibleForRole = userRole !== 'client' || PHASES[p.phase].clientVisible;
-    if (!isVisibleForRole) return false;
+  // Filter based on roles and selection — most recent first, like a real feed.
+  const visiblePosts = linkedInPosts
+    .filter(p => {
+      const isVisibleForRole = userRole !== 'client' || PHASES[p.phase].clientVisible;
+      if (!isVisibleForRole) return false;
 
-    if (filterPhase === 'approved_only') {
-      return p.phase === 'approved' || p.phase === 'published';
-    }
-    return true;
-  });
+      if (filterPhase === 'approved_only') {
+        return p.phase === 'approved' || p.phase === 'published';
+      }
+      return true;
+    })
+    .sort((a, b) => b.date.getTime() - a.date.getTime());
 
   const toggleLike = (postId: string) => {
     setLikedPosts(prev => ({ ...prev, [postId]: !prev[postId] }));
@@ -276,10 +278,6 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
             <div className={cn("space-y-4", deviceMode === 'mobile' && "overflow-y-auto h-full scrollbar-hide")}>
               {visiblePosts.map((post) => {
                 const isLiked = likedPosts[post.id];
-                const seed = post.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-                const baseLikes = (seed % 45) + 3;
-                const likesCount = isLiked ? baseLikes + 1 : baseLikes;
-                const commentsCount = (seed % 12) + 1;
                 const project = projects.find(p => p.id === post.projectId);
 
                 return (
@@ -329,19 +327,6 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                     {/* Post Media Rendering */}
                     <div className="cursor-pointer" onClick={() => onSelectPost(post)}>
                       {getPostMedia(post)}
-                    </div>
-
-                    {/* Engagement Counts Bar */}
-                    <div className="px-4 py-2 border-b border-gray-100 flex justify-between text-[10px] text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-100 text-blue-600">
-                          <ThumbsUp size={10} fill="currentColor" />
-                        </span>
-                        <span>{likesCount} • {commentsCount} comentarios</span>
-                      </div>
-                      <div>
-                        <span>{seed % 5} compartidos</span>
-                      </div>
                     </div>
 
                     {/* Engagement Buttons */}

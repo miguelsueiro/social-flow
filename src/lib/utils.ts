@@ -36,13 +36,14 @@ export const ROLES: Record<Role, string> = {
 /** Roles selectable from the admin's role simulator / user role picker — excludes the system-assigned 'pending' state. */
 export const ASSIGNABLE_ROLES: Role[] = (Object.keys(ROLES) as Role[]).filter(r => r !== 'pending');
 
-export type Phase = 
-  | 'idea_1' 
-  | 'idea_2' 
-  | 'copy' 
-  | 'design' 
-  | 'client_review' 
-  | 'approved' 
+export type Phase =
+  | 'idea_1'
+  | 'idea_2'
+  | 'copy'
+  | 'design'
+  | 'client_review'
+  | 'changes_requested'
+  | 'approved'
   | 'published';
 
 interface PhaseInfo {
@@ -65,6 +66,7 @@ export const PHASES: Record<Phase, PhaseInfo> = {
   copy: { label: 'Fase 2: Copys & Captions', color: 'bg-violet-100 text-violet-700', cardClass: 'bg-violet-50 border-violet-200 text-violet-700', dotColor: 'bg-violet-400', clientVisible: true },
   design: { label: 'Fase 3: Diseño', color: 'bg-amber-100 text-amber-700', cardClass: 'bg-amber-50 border-amber-200 text-amber-700', dotColor: 'bg-amber-400', clientVisible: true },
   client_review: { label: 'Fase 4: Feedback Cliente', color: 'bg-rose-100 text-rose-700', cardClass: 'bg-rose-50 border-rose-200 text-rose-700', dotColor: 'bg-rose-400', clientVisible: true },
+  changes_requested: { label: 'Cambios Solicitados', color: 'bg-orange-100 text-orange-700', cardClass: 'bg-orange-50 border-orange-200 text-orange-700', dotColor: 'bg-orange-400', clientVisible: true },
   approved: { label: 'Fase 5: Aprobado', color: 'bg-emerald-100 text-emerald-700', cardClass: 'bg-emerald-50 border-emerald-200 text-emerald-700', dotColor: 'bg-emerald-400', clientVisible: true },
   published: { label: 'Publicado', color: 'bg-indigo-100 text-indigo-700', cardClass: 'bg-indigo-50 border-indigo-200 text-indigo-700', dotColor: 'bg-indigo-400', clientVisible: true }
 };

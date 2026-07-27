@@ -114,14 +114,14 @@ service cloud.firestore {
     // --- Posts Collection ---
     function isValidPost(data) {
       return data.platform in ['instagram', 'linkedin', 'tiktok']
-        && data.phase in ['idea_1', 'idea_2', 'copy', 'design', 'client_review', 'approved', 'published']
+        && data.phase in ['idea_1', 'idea_2', 'copy', 'design', 'client_review', 'changes_requested', 'approved', 'published']
         && data.get('idea', '') is string && data.get('idea', '').size() <= 5000
         && data.get('copyCaption', '') is string && data.get('copyCaption', '').size() <= 6000
         && data.get('copyCreativity', '') is string && data.get('copyCreativity', '').size() <= 2000;
     }
 
     function isClientVisible(phase) {
-      return phase in ['copy', 'design', 'client_review', 'approved', 'published'];
+      return phase in ['copy', 'design', 'client_review', 'changes_requested', 'approved', 'published'];
     }
 
     match /posts/{postId} {
@@ -142,9 +142,14 @@ service cloud.firestore {
       allow update: if isSignedIn() && (
         (isAgencyRole() && canAccessProjectAsAgency(existing().projectId) && isValidPost(incoming()) && incoming().updatedAt == request.time) ||
         (isRole('client') && isOwnProjectAsClient(existing().projectId) && isClientVisible(existing().phase) && (
-          // Clients can only advance phase to next steps or add feedback (comments handled separately)
-          incoming().diff(existing()).affectedKeys().hasOnly(['phase', 'updatedAt'])
-          && incoming().phase in ['client_review', 'approved']
+          // Clients can only approve or request changes on their own post —
+          // never edit content, and never reach any other phase directly.
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'phase', 'updatedAt',
+            'approvedBy', 'approvedAt',
+            'changesRequestedReason', 'changesRequestedAt', 'changesRequestedBy'
+          ])
+          && incoming().phase in ['client_review', 'changes_requested', 'approved']
           && incoming().updatedAt == request.time
         ))
       );

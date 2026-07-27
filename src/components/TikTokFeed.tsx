@@ -48,16 +48,18 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
   // Filter TikTok posts
   const tiktokPosts = posts.filter(p => p.platform === 'tiktok');
 
-  // Filter based on roles and selection
-  const visiblePosts = tiktokPosts.filter(p => {
-    const isVisibleForRole = userRole !== 'client' || PHASES[p.phase].clientVisible;
-    if (!isVisibleForRole) return false;
+  // Filter based on roles and selection — most recent first, like a real feed.
+  const visiblePosts = tiktokPosts
+    .filter(p => {
+      const isVisibleForRole = userRole !== 'client' || PHASES[p.phase].clientVisible;
+      if (!isVisibleForRole) return false;
 
-    if (filterPhase === 'approved_only') {
-      return p.phase === 'approved' || p.phase === 'published';
-    }
-    return true;
-  });
+      if (filterPhase === 'approved_only') {
+        return p.phase === 'approved' || p.phase === 'published';
+      }
+      return true;
+    })
+    .sort((a, b) => b.date.getTime() - a.date.getTime());
 
   const activePost = visiblePosts[currentPostIndex] || null;
 
@@ -83,15 +85,6 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
     }
   };
 
-  const getSeedMetrics = (postId: string) => {
-    const seed = postId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    return {
-      likes: (seed % 950) + 50,
-      comments: (seed % 120) + 5,
-      saves: (seed % 210) + 8,
-      shares: (seed % 80) + 2
-    };
-  };
 
   const renderActivePhoneFeed = () => {
     if (!activePost) {
@@ -105,7 +98,6 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
     }
 
     const proj = projects.find(p => p.id === activePost.projectId);
-    const metrics = getSeedMetrics(activePost.id);
     const isLiked = likedPosts[activePost.id];
     const isSaved = savedPosts[activePost.id];
 
@@ -189,7 +181,6 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
                 className={cn("transition-colors", isLiked ? "fill-[#FE2C55] text-[#FE2C55]" : "text-white")} 
               />
             </div>
-            <span className="text-[10px] font-bold shadow-text">{metrics.likes + (isLiked ? 1 : 0)}</span>
           </button>
 
           {/* Comments */}
@@ -197,7 +188,6 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
             <div className="p-2 bg-black/40 rounded-full backdrop-blur-md hover:bg-black/60 transition-all">
               <MessageSquare size={22} className="text-white" />
             </div>
-            <span className="text-[10px] font-bold shadow-text">{metrics.comments}</span>
           </button>
 
           {/* Bookmark */}
@@ -207,12 +197,11 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
             aria-label="Guardar"
           >
             <div className="p-2 bg-black/40 rounded-full backdrop-blur-md hover:bg-black/60 transition-all active:scale-90">
-              <Bookmark 
-                size={22} 
-                className={cn("transition-colors", isSaved ? "fill-[#FAC917] text-[#FAC917]" : "text-white")} 
+              <Bookmark
+                size={22}
+                className={cn("transition-colors", isSaved ? "fill-[#FAC917] text-[#FAC917]" : "text-white")}
               />
             </div>
-            <span className="text-[10px] font-bold shadow-text">{metrics.saves + (isSaved ? 1 : 0)}</span>
           </button>
 
           {/* Share */}
@@ -220,7 +209,6 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
             <div className="p-2 bg-black/40 rounded-full backdrop-blur-md hover:bg-black/60 transition-all">
               <Share2 size={22} className="text-white" />
             </div>
-            <span className="text-[10px] font-bold shadow-text">{metrics.shares}</span>
           </button>
 
           {/* Spinning Vinyl Record Disc */}
@@ -272,7 +260,6 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {visiblePosts.map((post) => {
-          const metrics = getSeedMetrics(post.id);
           return (
             <div 
               key={post.id}
@@ -307,7 +294,6 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
               <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex items-center justify-between z-10 text-white">
                 <div className="flex items-center gap-1">
                   <Play size={11} className="fill-white" />
-                  <span className="text-[10px] font-bold">{(metrics.likes * 12).toLocaleString()}</span>
                 </div>
                 <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-cyan-500 text-black uppercase scale-90 origin-right">
                   {PHASES[post.phase]?.label.split(': ').pop() || post.phase}
