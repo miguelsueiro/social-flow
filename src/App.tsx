@@ -34,7 +34,8 @@ import SettingsView from './components/SettingsView';
 import UserGuideModal from './components/UserGuideModal';
 import { InstagramIcon, TikTokIcon, LinkedInIcon, PLATFORM_META } from './components/SocialIcons';
 import { 
-  LayoutDashboard, 
+  LayoutDashboard,
+  Clock, 
   LogOut, 
   User as UserIcon, 
   ShieldCheck, 
@@ -223,6 +224,7 @@ export default function App() {
 
   // Helper to check if a user has access to a specific project
   const hasProjectPermission = (projectId: string) => {
+    if (userRole === 'pending') return false;
     if (userRole === 'admin') return true;
     if (userRole === 'client') {
       if (permittedProjects && permittedProjects.length > 0) {
@@ -330,33 +332,60 @@ export default function App() {
           }
         }
       } else {
-        // Set default role for new users
-        const initialRole = 'creative_director';
+        // New user: honor a pending invite (by email) if one exists, otherwise
+        // default to 'pending' with zero access. Never default to an agency role —
+        // that would grant a stranger access to every client's projects.
+        let initialRole: Role = 'pending';
+        let initialProjectId = '';
+        let initialPermittedProjects: string[] = [];
+
+        const email = (currentUser.email || '').toLowerCase();
+        if (email) {
+          try {
+            const inviteRef = doc(db, 'invites', email);
+            const inviteSnap = await getDoc(inviteRef);
+            if (inviteSnap.exists()) {
+              const invite = inviteSnap.data();
+              initialRole = invite.role || 'pending';
+              initialProjectId = invite.projectId || '';
+              initialPermittedProjects = invite.permittedProjects || [];
+              await deleteDoc(inviteRef);
+            }
+          } catch (err) {
+            console.warn('No se pudo resolver la invitación:', err);
+          }
+        }
+
         await setDoc(userDocRef, {
           uid: currentUser.uid,
           email: currentUser.email,
           role: initialRole,
           name: currentUser.displayName || 'Usuario',
-          projectId: '',
-          permittedProjects: []
+          projectId: initialProjectId,
+          permittedProjects: initialPermittedProjects
         });
         setUserRole(initialRole);
-        setUserProjectId(null);
-        setPermittedProjects([]);
-        
+        setUserProjectId(initialProjectId || null);
+        setPermittedProjects(initialPermittedProjects);
+
         const urlParams = new URLSearchParams(window.location.search);
         const pathSegment = window.location.pathname.replace(/^\/|\/$/g, '');
         const hasProjectUrl = urlParams.get('project') || (pathSegment && pathSegment !== 'index.html' && pathSegment !== 'dashboard');
-        
+
         if (!hasProjectUrl) {
-          setActiveProjectId('dashboard');
-          updateProjectUrl('dashboard');
+          if (initialRole === 'client' && initialProjectId) {
+            setActiveProjectId(initialProjectId);
+            updateProjectUrl(initialProjectId);
+          } else {
+            setActiveProjectId('dashboard');
+            updateProjectUrl('dashboard');
+          }
         }
       }
     }, (err) => {
       console.error("Error subscribing to user doc:", err);
-      // Fail gracefully: don't crash, assume default creative_director role in offline/demo mode
-      setUserRole('creative_director');
+      // Fail gracefully: don't crash, but never assume an agency role in offline/demo mode.
+      setUserRole('pending');
       setUserProjectId(null);
       setPermittedProjects([]);
       setIsOfflineMode(true);
@@ -464,15 +493,28 @@ export default function App() {
 
   useEffect(() => {
     if (!currentUser) return;
+    if (userRole === 'pending') {
+      // No role, no projects yet — never subscribe to posts for an unapproved account.
+      setPosts([]);
+      setPostsLoading(false);
+      return;
+    }
 
-    // Filter posts for client: must belong to their assigned project AND be client-visible
+    // Scope the query itself to what this user is allowed to see, instead of
+    // relying only on client-side filtering — a restricted user should never
+    // download another client's material to their browser in the first place.
+    const clientVisiblePhases = ['client_review', 'approved', 'published'];
+    const scopedProjectIds = permittedProjects.slice(0, 30);
+
     const q = userRole === 'client'
-      ? query(
-          collection(db, 'posts'),
-          where('projectId', '==', userProjectId || 'none'),
-          where('phase', 'in', ['client_review', 'approved', 'published'])
-        )
-      : query(collection(db, 'posts'), orderBy('date', 'asc'));
+      ? (scopedProjectIds.length > 0
+          ? query(collection(db, 'posts'), where('projectId', 'in', scopedProjectIds), where('phase', 'in', clientVisiblePhases))
+          : query(collection(db, 'posts'), where('projectId', '==', userProjectId || 'none'), where('phase', 'in', clientVisiblePhases)))
+      : (scopedProjectIds.length > 0
+          // Restricted agency member (freelancer, single-account access, etc.)
+          ? query(collection(db, 'posts'), where('projectId', 'in', scopedProjectIds))
+          // Unrestricted agency member/admin — same "full access by default" policy as hasProjectPermission.
+          : query(collection(db, 'posts'), orderBy('date', 'asc')));
 
     const unsubPosts = onSnapshot(q, (snapshot) => {
       const postsData = snapshot.docs.map(doc => ({
@@ -492,7 +534,7 @@ export default function App() {
     });
 
     return () => unsubPosts();
-  }, [currentUser, userRole, userProjectId]);
+  }, [currentUser, userRole, userProjectId, permittedProjects]);
 
   useEffect(() => {
     if (!selectedPost) return;
@@ -762,6 +804,7 @@ export default function App() {
         user: currentUser.displayName || 'Usuario',
         action: 'escribió un comentario en',
         target: selectedPost.idea,
+        projectId: selectedPost.projectId || '',
         createdAt: serverTimestamp(),
         type: 'comment',
         avatar: currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.displayName || 'Usuario')}`
@@ -782,6 +825,7 @@ export default function App() {
               user: currentUser.displayName || 'Usuario',
               action: `etiquetó a @${mentionClean} en`,
               target: selectedPost.idea,
+              projectId: selectedPost.projectId || '',
               createdAt: serverTimestamp(),
               type: 'mention',
               avatar: currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.displayName || 'Usuario')}`
@@ -827,6 +871,7 @@ export default function App() {
         user: currentUser.displayName || 'Usuario',
         action: 'añadió feedback de cliente en',
         target: selectedPost.idea,
+        projectId: selectedPost.projectId || '',
         createdAt: serverTimestamp(),
         type: 'comment',
         avatar: currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.displayName || 'Usuario')}`
@@ -866,6 +911,7 @@ export default function App() {
         user: currentUser?.displayName || 'Usuario',
         action: nextDone ? 'marcó como resuelto el feedback de' : 'reabrió el feedback de',
         target: selectedPost.idea,
+        projectId: selectedPost.projectId || '',
         createdAt: serverTimestamp(),
         type: 'status',
         avatar: currentUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.displayName || 'Usuario')}`
@@ -1019,6 +1065,34 @@ export default function App() {
           <p className="text-[11px] text-gray-400 font-medium tracking-wide">
             © 2026 SocialFlow Agency Tool
           </p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (userRole === 'pending' && !isOfflineMode) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-50/50 to-blue-50/50">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full text-center space-y-6"
+        >
+          <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-indigo-100">
+            <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-3xl mx-auto flex items-center justify-center mb-6">
+              <Clock size={40} />
+            </div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-2">Cuenta pendiente de aprobación</h1>
+            <p className="text-gray-500 font-medium mb-8 leading-relaxed text-sm">
+              Tu cuenta <span className="font-semibold text-gray-700">{currentUser.email}</span> se ha creado, pero todavía no tiene un rol ni proyectos asignados. Pide a un administrador de la agencia que te dé acceso desde Configuración.
+            </p>
+            <button
+              onClick={logOut}
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-2xl font-bold transition-all active:scale-95"
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </motion.div>
       </div>
     );
@@ -1567,7 +1641,11 @@ export default function App() {
                 )}
 
                 {sidebarTab === 'notificaciones' && (
-                  <NotificationsStream />
+                  <NotificationsStream
+                    userRole={userRole}
+                    userProjectId={userProjectId}
+                    permittedProjects={permittedProjects}
+                  />
                 )}
 
                 {sidebarTab === 'configuracion' && (

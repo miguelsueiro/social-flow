@@ -59,6 +59,7 @@ interface Comment {
 interface FeedbackItem {
   id: string;
   text: string;
+  authorId?: string;
   authorName: string;
   roleAtTime: string;
   createdAt: any;
@@ -413,7 +414,7 @@ export default function PostModal({
   projects = []
 }: PostModalProps) {
   const [activeTab, setActiveTab] = useState<'idea' | 'production' | 'history' | 'comments' | 'feedback'>(
-    post && post.phase === 'idea_1' ? 'idea' : 'production'
+    userRole !== 'client' && post && post.phase === 'idea_1' ? 'idea' : 'production'
   );
   const [commentText, setCommentText] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
@@ -1148,11 +1149,13 @@ export default function PostModal({
         {/* Tabs */}
         <div className="flex border-b border-gray-100 px-6 bg-white shrink-0">
           {[
-            { id: 'idea', label: 'La Idea', icon: Lightbulb },
+            // La Idea and Historial expose internal drafts, versions and rationale that
+            // the client is never meant to see — only agency roles get these two tabs.
+            ...(userRole !== 'client' ? [{ id: 'idea', label: 'La Idea', icon: Lightbulb }] : []),
             { id: 'production', label: 'Producción', icon: CheckCircle },
             ...(userRole !== 'client' ? [{ id: 'comments', label: 'Comentarios', icon: MessageSquare, count: comments.length }] : []),
             { id: 'feedback', label: 'Feedback (Cliente)', icon: MessageSquare, count: feedbacks.length },
-            { id: 'history', label: 'Historial', icon: HistoryIcon, count: historyEntries.length }
+            ...(userRole !== 'client' ? [{ id: 'history', label: 'Historial', icon: HistoryIcon, count: historyEntries.length }] : [])
           ].map(tab => (
             <button
               key={tab.id}
@@ -1787,9 +1790,13 @@ export default function PostModal({
                             </span>
                           </div>
                           
-                          {/* Edit / Delete Buttons on Hover / Action */}
-                          {editingFeedbackId !== f.id && (
-                            confirmingDeleteFeedbackId === f.id ? (
+                          {/* Edit / Delete Buttons on Hover / Action — editing text is author-only;
+                              deleting is author or admin, matching firestore.rules exactly. */}
+                          {editingFeedbackId !== f.id && (() => {
+                            const isAuthor = !!f.authorId && f.authorId === auth.currentUser?.uid;
+                            const canDelete = isAuthor || userRole === 'admin';
+                            if (!isAuthor && !canDelete) return null;
+                            return confirmingDeleteFeedbackId === f.id ? (
                               <ConfirmInline
                                 message="¿Eliminar?"
                                 size="sm"
@@ -1801,30 +1808,34 @@ export default function PostModal({
                               />
                             ) : (
                               <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingFeedbackId(f.id);
-                                    setEditingFeedbackText(f.text);
-                                  }}
-                                  className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                                  title="Editar feedback"
-                                  aria-label="Editar feedback"
-                                >
-                                  <Edit2 size={13} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmingDeleteFeedbackId(f.id)}
-                                  className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                  title="Eliminar feedback"
-                                  aria-label="Eliminar feedback"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
+                                {isAuthor && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingFeedbackId(f.id);
+                                      setEditingFeedbackText(f.text);
+                                    }}
+                                    className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                                    title="Editar feedback"
+                                    aria-label="Editar feedback"
+                                  >
+                                    <Edit2 size={13} />
+                                  </button>
+                                )}
+                                {canDelete && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmingDeleteFeedbackId(f.id)}
+                                    className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    title="Eliminar feedback"
+                                    aria-label="Eliminar feedback"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
                               </div>
-                            )
-                          )}
+                            );
+                          })()}
                         </div>
 
                         {editingFeedbackId === f.id ? (

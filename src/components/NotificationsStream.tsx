@@ -12,9 +12,10 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, onSnapshot, query, orderBy, setDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Role } from '../lib/utils';
 
 interface NotificationItem {
   id: string;
@@ -26,87 +27,50 @@ interface NotificationItem {
   avatar: string;
 }
 
-export default function NotificationsStream() {
+interface NotificationsStreamProps {
+  userRole: Role;
+  userProjectId: string | null;
+  permittedProjects: string[];
+}
+
+export default function NotificationsStream({ userRole, userProjectId, permittedProjects }: NotificationsStreamProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const defaultNotifications: NotificationItem[] = [
-      {
-        id: '1',
-        user: 'Carlos Díaz',
-        action: 'escribió la versión final del copy para el post',
-        target: 'Campaña Primavera 2026',
-        createdAt: new Date(Date.now() - 5 * 60 * 1000), // 5 min ago
-        type: 'comment',
-        avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80'
-      },
-      {
-        id: '2',
-        user: 'Laura Gómez',
-        action: 'aprobó el diseño y movió a feedback de cliente el post',
-        target: 'Sorteo Aniversario Instagram',
-        createdAt: new Date(Date.now() - 45 * 60 * 1000), // 45 min ago
-        type: 'status',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80'
-      },
-      {
-        id: '3',
-        user: 'Sofía Martínez',
-        action: 'subió un nuevo archivo de diseño gráfico para',
-        target: 'Post: Tutorial Reels 03',
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        type: 'create',
-        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80'
-      },
-      {
-        id: '4',
-        user: 'Ana Belén (Cliente)',
-        action: 'aprobó definitivamente el post',
-        target: 'Infografía Consejos de Negocio',
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-        type: 'status',
-        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80'
-      }
-    ];
+    // Scope to what this user is actually allowed to see: a client only their own
+    // project's activity, an agency member with restricted access only their
+    // permitted projects. Unrestricted agency members (empty permittedProjects,
+    // same default as everywhere else) and admins see the full stream.
+    const base = collection(db, 'notifications');
+    const q = userRole === 'client'
+      ? query(base, where('projectId', '==', userProjectId || 'none'), orderBy('createdAt', 'desc'))
+      : permittedProjects.length > 0
+        ? query(base, where('projectId', 'in', permittedProjects.slice(0, 30)), orderBy('createdAt', 'desc'))
+        : query(base, orderBy('createdAt', 'desc'));
 
-    const unsub = onSnapshot(query(collection(db, 'notifications'), orderBy('createdAt', 'desc')), (snapshot) => {
-      if (snapshot.empty) {
-        // Seed default notifications
-        defaultNotifications.forEach(async (notif) => {
-          try {
-            await setDoc(doc(db, 'notifications', notif.id), {
-              ...notif,
-              createdAt: notif.createdAt
-            });
-          } catch (e) {
-            console.warn("Could not seed notification on cloud DB:", e);
-          }
-        });
-        setNotifications(defaultNotifications);
-      } else {
-        setNotifications(snapshot.docs.map(docSnap => {
-          const data = docSnap.data();
-          return {
-            id: docSnap.id,
-            user: data.user || 'Sistema',
-            action: data.action || 'realizó una acción',
-            target: data.target || '',
-            createdAt: data.createdAt?.toDate() || new Date(),
-            type: data.type || 'status',
-            avatar: data.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user || 'Sistema')}`
-          };
-        }));
-      }
+    const unsub = onSnapshot(q, (snapshot) => {
+      setNotifications(snapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          user: data.user || 'Sistema',
+          action: data.action || 'realizó una acción',
+          target: data.target || '',
+          createdAt: data.createdAt?.toDate() || new Date(),
+          type: data.type || 'status',
+          avatar: data.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user || 'Sistema')}`
+        };
+      }));
       setLoading(false);
     }, (error) => {
-      console.warn("Firestore error loading notifications, falling back to local activity feed:", error);
-      setNotifications(defaultNotifications);
+      console.warn("Firestore error loading notifications:", error);
+      setNotifications([]);
       setLoading(false);
     });
 
     return () => unsub();
-  }, []);
+  }, [userRole, userProjectId, permittedProjects]);
 
   const getIcon = (type: string) => {
     switch (type) {

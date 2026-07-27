@@ -10,17 +10,19 @@ export function isVideoUrl(url?: string): boolean {
   return url.startsWith('data:video/') || /\.(mp4|webm|ogg|mov|quicktime|m4v)($|\?)/i.test(url);
 }
 
-export type Role = 
-  | 'admin' 
-  | 'creative_director' 
-  | 'copy' 
-  | 'art_director' 
-  | 'designer' 
-  | 'account_manager' 
-  | 'community_manager' 
+export type Role =
+  | 'pending'
+  | 'admin'
+  | 'creative_director'
+  | 'copy'
+  | 'art_director'
+  | 'designer'
+  | 'account_manager'
+  | 'community_manager'
   | 'client';
 
 export const ROLES: Record<Role, string> = {
+  pending: 'Pendiente de aprobación',
   admin: 'Admin',
   creative_director: 'Director Creativo',
   copy: 'Copy',
@@ -30,6 +32,9 @@ export const ROLES: Record<Role, string> = {
   community_manager: 'Community Manager',
   client: 'Cliente (Marketing)'
 };
+
+/** Roles selectable from the admin's role simulator / user role picker — excludes the system-assigned 'pending' state. */
+export const ASSIGNABLE_ROLES: Role[] = (Object.keys(ROLES) as Role[]).filter(r => r !== 'pending');
 
 export type Phase = 
   | 'idea_1' 

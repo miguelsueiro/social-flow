@@ -27,9 +27,9 @@ import ConfirmInline from './ConfirmInline';
 import NewProjectModal, { NewProjectData } from './NewProjectModal';
 import TagListEditor from './TagListEditor';
 import { toast } from 'react-hot-toast';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { ROLES, Role } from '../lib/utils';
+import { ROLES, Role, ASSIGNABLE_ROLES } from '../lib/utils';
 
 interface Project {
   id: string;
@@ -90,30 +90,34 @@ export default function SettingsView({
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<Role>('client');
   const [inviteName, setInviteName] = useState('');
+  const [inviteProjectId, setInviteProjectId] = useState('');
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail || !inviteName) return;
+    if (inviteRole === 'client' && !inviteProjectId) {
+      toast.error('Selecciona a qué proyecto pertenece este cliente');
+      return;
+    }
 
     try {
-      const id = doc(collection(db, 'users')).id;
-      const newUser = {
-        uid: id,
-        name: inviteName,
-        email: inviteEmail,
+      const email = inviteEmail.trim().toLowerCase();
+      await setDoc(doc(db, 'invites', email), {
+        email,
+        name: inviteName.trim(),
         role: inviteRole,
-        status: 'pending',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(inviteName)}&background=random`,
-        projectId: ''
-      };
-
-      await setDoc(doc(db, 'users', id), newUser);
-      toast.success('Usuario invitado con éxito');
+        projectId: inviteRole === 'client' ? inviteProjectId : '',
+        permittedProjects: inviteRole === 'client' ? [inviteProjectId] : [],
+        invitedBy: auth.currentUser?.uid || null,
+        invitedAt: new Date()
+      });
+      toast.success('Invitación creada. Comparte con esa persona el enlace de la app para que entre con su cuenta de Google.', { duration: 6000 });
       setInviteEmail('');
       setInviteName('');
+      setInviteProjectId('');
       setShowInviteModal(false);
     } catch (err) {
-      toast.error('Error al invitar usuario');
+      toast.error('Error al crear la invitación');
       console.error(err);
     }
   };
@@ -298,20 +302,26 @@ export default function SettingsView({
   return (
     <div className="flex-1 overflow-y-auto max-w-4xl mx-auto w-full pb-12 space-y-6">
       
-      {/* Role Selection Simulator Panel */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
+      {/* Role Selection Simulator Panel — admin only: it writes the real role to Firestore,
+          it's not a preview. Firestore rules also enforce this independently of the UI. */}
+      {userRole === 'admin' && (
+      <div className="bg-white rounded-3xl border border-amber-200 shadow-sm overflow-hidden p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl">
             <ShieldCheck size={22} />
           </div>
           <div>
-            <h3 className="font-extrabold text-gray-900 text-sm">Modo de Rol de Usuario (Simulador de Entorno)</h3>
-            <p className="text-xs text-gray-400">Cambia de rol para simular la interfaz, permisos y vistas específicas de la agencia o del cliente.</p>
+            <h3 className="font-extrabold text-gray-900 text-sm">Modo de Rol de Usuario (Avanzado)</h3>
+            <p className="text-xs text-gray-400">Cambia tu rol real en Firestore para probar permisos y vistas. No es una vista previa.</p>
           </div>
+        </div>
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-800 font-medium">
+          ⚠️ Si te cambias a un rol distinto de Admin, perderás tus permisos de administrador hasta que otro admin te los devuelva. Úsalo solo para pruebas.
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-          {Object.entries(ROLES).map(([key, label]) => {
+          {ASSIGNABLE_ROLES.map((key) => {
+            const label = ROLES[key];
             const isSelected = userRole === key;
             return (
               <button
@@ -343,7 +353,8 @@ export default function SettingsView({
           })}
         </div>
       </div>
-      
+      )}
+
       {/* 1. Project switching panel (moved from sidebar/topbar) */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
         <div className="flex items-center gap-3 mb-4">
@@ -1126,7 +1137,7 @@ export default function SettingsView({
               Invitar colaborador o cliente
             </h4>
             <p className="text-xs text-gray-500 leading-relaxed mb-6">
-              El usuario recibirá un correo con el enlace para acceder con su cuenta de Google.
+              Se crea una invitación pendiente. Debes compartir tú mismo el enlace de la app con esta persona — todavía no enviamos el correo automáticamente.
             </p>
 
             <form onSubmit={handleInvite} className="space-y-4">
@@ -1161,11 +1172,28 @@ export default function SettingsView({
                   onChange={(e) => setInviteRole(e.target.value as Role)}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
                 >
-                  {Object.entries(ROLES).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
+                  {ASSIGNABLE_ROLES.map((key) => (
+                    <option key={key} value={key}>{ROLES[key]}</option>
                   ))}
                 </select>
               </div>
+
+              {inviteRole === 'client' && (
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Proyecto del cliente</label>
+                  <select
+                    value={inviteProjectId}
+                    onChange={(e) => setInviteProjectId(e.target.value)}
+                    required
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
+                  >
+                    <option value="">Selecciona un proyecto...</option>
+                    {projects.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button

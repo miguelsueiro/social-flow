@@ -11,15 +11,15 @@ service cloud.firestore {
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    
+
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
-    
+
     function isRole(role) {
       return isSignedIn() && getUserData().role == role;
     }
-    
+
     function isAgencyRole() {
       return isRole('creative_director') || isRole('copy') || isRole('art_director') || isRole('designer') || isRole('account_manager') || isRole('community_manager') || isRole('admin');
     }
@@ -28,20 +28,74 @@ service cloud.firestore {
       return isRole('admin');
     }
 
+    // Projects an agency member is scoped to. Empty = unrestricted (same default
+    // as the app's own hasProjectPermission), matching a full agency account.
+    function permittedProjectsOf() {
+      return getUserData().get('permittedProjects', []);
+    }
+
+    function canAccessProjectAsAgency(projectId) {
+      let perms = permittedProjectsOf();
+      return isAdmin() || perms.size() == 0 || (projectId in perms);
+    }
+
+    // A client can only ever touch their own project(s) — checked against
+    // their user doc, never trusted from the request payload.
+    function isOwnProjectAsClient(projectId) {
+      return getUserData().get('projectId', '') == projectId
+        || (projectId in getUserData().get('permittedProjects', []));
+    }
+
     function isValidUser(data) {
       return data.uid is string && data.uid.size() <= 128
         && data.email is string && data.email.size() <= 256
-        && data.role in ['admin', 'creative_director', 'copy', 'art_director', 'designer', 'account_manager', 'community_manager', 'client']
+        && data.role in ['pending', 'admin', 'creative_director', 'copy', 'art_director', 'designer', 'account_manager', 'community_manager', 'client']
         && (data.name == null || (data.name is string && data.name.size() <= 256));
     }
 
     // --- Users Collection ---
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && (
-        (request.auth.uid == userId && isValidUser(incoming())) ||
-        isAgencyRole()
+
+      // Self-registration on first login: only as 'pending', with zero access.
+      // Any real role/permissions must come from an admin or from an invite
+      // resolved server-side by the app before this write happens.
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && isValidUser(incoming())
+        && (
+          isAdmin() ||
+          (
+            incoming().role == 'pending'
+            && incoming().get('permittedProjects', []).size() == 0
+            && incoming().get('projectId', '') == ''
+          )
+        );
+
+      // A user may update their own profile, but never their own role or
+      // project access — that would be self-escalation. Only an admin can
+      // change role/permittedProjects/projectId, for themselves or anyone else.
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (
+          request.auth.uid == userId
+          && isValidUser(incoming())
+          && incoming().role == existing().role
+          && incoming().get('permittedProjects', []) == existing().get('permittedProjects', [])
+          && incoming().get('projectId', '') == existing().get('projectId', '')
+        )
       );
+
+      allow delete: if isAdmin();
+    }
+
+    // --- Invites Collection (doc id = lowercased invited email) ---
+    match /invites/{email} {
+      allow create, update, delete: if isAdmin();
+      // The invited person needs to read their own invite on first login to
+      // resolve their role; nobody else may enumerate invites.
+      allow get: if isAdmin() || (isSignedIn() && request.auth.token.email.lower() == email);
+      allow list: if isAdmin();
     }
 
     // --- Projects Collection ---
@@ -67,69 +121,82 @@ service cloud.firestore {
     }
 
     function isClientVisible(phase) {
-      return phase in ['idea_2', 'copy', 'design', 'client_review', 'approved', 'published'];
+      return phase in ['copy', 'design', 'client_review', 'approved', 'published'];
     }
 
     match /posts/{postId} {
       allow list: if isSignedIn() && (
-        isAgencyRole() || 
-        (isRole('client') && isClientVisible(resource.data.phase))
-      );
-      
-      allow get: if isSignedIn() && (
-        isAgencyRole() || 
-        (isRole('client') && isClientVisible(existing().phase))
+        (isAgencyRole() && canAccessProjectAsAgency(resource.data.projectId)) ||
+        (isRole('client') && isOwnProjectAsClient(resource.data.projectId) && isClientVisible(resource.data.phase))
       );
 
-      allow create: if isAgencyRole() && isValidPost(incoming()) 
+      allow get: if isSignedIn() && (
+        (isAgencyRole() && canAccessProjectAsAgency(existing().projectId)) ||
+        (isRole('client') && isOwnProjectAsClient(existing().projectId) && isClientVisible(existing().phase))
+      );
+
+      allow create: if isAgencyRole() && canAccessProjectAsAgency(incoming().projectId)
+        && isValidPost(incoming())
         && incoming().updatedAt == request.time;
 
       allow update: if isSignedIn() && (
-        (isAgencyRole() && isValidPost(incoming()) && incoming().updatedAt == request.time) ||
-        (isRole('client') && isClientVisible(existing().phase) && (
+        (isAgencyRole() && canAccessProjectAsAgency(existing().projectId) && isValidPost(incoming()) && incoming().updatedAt == request.time) ||
+        (isRole('client') && isOwnProjectAsClient(existing().projectId) && isClientVisible(existing().phase) && (
           // Clients can only advance phase to next steps or add feedback (comments handled separately)
           incoming().diff(existing()).affectedKeys().hasOnly(['phase', 'updatedAt'])
           && incoming().phase in ['client_review', 'approved']
           && incoming().updatedAt == request.time
         ))
       );
-      
-      allow delete: if isAgencyRole();
 
-      // --- Comments Subcollection ---
+      allow delete: if isAgencyRole() && canAccessProjectAsAgency(existing().projectId);
+
+      // --- Comments Subcollection (internal agency discussion — never client-facing) ---
       match /comments/{commentId} {
-        allow read, list: if isSignedIn();
-        
-        allow create: if isSignedIn() && (
-          isAgencyRole() || 
-          (isRole('client') && isClientVisible(get(/databases/$(database)/documents/posts/$(postId)).data.phase))
-        ) && incoming().authorId == request.auth.uid 
+        allow read, list: if isSignedIn() && isAgencyRole();
+
+        allow create: if isSignedIn() && isAgencyRole()
+          && incoming().authorId == request.auth.uid
           && incoming().createdAt == request.time
           && incoming().text.size() <= 1000;
-          
+
         allow update, delete: if isRole('admin') || (isSignedIn() && existing().authorId == request.auth.uid);
       }
 
       // --- Feedbacks Subcollection ---
       match /feedbacks/{feedbackId} {
         allow read, list: if isSignedIn();
-        
+
         allow create: if isSignedIn() && (
-          isAgencyRole() || 
+          isAgencyRole() ||
           (isRole('client') && isClientVisible(get(/databases/$(database)/documents/posts/$(postId)).data.phase))
-        ) && incoming().authorId == request.auth.uid 
+        ) && incoming().authorId == request.auth.uid
           && incoming().createdAt == request.time
           && incoming().text.size() <= 2000;
-          
-        allow update: if isSignedIn();
-        
+
+        // Editing the text is author-only. Agency can flip done/doneAt/doneBy
+        // without touching the text or reassigning authorship.
+        allow update: if isSignedIn() && (
+          (existing().authorId == request.auth.uid && incoming().authorId == existing().authorId)
+          || (isAgencyRole() && incoming().diff(existing()).affectedKeys().hasOnly(['done', 'doneAt', 'doneBy']))
+          || isAdmin()
+        );
+
         allow delete: if isRole('admin') || (isSignedIn() && existing().authorId == request.auth.uid);
       }
     }
 
     // --- Notifications Collection ---
     match /notifications/{notifId} {
-      allow read: if isSignedIn();
+      // Admins see everything; everyone else only notifications tied to a
+      // project they can access (or legacy docs with no projectId at all).
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        !('projectId' in resource.data) ||
+        resource.data.projectId == '' ||
+        (isAgencyRole() && canAccessProjectAsAgency(resource.data.projectId)) ||
+        (isRole('client') && isOwnProjectAsClient(resource.data.projectId))
+      );
       allow create: if isSignedIn() && incoming().createdAt is timestamp;
       allow update, delete: if isAdmin();
     }

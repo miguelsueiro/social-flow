@@ -425,8 +425,8 @@ export default function InstagramDetailModal({
               </div>
             </div>
 
-            {/* User comments list */}
-            {comments.map((comment) => (
+            {/* User comments list — internal agency discussion, never shown to clients */}
+            {userRole !== 'client' && comments.map((comment) => (
               <div key={comment.id} className="flex gap-3 text-left">
                 <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center font-bold text-blue-600 text-[10px] shrink-0">
                   {comment.authorName[0]}
@@ -442,7 +442,7 @@ export default function InstagramDetailModal({
               </div>
             ))}
 
-            {comments.length === 0 && (
+            {userRole !== 'client' && comments.length === 0 && (
               <div className="text-center py-6 text-gray-400">
                 <p className="font-medium">Sin comentarios adicionales</p>
                 <p className="text-[10px]">Escribe abajo para dejar feedback</p>
@@ -478,23 +478,30 @@ export default function InstagramDetailModal({
             </div>
           </div>
 
-          {/* Add Comment input */}
-          <form onSubmit={handleSubmitComment} className="p-3 border-t border-gray-100 bg-white flex items-center relative">
-            <input 
-              type="text" 
-              placeholder="Añade un comentario..."
-              value={commentText}
-              onChange={e => setCommentText(e.target.value)}
-              className="w-full text-xs outline-none pr-10 py-1.5 pl-1.5 focus:bg-gray-50/30 rounded"
-            />
-            <button 
-              type="submit"
-              disabled={!commentText.trim()}
-              className="absolute right-4 text-xs font-bold text-blue-600 disabled:opacity-40 hover:text-blue-800 transition-colors"
-            >
-              Publicar
-            </button>
-          </form>
+          {/* Add Comment input — internal-only, hidden from clients (matches PostModal's
+              Comments tab, which is agency-only). Clients give feedback from the Feedback tab. */}
+          {userRole !== 'client' ? (
+            <form onSubmit={handleSubmitComment} className="p-3 border-t border-gray-100 bg-white flex items-center relative">
+              <input
+                type="text"
+                placeholder="Añade un comentario..."
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                className="w-full text-xs outline-none pr-10 py-1.5 pl-1.5 focus:bg-gray-50/30 rounded"
+              />
+              <button
+                type="submit"
+                disabled={!commentText.trim()}
+                className="absolute right-4 text-xs font-bold text-blue-600 disabled:opacity-40 hover:text-blue-800 transition-colors"
+              >
+                Publicar
+              </button>
+            </form>
+          ) : (
+            <div className="p-3 border-t border-gray-100 bg-gray-50/50 text-center text-[11px] text-gray-400 font-medium">
+              Para dar feedback sobre este post, ábrelo desde el calendario o el tablero.
+            </div>
+          )}
         </div>
 
       </div>
