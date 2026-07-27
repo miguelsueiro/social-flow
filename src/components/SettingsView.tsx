@@ -25,6 +25,7 @@ import {
 import { InstagramIcon, TikTokIcon, LinkedInIcon } from './SocialIcons';
 import ConfirmInline from './ConfirmInline';
 import NewProjectModal, { NewProjectData } from './NewProjectModal';
+import TagListEditor from './TagListEditor';
 import { toast } from 'react-hot-toast';
 import { db } from '../lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -36,6 +37,7 @@ interface Project {
   clientName: string;
   color: string;
   platforms?: string[];
+  territories?: string[];
 }
 
 interface SettingsViewProps {
@@ -200,6 +202,7 @@ export default function SettingsView({
   const [editClient, setEditClient] = useState('');
   const [editColor, setEditColor] = useState('');
   const [editPlatforms, setEditPlatforms] = useState<string[]>(['instagram', 'linkedin', 'tiktok']);
+  const [editTerritories, setEditTerritories] = useState<string[]>([]);
 
   const handleSaveAgencySettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -242,6 +245,7 @@ export default function SettingsView({
     setEditClient(proj.clientName);
     setEditColor(proj.color);
     setEditPlatforms(proj.platforms || ['instagram', 'linkedin', 'tiktok']);
+    setEditTerritories(proj.territories || []);
   };
 
   const handleUpdateProject = async (projId: string) => {
@@ -255,7 +259,8 @@ export default function SettingsView({
         name: editName.trim(),
         clientName: editClient.trim(),
         color: editColor,
-        platforms: editPlatforms
+        platforms: editPlatforms,
+        territories: editTerritories
       });
       toast.success('Proyecto actualizado correctamente');
       setEditingProjId(null);
@@ -764,6 +769,7 @@ export default function SettingsView({
                     <th className="px-4 py-3">Nombre del Proyecto</th>
                     <th className="px-4 py-3">Cliente Legal</th>
                     <th className="px-4 py-3">Redes Activas</th>
+                    <th className="px-4 py-3">Territorios</th>
                     <th className="px-4 py-3 text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -858,6 +864,28 @@ export default function SettingsView({
                                 );
                               })}
                             </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 max-w-[220px]">
+                          {isEditing ? (
+                            <TagListEditor
+                              tags={editTerritories}
+                              onChange={setEditTerritories}
+                              placeholder="Añadir tema..."
+                              size="sm"
+                            />
+                          ) : (
+                            proj.territories && proj.territories.length > 0 ? (
+                              <div className="flex gap-1 flex-wrap">
+                                {proj.territories.map(t => (
+                                  <span key={t} className="px-1.5 py-0.5 rounded-md font-bold text-[9px] bg-slate-100 text-slate-600">
+                                    {t}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-gray-300 text-[10px]">—</span>
+                            )
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">

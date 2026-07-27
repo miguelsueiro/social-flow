@@ -88,6 +88,7 @@ interface Post {
   videoUrl?: string;
   title?: string;
   language?: string;
+  territory?: string;
 }
 
 interface PostModalProps {
@@ -122,6 +123,15 @@ const VERSION_FIELD_NAME: Record<VersionType, 'captionVersions' | 'creativityVer
   design: 'designVersions'
 };
 
+// Design versions store full (compressed) image/video data inline on the post
+// document, which counts against Firestore's 1MB per-document limit. Text
+// versions are cheap, so only design needs a tight cap to stay safely under it.
+const MAX_VERSIONS_BY_TYPE: Record<VersionType, number> = {
+  design: 3,
+  caption: 30,
+  creativity: 30
+};
+
 function makeVersionSnapshot(value: string): VersionItem {
   return {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
@@ -147,9 +157,12 @@ function SaveVersionButton({ type, currentValue, versions = [], isAgencyMember, 
       toast.error('Esta versión ya se encuentra guardada en el historial');
       return;
     }
+    // Keep the array bounded so a single post document never approaches
+    // Firestore's 1MB limit, no matter how many versions get saved over time.
+    const trimmedVersions = versions.slice(0, MAX_VERSIONS_BY_TYPE[type] - 1);
     onUpdatePost({
       ...localPost,
-      [fieldName]: [makeVersionSnapshot(currentValue), ...versions]
+      [fieldName]: [makeVersionSnapshot(currentValue), ...trimmedVersions]
     });
     toast.success('Versión guardada correctamente');
   };
@@ -701,7 +714,8 @@ export default function PostModal({
 
     // Safety net: snapshot the unsaved draft before overwriting it, unless it's empty or already saved.
     if (currentValue && currentValue !== existingVersions[0]?.value) {
-      (updates as any)[fieldName] = [makeVersionSnapshot(currentValue), ...existingVersions];
+      const trimmedVersions = existingVersions.slice(0, MAX_VERSIONS_BY_TYPE[type] - 1);
+      (updates as any)[fieldName] = [makeVersionSnapshot(currentValue), ...trimmedVersions];
     }
 
     if (type === 'design') {
@@ -781,6 +795,8 @@ export default function PostModal({
   };
 
   const projectInfo = projects.find(p => p.id === localPost.projectId);
+  const projectTerritories: string[] = projectInfo?.territories || [];
+  const hasTerritories = projectTerritories.length > 0;
 
   // --- Drag & Drop Handlers ---
   const handleReferencesDragOver = (e: React.DragEvent) => {
@@ -1026,7 +1042,7 @@ export default function PostModal({
             />
           </section>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className={cn("grid grid-cols-2 gap-3", hasTerritories ? "sm:grid-cols-5" : "sm:grid-cols-4")}>
             <section>
               <label htmlFor="post-platform-select" className="block text-xs font-semibold text-gray-500 mb-1">Plataforma</label>
               {(() => {
@@ -1105,6 +1121,27 @@ export default function PostModal({
                 <option value="pt">🇵🇹 Portugués</option>
               </select>
             </section>
+
+            {hasTerritories && (
+              <section>
+                <label htmlFor="post-territory-select" className="block text-xs font-semibold text-gray-500 mb-1">Territorio</label>
+                <select
+                  id="post-territory-select"
+                  value={localPost.territory || ''}
+                  onChange={e => {
+                    const updated = { ...localPost, territory: e.target.value };
+                    setLocalPost(updated);
+                    onUpdate(updated);
+                  }}
+                  className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
+                >
+                  <option value="">Sin especificar</option>
+                  {projectTerritories.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </section>
+            )}
           </div>
         </div>
 

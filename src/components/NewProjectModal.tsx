@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { toast } from 'react-hot-toast';
 import { useModalA11y } from '../lib/useModalA11y';
 import { InstagramIcon, TikTokIcon, LinkedInIcon } from './SocialIcons';
+import TagListEditor from './TagListEditor';
 
 const PLATFORM_OPTIONS = [
   { id: 'instagram', label: 'Instagram', icon: InstagramIcon, color: 'text-[#E1306C] border-[#E1306C]/20 bg-[#E1306C]/5' },
@@ -16,6 +17,7 @@ export interface NewProjectData {
   clientName: string;
   color: string;
   platforms: string[];
+  territories: string[];
 }
 
 interface NewProjectModalProps {
@@ -28,6 +30,7 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
   const [clientName, setClientName] = useState('');
   const [color, setColor] = useState('#2563EB');
   const [platforms, setPlatforms] = useState<string[]>(['instagram', 'linkedin', 'tiktok']);
+  const [territories, setTerritories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const modalRef = useModalA11y(onClose);
 
@@ -51,7 +54,7 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
     }
     setIsSubmitting(true);
     try {
-      await onSubmit({ name: name.trim(), clientName: clientName.trim(), color, platforms });
+      await onSubmit({ name: name.trim(), clientName: clientName.trim(), color, platforms, territories });
     } finally {
       setIsSubmitting(false);
     }
@@ -163,6 +166,16 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
                 );
               })}
             </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Territorios (temáticas del proyecto)</label>
+            <TagListEditor
+              tags={territories}
+              onChange={setTerritories}
+              placeholder="Ej. Producto, Sostenibilidad, Lifestyle..."
+            />
+            <p className="text-[10px] text-gray-400 mt-1.5">Opcional. Si añades alguno, aparecerá como desplegable al editar los posts de este proyecto.</p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t border-gray-50">

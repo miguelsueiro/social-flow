@@ -596,13 +596,12 @@ export default function App() {
     if (isOfflineMode) {
       setPosts(prev => prev.map(p => p.id === selectedPost.id ? { ...p, ...updates } : p));
       setSelectedPost(prev => prev ? ({ ...prev, ...updates }) : null);
-      toast.success('Actualizado correctamente (Modo Demo)');
       return;
     }
     try {
       const { id, ...cleanUpdates } = updates;
       const postRef = doc(db, 'posts', selectedPost.id);
-      
+
       let payload: any;
       if (userRole === 'client') {
         payload = {
@@ -618,9 +617,13 @@ export default function App() {
 
       await updateDoc(postRef, payload);
       setSelectedPost(prev => ({ ...prev, ...updates }));
-      toast.success('Actualizado correctamente');
     } catch (err) {
-      toast.error('Error al actualizar');
+      const message = err instanceof Error ? err.message : String(err);
+      if (/longer than|maximum size|exceeds/i.test(message)) {
+        toast.error('El post ha alcanzado el límite de tamaño de Firestore (1MB). Elimina alguna versión guardada del diseño o usa una imagen más ligera.', { duration: 6000 });
+      } else {
+        toast.error('Error al actualizar');
+      }
       handleFirestoreError(err, OperationType.UPDATE, `posts/${selectedPost.id}`);
     }
   };

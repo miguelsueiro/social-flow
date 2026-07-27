@@ -9,6 +9,11 @@ const FOCUSABLE_SELECTOR =
  */
 export function useModalA11y(onClose: () => void, active: boolean = true) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Keep the latest onClose without making the effect below re-run on every
+  // render — callers often pass an inline arrow function, and re-running the
+  // effect on every keystroke would steal focus back to the first field.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!active) return;
@@ -24,7 +29,7 @@ export function useModalA11y(onClose: () => void, active: boolean = true) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key === 'Tab' && container) {
@@ -47,7 +52,7 @@ export function useModalA11y(onClose: () => void, active: boolean = true) {
       document.removeEventListener('keydown', handleKeyDown, true);
       previouslyFocused?.focus?.();
     };
-  }, [onClose, active]);
+  }, [active]);
 
   return containerRef;
 }
