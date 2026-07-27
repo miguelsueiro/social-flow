@@ -619,7 +619,7 @@ export default function SettingsView({
                                       </button>
 
                                       {activeUserPopover === usr.id && (
-                                        <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-150 shadow-2xl rounded-2xl p-3.5 z-50 space-y-2">
+                                        <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-100 shadow-2xl rounded-2xl p-3.5 z-50 space-y-2">
                                           <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Permisos para {usr.name}</p>
                                           
                                           {projects.length > 4 && (
@@ -630,7 +630,7 @@ export default function SettingsView({
                                                 placeholder="Buscar proyecto..."
                                                 value={popoverSearch}
                                                 onChange={(e) => setPopoverSearch(e.target.value)}
-                                                className="w-full bg-gray-50 border border-gray-150 rounded-xl py-1 pl-7 pr-3 text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-gray-800"
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl py-1 pl-7 pr-3 text-xs outline-none focus:bg-white focus:border-indigo-500 transition-all text-gray-800"
                                               />
                                             </div>
                                           )}
@@ -695,7 +695,7 @@ export default function SettingsView({
                               </div>
 
                               {/* Action buttons (Edit & Delete) */}
-                              <div className="flex items-center gap-1 pl-2 border-l border-gray-150 h-8 self-end">
+                              <div className="flex items-center gap-1 pl-2 border-l border-gray-100 h-8 self-end">
                                 <button
                                   type="button"
                                   onClick={() => startEditingUser(usr)}

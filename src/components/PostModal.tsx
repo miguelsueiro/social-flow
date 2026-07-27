@@ -430,7 +430,9 @@ export default function PostModal({
   const [isTranslatingCopy, setIsTranslatingCopy] = useState(false);
   const [isTranslatingCaption, setIsTranslatingCaption] = useState(false);
   const modalContainerRef = useModalA11y(() => {
-    if (!zoomedImageUrl) onClose();
+    // Escape doesn't blur the focused field, so title/idea/copy/caption
+    // (which only autosave onBlur) would otherwise lose an unsaved draft.
+    if (!zoomedImageUrl) handleCloseModal();
   });
 
   useEffect(() => {
@@ -767,6 +769,11 @@ export default function PostModal({
     }
   };
 
+  const handleCloseModal = () => {
+    handleUpdate();
+    onClose();
+  };
+
   const nextPhase = () => {
     const phaseOrder: Phase[] = ['idea_1', 'copy', 'design', 'client_review', 'approved', 'published'];
     let currentIndex = phaseOrder.indexOf(localPost.phase);
@@ -942,7 +949,7 @@ export default function PostModal({
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
-      onClick={onClose}
+      onClick={handleCloseModal}
     >
       <motion.div
         ref={modalContainerRef}
@@ -1018,7 +1025,7 @@ export default function PostModal({
               )
             )}
             <button
-              onClick={onClose}
+              onClick={handleCloseModal}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
               aria-label="Cerrar"
             >
@@ -1296,7 +1303,7 @@ export default function PostModal({
 
                     {/* Direct URL Reference input */}
                     {!isClient && (
-                      <div className="mt-2 pt-2 border-t border-gray-150/40 flex gap-2">
+                      <div className="mt-2 pt-2 border-t border-gray-100/40 flex gap-2">
                         <input
                           type="url"
                           placeholder="Pegar enlace de referencia externa..."
@@ -1559,7 +1566,7 @@ export default function PostModal({
                           </label>
 
                           {localPost.format !== 'carrusel' && (
-                            <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-150 space-y-1.5 text-left">
+                            <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-1.5 text-left">
                               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
                                 O pegar URL del archivo (Imagen/Video)
                               </label>
@@ -1784,7 +1791,7 @@ export default function PostModal({
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <div className="flex items-baseline gap-2 flex-wrap">
                             <span className="text-sm font-bold text-gray-900">{f.authorName}</span>
-                            <span className="text-[9px] bg-blue-50 text-blue-600 font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider">{f.roleAtTime}</span>
+                            <span className="text-[9px] bg-blue-50 text-blue-600 font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">{f.roleAtTime}</span>
                             <span className="text-[10px] text-gray-400">
                               {f.createdAt instanceof Date ? format(f.createdAt, 'HH:mm dd/MM') : 'Ahora'}
                             </span>
@@ -1972,7 +1979,7 @@ export default function PostModal({
                     </div>
 
                     <div className="relative pl-2 space-y-4">
-                      <div className="absolute left-[9px] top-1.5 bottom-1.5 w-px bg-gray-150" />
+                      <div className="absolute left-[9px] top-1.5 bottom-1.5 w-px bg-gray-100" />
                       {filteredHistoryEntries.map((entry) => {
                         const key = `${entry.type}-${entry.version.id}`;
                         return (

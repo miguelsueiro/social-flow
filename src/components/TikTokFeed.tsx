@@ -235,7 +235,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
         <div className="relative z-10 p-6 pt-0 text-white space-y-2 max-w-[80%]">
           <div className="flex items-center gap-2">
             <span className="font-extrabold text-sm truncate">@{proj?.name?.toLowerCase().replace(/\s+/g, '') || 'brand_tiktok'}</span>
-            <span className="text-[9px] bg-white/20 px-1 py-0.2 rounded font-bold text-white uppercase tracking-widest shrink-0">OFICIAL</span>
+            <span className="text-[9px] bg-white/20 px-1 py-0.5 rounded font-bold text-white uppercase tracking-widest shrink-0">OFICIAL</span>
           </div>
           
           <p className="text-xs leading-normal font-medium text-zinc-100 line-clamp-3">
@@ -249,7 +249,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
           {/* Sound bar */}
           <div className="flex items-center gap-1.5 overflow-hidden text-xs text-zinc-300">
             <Music size={12} className="shrink-0" />
-            <div className="marquee overflow-hidden whitespace-nowrap text-[10px] font-semibold tracking-wide">
+            <div className="truncate text-[10px] font-semibold tracking-wide">
               <span>sonido original - {proj?.name || 'SocialFlow'}</span>
             </div>
           </div>
@@ -335,7 +335,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
 
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Filtrar Estado</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-150">
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
               <button 
                 onClick={() => setFilterPhase('all')}
                 className={cn(
@@ -359,7 +359,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
 
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Modo de Vista</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-150">
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
               <button 
                 onClick={() => setViewMode('phone')}
                 className={cn(

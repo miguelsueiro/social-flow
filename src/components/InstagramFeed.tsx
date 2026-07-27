@@ -164,7 +164,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
     const gradients = [
       'from-neutral-800 to-stone-950',
       'from-zinc-900 to-neutral-950',
-      'from-stone-850 to-zinc-950',
+      'from-stone-900 to-zinc-950',
       'from-neutral-900 to-stone-900'
     ];
     

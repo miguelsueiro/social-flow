@@ -222,6 +222,17 @@ export default function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
+  // Guards against double-submit from rapid double-clicks: each ref flips true
+  // for the duration of its handler's async work and ignores re-entrant calls.
+  const creatingPostRef = useRef(false);
+  const duplicatingPostRef = useRef(false);
+  const deletingPostRef = useRef(false);
+  const addingCommentRef = useRef(false);
+  const addingFeedbackRef = useRef(false);
+  const togglingFeedbackRef = useRef<Set<string>>(new Set());
+  const updatingFeedbackRef = useRef<Set<string>>(new Set());
+  const deletingFeedbackRef = useRef<Set<string>>(new Set());
+
   // Helper to check if a user has access to a specific project
   const hasProjectPermission = (projectId: string) => {
     if (userRole === 'pending') return false;
@@ -585,6 +596,9 @@ export default function App() {
   }, [selectedPost]);
 
   const handleCreatePost = async (date: Date) => {
+    if (creatingPostRef.current) return;
+    creatingPostRef.current = true;
+    try {
     if (isOfflineMode) {
       const assignedProjectId = activeProjectId === 'all' ? (projects[0]?.id || '') : activeProjectId;
       const newPost = {
@@ -630,6 +644,9 @@ export default function App() {
     } catch (err) {
       toast.error('Error al crear el post');
       handleFirestoreError(err, OperationType.CREATE, 'posts');
+    }
+    } finally {
+      creatingPostRef.current = false;
     }
   };
 
@@ -705,6 +722,9 @@ export default function App() {
   };
 
   const handleDeletePost = async (postId: string) => {
+    if (deletingPostRef.current) return;
+    deletingPostRef.current = true;
+    try {
     if (isOfflineMode) {
       setPosts(prev => prev.filter(p => p.id !== postId));
       setSelectedPost(null);
@@ -719,9 +739,15 @@ export default function App() {
       toast.error('Error al eliminar el post');
       handleFirestoreError(err, OperationType.DELETE, `posts/${postId}`);
     }
+    } finally {
+      deletingPostRef.current = false;
+    }
   };
 
   const handleDuplicatePost = async (post: any) => {
+    if (duplicatingPostRef.current) return;
+    duplicatingPostRef.current = true;
+    try {
     const titleCopy = post.title ? `${post.title} (copia)` : 'Nuevo Post (copia)';
 
     if (isOfflineMode) {
@@ -761,10 +787,16 @@ export default function App() {
       toast.error('Error al duplicar el post');
       handleFirestoreError(err, OperationType.CREATE, 'posts');
     }
+    } finally {
+      duplicatingPostRef.current = false;
+    }
   };
 
   const handleAddComment = async (text: string) => {
     if (!selectedPost || !currentUser) return;
+    if (addingCommentRef.current) return;
+    addingCommentRef.current = true;
+    try {
     if (isOfflineMode) {
       const newComment = {
         id: `local-comment-${Date.now()}`,
@@ -782,7 +814,7 @@ export default function App() {
         for (const mention of mentions) {
           const mentionClean = mention.replace(/[^a-zA-Z0-9_.-]/g, '');
           if (mentionClean) {
-            toast.success(`📧 Correo enviado a ${mentionClean}@basetis.com notificando la etiqueta`, { duration: 6000 });
+            toast.success(`@${mentionClean} verá tu mención en su stream de notificaciones`, { duration: 4000 });
           }
         }
       }
@@ -818,7 +850,7 @@ export default function App() {
           const mentionClean = mention.replace(/[^a-zA-Z0-9_.-]/g, '');
           if (mentionClean) {
             // Trigger beautiful simulated email alert
-            toast.success(`📧 Correo enviado a ${mentionClean}@basetis.com notificando la etiqueta`, { duration: 6000 });
+            toast.success(`@${mentionClean} verá tu mención en su stream de notificaciones`, { duration: 4000 });
             
             // Add real mention notification to Firestore so it shows up in dynamic feed
             await addDoc(collection(db, 'notifications'), {
@@ -837,10 +869,16 @@ export default function App() {
       toast.error('Error al enviar comentario');
       handleFirestoreError(err, OperationType.CREATE, pathComments);
     }
+    } finally {
+      addingCommentRef.current = false;
+    }
   };
 
   const handleAddFeedback = async (text: string) => {
     if (!selectedPost || !currentUser) return;
+    if (addingFeedbackRef.current) return;
+    addingFeedbackRef.current = true;
+    try {
     if (isOfflineMode) {
       const newFeedback = {
         id: `local-feedback-${Date.now()}`,
@@ -880,10 +918,16 @@ export default function App() {
       toast.error('Error al enviar feedback');
       handleFirestoreError(err, OperationType.CREATE, pathFeedbacks);
     }
+    } finally {
+      addingFeedbackRef.current = false;
+    }
   };
 
   const handleToggleFeedbackDone = async (feedbackId: string, currentDone: boolean) => {
     if (!selectedPost) return;
+    if (togglingFeedbackRef.current.has(feedbackId)) return;
+    togglingFeedbackRef.current.add(feedbackId);
+    try {
     if (isOfflineMode) {
       const nextDone = !currentDone;
       setFeedbacks(prev => prev.map(f => f.id === feedbackId ? {
@@ -920,10 +964,16 @@ export default function App() {
       toast.error('Error al actualizar feedback');
       handleFirestoreError(err, OperationType.UPDATE, `${pathFeedbacks}/${feedbackId}`);
     }
+    } finally {
+      togglingFeedbackRef.current.delete(feedbackId);
+    }
   };
 
   const handleUpdateFeedback = async (feedbackId: string, newText: string) => {
     if (!selectedPost) return;
+    if (updatingFeedbackRef.current.has(feedbackId)) return;
+    updatingFeedbackRef.current.add(feedbackId);
+    try {
     if (isOfflineMode) {
       setFeedbacks(prev => prev.map(f => f.id === feedbackId ? { ...f, text: newText } : f));
       toast.success('Feedback actualizado (Modo Demo)');
@@ -941,10 +991,16 @@ export default function App() {
       toast.error('Error al actualizar feedback');
       handleFirestoreError(err, OperationType.UPDATE, `${pathFeedbacks}/${feedbackId}`);
     }
+    } finally {
+      updatingFeedbackRef.current.delete(feedbackId);
+    }
   };
 
   const handleDeleteFeedback = async (feedbackId: string) => {
     if (!selectedPost) return;
+    if (deletingFeedbackRef.current.has(feedbackId)) return;
+    deletingFeedbackRef.current.add(feedbackId);
+    try {
     if (isOfflineMode) {
       setFeedbacks(prev => prev.filter(f => f.id !== feedbackId));
       toast.success('Feedback eliminado (Modo Demo)');
@@ -958,6 +1014,9 @@ export default function App() {
     } catch (err) {
       toast.error('Error al eliminar feedback');
       handleFirestoreError(err, OperationType.DELETE, `${pathFeedbacks}/${feedbackId}`);
+    }
+    } finally {
+      deletingFeedbackRef.current.delete(feedbackId);
     }
   };
 
@@ -1015,6 +1074,7 @@ export default function App() {
 
         const query = searchQuery.toLowerCase();
         return (
+          (post.title || '').toLowerCase().includes(query) ||
           (post.idea || '').toLowerCase().includes(query) ||
           (post.copyCaption || '').toLowerCase().includes(query) ||
           (post.copyCreativity || '').toLowerCase().includes(query) ||
@@ -1677,7 +1737,7 @@ export default function App() {
 
       {/* Mobile Bottom Navigation Bar */}
       {activeProjectId !== 'dashboard' && (
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-150 h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0">
           {(() => {
             const activeProj = projects.find(p => p.id === activeProjectId);
             const activePlatforms = activeProj && activeProj.platforms ? activeProj.platforms : ['instagram', 'linkedin', 'tiktok'];

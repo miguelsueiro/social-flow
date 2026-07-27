@@ -86,7 +86,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
     if (post.format === 'carrusel' && post.carouselUrls && post.carouselUrls.length > 0) {
       const activeIdx = activeCarouselSlides[post.id] || 0;
       return (
-        <div className="relative bg-slate-50 border-y border-gray-150 overflow-hidden group">
+        <div className="relative bg-slate-50 border-y border-gray-100 overflow-hidden group">
           {isVideoUrl(post.carouselUrls[activeIdx]) ? (
             <video 
               src={post.carouselUrls[activeIdx]} 
@@ -131,7 +131,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
     if (post.currentDesignUrl) {
       const isReel = post.format === 'reel';
       return (
-        <div className="relative bg-slate-50 border-y border-gray-150 overflow-hidden">
+        <div className="relative bg-slate-50 border-y border-gray-100 overflow-hidden">
           {isVideoUrl(post.currentDesignUrl) ? (
             <video 
               src={post.currentDesignUrl} 
@@ -167,7 +167,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
     const gradient = gradients[charSum % gradients.length];
 
     return (
-      <div className={cn("aspect-square w-full bg-gradient-to-tr flex flex-col justify-between p-6 text-white relative border-y border-gray-150", gradient)}>
+      <div className={cn("aspect-square w-full bg-gradient-to-tr flex flex-col justify-between p-6 text-white relative border-y border-gray-100", gradient)}>
         <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]" />
         <div className="relative z-10 flex justify-between items-start">
           <span className="bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] font-bold border border-white/10 uppercase tracking-wider">
@@ -204,7 +204,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
 
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Filtrar Estado</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-150">
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
               <button 
                 onClick={() => setFilterPhase('all')}
                 className={cn(
@@ -228,7 +228,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
 
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Modo de Vista</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-150">
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
               <button 
                 onClick={() => setDeviceMode('desktop')}
                 className={cn(
@@ -261,7 +261,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
       {/* Live Stream Simulator */}
       <div className="flex-1 flex justify-center items-start overflow-y-auto pr-2 pb-12">
         {visiblePosts.length === 0 ? (
-          <div className="w-full max-w-xl text-center py-20 bg-white border border-gray-150 rounded-2xl shadow-sm">
+          <div className="w-full max-w-xl text-center py-20 bg-white border border-gray-100 rounded-2xl shadow-sm">
             <Globe size={48} className="text-gray-300 mx-auto mb-3" />
             <h4 className="font-bold text-gray-800 text-sm">No hay posts de LinkedIn</h4>
             <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">

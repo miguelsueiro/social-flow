@@ -51,6 +51,8 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
 
+  const monthHasPosts = posts.some(p => isSameMonth(p.date, monthStart));
+
   const handleDragStart = (e: React.DragEvent, postId: string) => {
     e.dataTransfer.setData('text/plain', postId);
     e.dataTransfer.effectAllowed = 'move';
@@ -113,6 +115,12 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
           </div>
         ))}
       </div>
+
+      {!loading && !monthHasPosts && (
+        <div className="px-4 py-2.5 bg-gray-50/60 border-b border-gray-100 text-xs text-gray-400 font-medium text-center">
+          No hay posts programados en {format(currentMonth, 'MMMM yyyy')}.
+        </div>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-7 auto-rows-[120px] md:auto-rows-[160px]" role="status" aria-label="Cargando calendario">
