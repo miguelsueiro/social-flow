@@ -7,3 +7,4 @@ coverage/
 .env*
 !.env.example
 .claude/scheduled_tasks.lock
+.claude/settings.local.json

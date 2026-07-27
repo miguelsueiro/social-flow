@@ -122,7 +122,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                   layoutId={post.id}
                   key={post.id}
                   draggable={userRole !== 'client'}
-                  onDragStart={(e) => handleDragStart(e, post)}
+                  onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, post)}
                   onDragEnd={handleDragEnd}
                   onClick={() => onSelectPost(post)}
                   className={cn(

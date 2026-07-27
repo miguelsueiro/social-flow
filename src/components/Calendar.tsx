@@ -178,7 +178,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                       key={post.id}
                       onClick={() => onSelectPost(post)}
                       draggable={userRole !== 'client'}
-                      onDragStart={(e) => handleDragStart(e, post.id)}
+                      onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, post.id)}
                       className={cn(
                         "w-full text-left p-1.5 rounded-lg border text-xs leading-tight transition-all hover:scale-[1.02] shadow-sm flex flex-col font-medium",
                         userRole !== 'client' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",

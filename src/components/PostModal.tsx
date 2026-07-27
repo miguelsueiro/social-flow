@@ -19,11 +19,13 @@ import {
   Square,
   CheckSquare,
   Edit2,
-  Save
+  Save,
+  Copy
 } from 'lucide-react';
 import { cn, PHASES, Phase, Role, ROLES, compressImage, isVideoUrl } from '../lib/utils';
 import { useModalA11y } from '../lib/useModalA11y';
 import { PlatformBadge } from './SocialIcons';
+import ConfirmInline from './ConfirmInline';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { db, auth } from '../lib/firebase';
@@ -65,13 +67,7 @@ interface FeedbackItem {
   doneBy?: string;
 }
 
-interface PostVersion {
-  createdAt: any;
-  copyCaption: string;
-  copyCreativity: string;
-  designUrl: string;
-  authorName: string;
-}
+type VersionType = 'caption' | 'creativity' | 'design';
 
 interface Post {
   id: string;
@@ -99,6 +95,7 @@ interface PostModalProps {
   onClose: () => void;
   onUpdate: (updates: Partial<Post>) => void;
   onDelete?: (postId: string) => void;
+  onDuplicate?: (post: Post) => void;
   userRole: Role;
   comments: Comment[];
   onAddComment: (text: string) => void;
@@ -107,348 +104,281 @@ interface PostModalProps {
   onToggleFeedbackDone: (feedbackId: string, currentDone: boolean) => void;
   onUpdateFeedback?: (feedbackId: string, text: string) => void;
   onDeleteFeedback?: (feedbackId: string) => void;
-  history: PostVersion[];
   projects?: any[];
 }
 
 interface VersionFeedbackControlProps {
-  title: string;
-  type: 'caption' | 'creativity' | 'design';
+  type: VersionType;
   currentValue: string;
   versions: VersionItem[] | undefined;
   isAgencyMember: boolean;
   onUpdatePost: (updates: Partial<Post>) => void;
   localPost: Post;
-  accessibleUsers: any[];
 }
 
-function VersionFeedbackControl({
-  title,
-  type,
-  currentValue,
-  versions = [],
-  isAgencyMember,
-  onUpdatePost,
-  localPost,
-  accessibleUsers = []
-}: VersionFeedbackControlProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
-  const [activeMentionVersionId, setActiveMentionVersionId] = useState<string | null>(null);
-  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-  
+const VERSION_FIELD_NAME: Record<VersionType, 'captionVersions' | 'creativityVersions' | 'designVersions'> = {
+  caption: 'captionVersions',
+  creativity: 'creativityVersions',
+  design: 'designVersions'
+};
+
+function makeVersionSnapshot(value: string): VersionItem {
+  return {
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    value,
+    createdAt: new Date().toISOString(),
+    authorName: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Miembro de Agencia',
+    feedbacks: []
+  };
+}
+
+/** Only responsible for capturing a snapshot of the current field into its version array. Viewing, restoring and commenting on versions all happen in the unified "Historial" tab. */
+function SaveVersionButton({ type, currentValue, versions = [], isAgencyMember, onUpdatePost, localPost }: VersionFeedbackControlProps) {
   if (!isAgencyMember) return null;
 
-  const getMentionHandle = (user: any) => {
-    if (user.email) {
-      return user.email.split('@')[0];
-    }
-    return user.name.replace(/\s+/g, '').toLowerCase();
-  };
-
-  const handleInputChange = (text: string, versionId: string) => {
-    setFeedbackInputs(prev => ({ ...prev, [versionId]: text }));
-
-    const lastWord = text.split(/\s+/).pop() || '';
-    if (lastWord.startsWith('@')) {
-      const q = lastWord.substring(1);
-      setMentionQuery(q);
-      setActiveMentionVersionId(versionId);
-    } else {
-      setMentionQuery(null);
-      setActiveMentionVersionId(null);
-    }
-  };
-
-  const selectMentionUser = (user: any, versionId: string) => {
-    const handle = getMentionHandle(user);
-    const textState = feedbackInputs[versionId] || '';
-    const words = textState.split(/\s+/);
-    words.pop();
-    words.push(`@${handle} `);
-    const newText = words.join(' ');
-    
-    setFeedbackInputs(prev => ({ ...prev, [versionId]: newText }));
-    setMentionQuery(null);
-    setActiveMentionVersionId(null);
-  };
-
-  const filteredMentionUsers = mentionQuery !== null
-    ? accessibleUsers.filter(u => 
-        u.name.toLowerCase().includes(mentionQuery.toLowerCase()) ||
-        getMentionHandle(u).toLowerCase().includes(mentionQuery.toLowerCase())
-      )
-    : [];
-
-  const fieldNameMap = {
-    caption: 'captionVersions',
-    creativity: 'creativityVersions',
-    design: 'designVersions'
-  } as const;
-
-  const valueFieldNameMap = {
-    caption: 'copyCaption',
-    creativity: 'copyCreativity',
-    design: 'currentDesignUrl'
-  } as const;
-
-  const fieldName = fieldNameMap[type];
-  const valueFieldName = valueFieldNameMap[type];
+  const fieldName = VERSION_FIELD_NAME[type];
 
   const handleSaveVersion = () => {
     if (!currentValue) {
       toast.error('No hay contenido para guardar en una versión');
       return;
     }
-    
-    // Check if already most recent version
     if (versions.length > 0 && versions[0].value === currentValue) {
       toast.error('Esta versión ya se encuentra guardada en el historial');
       return;
     }
-
-    const newVersion: VersionItem = {
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      value: currentValue,
-      createdAt: new Date().toISOString(),
-      authorName: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Miembro de Agencia',
-      feedbacks: []
-    };
-
-    const updatedVersions = [newVersion, ...versions];
     onUpdatePost({
       ...localPost,
-      [fieldName]: updatedVersions
+      [fieldName]: [makeVersionSnapshot(currentValue), ...versions]
     });
     toast.success('Versión guardada correctamente');
   };
 
-  const handleRestoreVersion = (version: VersionItem) => {
-    if (type === 'design') {
-      if (localPost.format === 'carrusel') {
-        let urls: string[] = [];
-        try {
-          if (version.value.startsWith('[')) {
-            urls = JSON.parse(version.value);
-          } else if (version.value) {
-            urls = [version.value];
-          }
-        } catch (e) {
-          if (version.value) urls = [version.value];
-        }
-        onUpdatePost({
-          ...localPost,
-          carouselUrls: urls
-        });
-      } else {
-        onUpdatePost({
-          ...localPost,
-          currentDesignUrl: version.value
-        });
-      }
-    } else {
-      onUpdatePost({
-        ...localPost,
-        [valueFieldName]: version.value
-      });
-    }
-    toast.success('Versión restaurada');
+  return (
+    <button
+      type="button"
+      onClick={handleSaveVersion}
+      className="mt-2 text-xs bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold px-3 py-1.5 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
+      title="Capturar el estado actual como una versión en el Historial"
+    >
+      💾 Guardar Versión
+      {versions.length > 0 && (
+        <span className="text-[10px] text-slate-400 font-semibold">({versions.length} guardada{versions.length !== 1 ? 's' : ''})</span>
+      )}
+    </button>
+  );
+}
+
+interface HistoryEntry {
+  type: VersionType;
+  version: VersionItem;
+  versionNumber: number;
+}
+
+const VERSION_TYPE_META: Record<VersionType, { label: string; badgeClass: string; dotClass: string }> = {
+  creativity: { label: 'COPY', badgeClass: 'text-violet-700 bg-violet-50', dotClass: 'border-violet-600' },
+  caption: { label: 'CAPTION', badgeClass: 'text-sky-700 bg-sky-50', dotClass: 'border-sky-600' },
+  design: { label: 'DISEÑO', badgeClass: 'text-pink-700 bg-pink-50', dotClass: 'border-pink-600' }
+};
+
+interface HistoryEntryCardProps {
+  entry: HistoryEntry;
+  isAgencyMember: boolean;
+  accessibleUsers: any[];
+  isConfirmingRestore: boolean;
+  onRequestRestore: () => void;
+  onConfirmRestore: () => void;
+  onCancelRestore: () => void;
+  onAddFeedback: (type: VersionType, versionId: string, text: string) => void;
+}
+
+function HistoryEntryCard({
+  entry,
+  isAgencyMember,
+  accessibleUsers,
+  isConfirmingRestore,
+  onRequestRestore,
+  onConfirmRestore,
+  onCancelRestore,
+  onAddFeedback
+}: HistoryEntryCardProps) {
+  const [feedbackText, setFeedbackText] = useState('');
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const { type, version, versionNumber } = entry;
+  const meta = VERSION_TYPE_META[type];
+
+  const getMentionHandle = (user: any) => {
+    if (user.email) return user.email.split('@')[0];
+    return user.name.replace(/\s+/g, '').toLowerCase();
   };
 
-  const handleAddFeedback = (versionId: string) => {
-    const text = feedbackInputs[versionId]?.trim();
-    if (!text) return;
+  const handleInputChange = (text: string) => {
+    setFeedbackText(text);
+    const lastWord = text.split(/\s+/).pop() || '';
+    setMentionQuery(lastWord.startsWith('@') ? lastWord.substring(1) : null);
+  };
 
-    const newFeedback: InternalFeedback = {
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      authorName: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Miembro de Agencia',
-      role: 'Agencia',
-      text,
-      createdAt: new Date().toISOString()
-    };
-
-    const updatedVersions = versions.map(v => {
-      if (v.id === versionId) {
-        return {
-          ...v,
-          feedbacks: [...(v.feedbacks || []), newFeedback]
-        };
-      }
-      return v;
-    });
-
-    onUpdatePost({
-      ...localPost,
-      [fieldName]: updatedVersions
-    });
-
-    setFeedbackInputs(prev => ({ ...prev, [versionId]: '' }));
-    setActiveMentionVersionId(null);
+  const selectMentionUser = (user: any) => {
+    const words = feedbackText.split(/\s+/);
+    words.pop();
+    words.push(`@${getMentionHandle(user)} `);
+    setFeedbackText(words.join(' '));
     setMentionQuery(null);
-    toast.success('Feedback interno registrado');
+  };
+
+  const filteredMentionUsers = mentionQuery !== null
+    ? accessibleUsers.filter(u =>
+        u.name.toLowerCase().includes(mentionQuery.toLowerCase()) ||
+        getMentionHandle(u).toLowerCase().includes(mentionQuery.toLowerCase())
+      )
+    : [];
+
+  const submitFeedback = () => {
+    const text = feedbackText.trim();
+    if (!text) return;
+    onAddFeedback(type, version.id, text);
+    setFeedbackText('');
+    setMentionQuery(null);
+  };
+
+  const renderContent = () => {
+    if (type === 'design') {
+      let urls: string[] = [];
+      let isCarousel = false;
+      try {
+        if (version.value.startsWith('[')) {
+          urls = JSON.parse(version.value);
+          isCarousel = true;
+        } else if (version.value) {
+          urls = [version.value];
+        }
+      } catch (e) {
+        if (version.value) urls = [version.value];
+      }
+      return (
+        <div className="flex flex-col gap-1.5 w-full">
+          <div className="flex flex-wrap gap-1.5 items-center">
+            {urls.map((url, i) => (
+              <img
+                key={i}
+                src={url}
+                alt={`preview-${i}`}
+                className="w-10 h-10 object-cover rounded border border-slate-200 shadow-xs"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80';
+                }}
+              />
+            ))}
+          </div>
+          <span className="text-[10px] text-slate-400 font-semibold">
+            {isCarousel ? `📊 Carrusel (${urls.length} diapositivas)` : '🖼️ Diseño'}
+          </span>
+        </div>
+      );
+    }
+    return <p className="whitespace-pre-line text-[11px] text-slate-600 font-medium leading-relaxed">{version.value}</p>;
   };
 
   return (
-    <div className="mt-2.5 p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/50 shadow-sm">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-          <span>🔒 Versiones y feedback interno ({versions.length})</span>
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleSaveVersion}
-            className="whitespace-nowrap text-xs bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-extrabold px-3 py-1.5 rounded-lg transition-colors shadow-xs flex items-center gap-1 shrink-0"
-            title="Capturar el estado actual en una versión"
-          >
-            💾 Guardar Versión
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className="whitespace-nowrap text-xs text-app-accent hover:underline font-extrabold flex items-center gap-1 shrink-0"
-          >
-            {isOpen ? 'Ocultar Historial ▲' : 'Ver Historial ▼'}
-          </button>
-        </div>
-      </div>
-
-      {isOpen && (
-        <div className="mt-3 pt-3 border-t border-slate-200 space-y-3 max-h-64 overflow-y-auto pr-1">
-          {versions.length === 0 ? (
-            <p className="text-center py-4 text-[11px] text-slate-400 italic">No hay versiones guardadas aún. Haz clic en "Guardar Versión" para registrar el estado actual.</p>
-          ) : (
-            versions.map((ver, idx) => {
-              const displayIndex = versions.length - idx;
-              return (
-                <div key={ver.id} className="p-3 bg-white rounded-xl border border-slate-100 shadow-xs space-y-2.5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md mr-1.5">
-                        v{displayIndex}
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-500">
-                        {ver.authorName} • {format(new Date(ver.createdAt), 'dd/MM HH:mm')}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRestoreVersion(ver)}
-                      className="text-[10px] text-app-accent hover:text-app-accent-hover font-extrabold flex items-center gap-0.5"
-                    >
-                      Restaurar ↩
-                    </button>
-                  </div>
-
-                  {/* Content Preview */}
-                  <div className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100 max-h-28 overflow-y-auto">
-                    {type === 'design' ? (() => {
-                      let urls: string[] = [];
-                      let isCarousel = false;
-                      try {
-                        if (ver.value.startsWith('[')) {
-                          urls = JSON.parse(ver.value);
-                          isCarousel = true;
-                        } else if (ver.value) {
-                          urls = [ver.value];
-                        }
-                      } catch (e) {
-                        if (ver.value) urls = [ver.value];
-                      }
-
-                      return (
-                        <div className="flex flex-col gap-1.5 w-full">
-                          <div className="flex flex-wrap gap-1.5 items-center">
-                            {urls.map((url, i) => (
-                              <img 
-                                key={i}
-                                src={url} 
-                                alt={`preview-${i}`} 
-                                className="w-10 h-10 object-cover rounded border border-slate-200 shadow-xs" 
-                                onError={(e) => {
-                                  e.currentTarget.onerror = null;
-                                  e.currentTarget.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80';
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-[10px] text-slate-400 font-semibold">
-                            {isCarousel ? `📊 Carrusel (${urls.length} diapositivas)` : '🖼️ Diseño'}
-                          </span>
-                        </div>
-                      );
-                    })() : (
-                      <p className="whitespace-pre-line text-[11px] text-slate-600 font-medium leading-relaxed">{ver.value}</p>
-                    )}
-                  </div>
-
-                  {/* Internal feedbacks on this version */}
-                  <div className="space-y-1.5 pl-2 border-l-2 border-slate-200">
-                    <span className="text-[10px] font-bold text-slate-500 block mb-1">Comentarios internos:</span>
-                    {ver.feedbacks?.map((fb) => (
-                      <div key={fb.id} className="text-[11px] leading-relaxed bg-slate-50/50 p-2 rounded-lg border border-slate-100/50">
-                        <div className="flex items-baseline gap-1">
-                          <span className="font-extrabold text-slate-800">{fb.authorName}</span>
-                          <span className="text-[9px] text-slate-400 font-bold">({format(new Date(fb.createdAt), 'dd/MM HH:mm')})</span>
-                        </div>
-                        <p className="text-slate-600 mt-0.5 font-medium">{fb.text}</p>
-                      </div>
-                    ))}
-
-                    {/* Add feedback input */}
-                    <div className="flex gap-1.5 mt-2 relative">
-                      {activeMentionVersionId === ver.id && filteredMentionUsers.length > 0 && (
-                        <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-36 overflow-y-auto divide-y divide-slate-100">
-                          <div className="p-1.5 bg-slate-50 text-[10px] font-semibold text-slate-500">
-                            Mencionar usuario:
-                          </div>
-                          {filteredMentionUsers.map(user => (
-                            <button
-                              key={user.id}
-                              type="button"
-                              onClick={() => selectMentionUser(user, ver.id)}
-                              className="w-full text-left p-2 hover:bg-slate-50 transition-colors flex items-center gap-2"
-                            >
-                              <div className="w-5 h-5 rounded-full bg-indigo-50 flex items-center justify-center font-bold text-indigo-600 text-[10px]">
-                                {user.name[0]}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-bold text-gray-800 truncate">{user.name}</p>
-                                <p className="text-[9px] text-gray-400 truncate">@{getMentionHandle(user)} • {user.role}</p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      <input
-                        type="text"
-                        placeholder="Escribir feedback o nota interna..."
-                        value={feedbackInputs[ver.id] || ''}
-                        onChange={(e) => handleInputChange(e.target.value, ver.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddFeedback(ver.id);
-                          }
-                        }}
-                        className="flex-1 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:bg-white focus:border-app-accent transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleAddFeedback(ver.id)}
-                        className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[10px] px-2.5 py-1.5 rounded-lg transition-colors"
-                      >
-                        Enviar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+    <div className="relative pl-5">
+      <span className={cn("absolute left-0 top-1 w-2.5 h-2.5 rounded-full bg-white border-2", meta.dotClass)} />
+      <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-xs space-y-2.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={cn("text-[10px] font-black px-2 py-0.5 rounded-md", meta.badgeClass)}>{meta.label}</span>
+            <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">v{versionNumber}</span>
+            <span className="text-[10px] font-bold text-slate-500">
+              {version.authorName} • {format(new Date(version.createdAt), 'dd/MM HH:mm')}
+            </span>
+          </div>
+          {isAgencyMember && !isConfirmingRestore && (
+            <button
+              type="button"
+              onClick={onRequestRestore}
+              className="text-[10px] text-app-accent hover:text-app-accent-hover font-extrabold flex items-center gap-0.5 shrink-0"
+            >
+              Restaurar ↩
+            </button>
           )}
         </div>
-      )}
+
+        <div className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100 max-h-28 overflow-y-auto">
+          {renderContent()}
+        </div>
+
+        {isConfirmingRestore && (
+          <ConfirmInline
+            message="Restaurar sustituirá el contenido actual (tu borrador sin guardar se guardará antes, automáticamente)."
+            confirmLabel="Restaurar"
+            cancelLabel="Cancelar"
+            tone="danger"
+            onConfirm={onConfirmRestore}
+            onCancel={onCancelRestore}
+          />
+        )}
+
+        {isAgencyMember && (
+          <div className="space-y-1.5 pl-2 border-l-2 border-slate-200">
+            {version.feedbacks?.length > 0 && (
+              <span className="text-[10px] font-bold text-slate-500 block mb-1">Comentarios internos:</span>
+            )}
+            {version.feedbacks?.map((fb) => (
+              <div key={fb.id} className="text-[11px] leading-relaxed bg-slate-50/50 p-2 rounded-lg border border-slate-100/50">
+                <div className="flex items-baseline gap-1">
+                  <span className="font-extrabold text-slate-800">{fb.authorName}</span>
+                  <span className="text-[9px] text-slate-400 font-bold">({format(new Date(fb.createdAt), 'dd/MM HH:mm')})</span>
+                </div>
+                <p className="text-slate-600 mt-0.5 font-medium">{fb.text}</p>
+              </div>
+            ))}
+
+            <div className="flex gap-1.5 mt-2 relative">
+              {mentionQuery !== null && filteredMentionUsers.length > 0 && (
+                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-36 overflow-y-auto divide-y divide-slate-100">
+                  <div className="p-1.5 bg-slate-50 text-[10px] font-semibold text-slate-500">Mencionar usuario:</div>
+                  {filteredMentionUsers.map(user => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => selectMentionUser(user)}
+                      className="w-full text-left p-2 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                    >
+                      <div className="w-5 h-5 rounded-full bg-indigo-50 flex items-center justify-center font-bold text-indigo-600 text-[10px]">
+                        {user.name[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-bold text-gray-800 truncate">{user.name}</p>
+                        <p className="text-[9px] text-gray-400 truncate">@{getMentionHandle(user)} • {user.role}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <input
+                type="text"
+                placeholder="Escribir feedback o nota interna..."
+                value={feedbackText}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitFeedback();
+                  }
+                }}
+                className="flex-1 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:bg-white focus:border-app-accent transition-all"
+              />
+              <button
+                type="button"
+                onClick={submitFeedback}
+                className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[10px] px-2.5 py-1.5 rounded-lg transition-colors"
+              >
+                Enviar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -456,9 +386,10 @@ function VersionFeedbackControl({
 export default function PostModal({ 
   post, 
   onClose, 
-  onUpdate, 
+  onUpdate,
   onDelete,
-  userRole, 
+  onDuplicate,
+  userRole,
   comments, 
   onAddComment,
   feedbacks = [],
@@ -466,7 +397,6 @@ export default function PostModal({
   onToggleFeedbackDone,
   onUpdateFeedback,
   onDeleteFeedback,
-  history,
   projects = []
 }: PostModalProps) {
   const [activeTab, setActiveTab] = useState<'idea' | 'production' | 'history' | 'comments' | 'feedback'>(
@@ -475,10 +405,14 @@ export default function PostModal({
   const [commentText, setCommentText] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
   const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null);
+  const [confirmingDeleteFeedbackId, setConfirmingDeleteFeedbackId] = useState<string | null>(null);
   const [editingFeedbackText, setEditingFeedbackText] = useState('');
   const [localPost, setLocalPost] = useState<Post | null>(post);
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<'all' | VersionType>('all');
+  const [confirmingRestoreKey, setConfirmingRestoreKey] = useState<string | null>(null);
   const [isTranslatingCopy, setIsTranslatingCopy] = useState(false);
   const [isTranslatingCaption, setIsTranslatingCaption] = useState(false);
   const modalContainerRef = useModalA11y(() => {
@@ -719,6 +653,81 @@ export default function PostModal({
   const isAgencyMember = userRole !== 'client';
   const canAdvancePhase = isAgencyMember || (userRole === 'client' && localPost.phase === 'client_review');
   const canGoBackPhase = isAgencyMember && localPost.phase !== 'idea_1';
+  const isClientApprovalAction = userRole === 'client' && localPost.phase === 'client_review';
+
+  const buildHistoryEntries = (arr: VersionItem[] | undefined, type: VersionType): HistoryEntry[] =>
+    (arr || []).map((version, i) => ({ type, version, versionNumber: (arr || []).length - i }));
+
+  const historyEntries: HistoryEntry[] = [
+    ...buildHistoryEntries(localPost.creativityVersions, 'creativity'),
+    ...buildHistoryEntries(localPost.captionVersions, 'caption'),
+    ...buildHistoryEntries(localPost.designVersions, 'design')
+  ].sort((a, b) => new Date(b.version.createdAt).getTime() - new Date(a.version.createdAt).getTime());
+
+  const filteredHistoryEntries = historyFilter === 'all'
+    ? historyEntries
+    : historyEntries.filter(e => e.type === historyFilter);
+
+  const getCurrentValueForType = (type: VersionType): string => {
+    if (type === 'caption') return localPost.copyCaption;
+    if (type === 'creativity') return localPost.copyCreativity;
+    return localPost.format === 'carrusel' ? JSON.stringify(localPost.carouselUrls || []) : (localPost.currentDesignUrl || '');
+  };
+
+  const handleAddVersionFeedback = (type: VersionType, versionId: string, text: string) => {
+    const fieldName = VERSION_FIELD_NAME[type];
+    const versions = (localPost[fieldName] || []) as VersionItem[];
+    const newFeedback: InternalFeedback = {
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      authorName: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Miembro de Agencia',
+      role: 'Agencia',
+      text,
+      createdAt: new Date().toISOString()
+    };
+    const updatedVersions = versions.map(v => v.id === versionId ? { ...v, feedbacks: [...(v.feedbacks || []), newFeedback] } : v);
+    const updated = { ...localPost, [fieldName]: updatedVersions };
+    setLocalPost(updated);
+    onUpdate(updated);
+    toast.success('Feedback interno registrado');
+  };
+
+  const handleRestoreEntry = (entry: HistoryEntry) => {
+    const { type, version } = entry;
+    const fieldName = VERSION_FIELD_NAME[type];
+    const existingVersions = (localPost[fieldName] || []) as VersionItem[];
+    const currentValue = getCurrentValueForType(type);
+
+    const updates: Partial<Post> = {};
+
+    // Safety net: snapshot the unsaved draft before overwriting it, unless it's empty or already saved.
+    if (currentValue && currentValue !== existingVersions[0]?.value) {
+      (updates as any)[fieldName] = [makeVersionSnapshot(currentValue), ...existingVersions];
+    }
+
+    if (type === 'design') {
+      if (localPost.format === 'carrusel') {
+        let urls: string[] = [];
+        try {
+          urls = version.value.startsWith('[') ? JSON.parse(version.value) : (version.value ? [version.value] : []);
+        } catch (e) {
+          if (version.value) urls = [version.value];
+        }
+        updates.carouselUrls = urls;
+      } else {
+        updates.currentDesignUrl = version.value;
+      }
+    } else if (type === 'caption') {
+      updates.copyCaption = version.value;
+    } else {
+      updates.copyCreativity = version.value;
+    }
+
+    const updated = { ...localPost, ...updates };
+    setLocalPost(updated);
+    onUpdate(updated);
+    toast.success('Versión restaurada');
+    setConfirmingRestoreKey(null);
+  };
 
   const handleUpdate = () => {
     if (!localPost) return;
@@ -956,30 +965,31 @@ export default function PostModal({
           </div>
           
           <div className="flex items-center gap-2">
+            {isAgencyMember && onDuplicate && (
+              <button
+                onClick={() => localPost && onDuplicate(localPost)}
+                className="p-2 hover:bg-gray-100 text-gray-500 hover:text-gray-700 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+                title="Duplicar post"
+                aria-label="Duplicar post"
+              >
+                <Copy size={18} />
+                <span className="hidden sm:inline">Duplicar</span>
+              </button>
+            )}
             {isAgencyMember && onDelete && (
               showDeleteConfirm ? (
-                <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-xl p-1 animate-fade-in">
-                  <span className="text-[11px] text-red-700 px-1.5 font-bold">¿Seguro?</span>
-                  <button
-                    onClick={() => {
-                      if (localPost) {
-                        onDelete(localPost.id);
-                      }
-                      setShowDeleteConfirm(false);
-                    }}
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg transition-all"
-                  >
-                    Sí, eliminar
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold text-[11px] px-2.5 py-1 rounded-lg transition-all"
-                  >
-                    No
-                  </button>
-                </div>
+                <ConfirmInline
+                  message="¿Seguro?"
+                  onConfirm={() => {
+                    if (localPost) {
+                      onDelete(localPost.id);
+                    }
+                    setShowDeleteConfirm(false);
+                  }}
+                  onCancel={() => setShowDeleteConfirm(false)}
+                />
               ) : (
-                <button 
+                <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="p-2 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold animate-fade-in"
                   title="Eliminar post"
@@ -1105,7 +1115,7 @@ export default function PostModal({
             { id: 'production', label: 'Producción', icon: CheckCircle },
             ...(userRole !== 'client' ? [{ id: 'comments', label: 'Comentarios', icon: MessageSquare, count: comments.length }] : []),
             { id: 'feedback', label: 'Feedback (Cliente)', icon: MessageSquare, count: feedbacks.length },
-            { id: 'history', label: 'Historial', icon: HistoryIcon }
+            { id: 'history', label: 'Historial', icon: HistoryIcon, count: historyEntries.length }
           ].map(tab => (
             <button
               key={tab.id}
@@ -1321,15 +1331,13 @@ export default function PostModal({
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
                       placeholder="Texto que aparecerá dentro del diseño..."
                     />
-                    <VersionFeedbackControl
-                      title="Copy de la Creatividad"
+                    <SaveVersionButton
                       type="creativity"
                       currentValue={localPost.copyCreativity}
                       versions={localPost.creativityVersions}
                       isAgencyMember={userRole !== 'client'}
                       onUpdatePost={onUpdate}
                       localPost={localPost}
-                      accessibleUsers={accessibleUsers}
                     />
                   </section>
 
@@ -1354,15 +1362,13 @@ export default function PostModal({
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-36 text-sm"
                       placeholder="Escribe el caption definitivo..."
                     />
-                    <VersionFeedbackControl
-                      title="Post Caption"
+                    <SaveVersionButton
                       type="caption"
                       currentValue={localPost.copyCaption}
                       versions={localPost.captionVersions}
                       isAgencyMember={userRole !== 'client'}
                       onUpdatePost={onUpdate}
                       localPost={localPost}
-                      accessibleUsers={accessibleUsers}
                     />
                   </section>
                 </div>
@@ -1557,24 +1563,45 @@ export default function PostModal({
                            <span>Control de Proceso</span>
                            <span className="text-app-accent font-medium">Fase actual: {PHASES[localPost.phase]?.label || localPost.phase}</span>
                          </div>
-                         <div className="flex gap-2">
-                           <button 
-                              disabled={!canGoBackPhase}
-                              onClick={prevPhase}
-                              className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-2.5 rounded-xl font-semibold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs"
-                            >
-                             <ChevronLeft size={16} />
-                             Fase Anterior
-                           </button>
-                           <button 
-                              disabled={!canAdvancePhase}
-                              onClick={nextPhase}
-                              className="flex-[1.5] bg-app-accent text-white hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
-                            >
-                             Siguiente Fase
-                             <ChevronRight size={16} />
-                           </button>
-                         </div>
+                         {isClientApprovalAction ? (
+                           showApproveConfirm ? (
+                             <ConfirmInline
+                               message="¿Aprobar este post para publicación?"
+                               confirmLabel="Sí, aprobar"
+                               cancelLabel="Cancelar"
+                               tone="success"
+                               onConfirm={() => { nextPhase(); setShowApproveConfirm(false); }}
+                               onCancel={() => setShowApproveConfirm(false)}
+                             />
+                           ) : (
+                             <button
+                               onClick={() => setShowApproveConfirm(true)}
+                               className="w-full bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
+                             >
+                               <CheckCircle size={16} />
+                               Aprobar Post
+                             </button>
+                           )
+                         ) : (
+                           <div className="flex gap-2">
+                             <button
+                                disabled={!canGoBackPhase}
+                                onClick={prevPhase}
+                                className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-2.5 rounded-xl font-semibold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs"
+                              >
+                               <ChevronLeft size={16} />
+                               Fase Anterior
+                             </button>
+                             <button
+                                disabled={!canAdvancePhase}
+                                onClick={nextPhase}
+                                className="flex-[1.5] bg-app-accent text-white hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
+                              >
+                               Siguiente Fase
+                               <ChevronRight size={16} />
+                             </button>
+                           </div>
+                         )}
                          {localPost.phase === 'approved' && (
                            <p className="text-[10px] text-green-600 font-semibold text-center">✓ Post aprobado por el cliente</p>
                          )}
@@ -1583,8 +1610,7 @@ export default function PostModal({
                   </div>
 
                   <div className="mt-4">
-                    <VersionFeedbackControl
-                      title="Creatividad Visual"
+                    <SaveVersionButton
                       type="design"
                       currentValue={
                         localPost.format === 'carrusel'
@@ -1595,7 +1621,6 @@ export default function PostModal({
                       isAgencyMember={userRole !== 'client'}
                       onUpdatePost={onUpdate}
                       localPost={localPost}
-                      accessibleUsers={accessibleUsers}
                     />
                   </div>
                 </section>
@@ -1727,33 +1752,41 @@ export default function PostModal({
                           
                           {/* Edit / Delete Buttons on Hover / Action */}
                           {editingFeedbackId !== f.id && (
-                            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingFeedbackId(f.id);
-                                  setEditingFeedbackText(f.text);
+                            confirmingDeleteFeedbackId === f.id ? (
+                              <ConfirmInline
+                                message="¿Eliminar?"
+                                size="sm"
+                                onConfirm={() => {
+                                  onDeleteFeedback && onDeleteFeedback(f.id);
+                                  setConfirmingDeleteFeedbackId(null);
                                 }}
-                                className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                                title="Editar feedback"
-                                aria-label="Editar feedback"
-                              >
-                                <Edit2 size={13} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (confirm('¿Estás seguro de que deseas eliminar este feedback?') && onDeleteFeedback) {
-                                    onDeleteFeedback(f.id);
-                                  }
-                                }}
-                                className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                title="Eliminar feedback"
-                                aria-label="Eliminar feedback"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
+                                onCancel={() => setConfirmingDeleteFeedbackId(null)}
+                              />
+                            ) : (
+                              <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingFeedbackId(f.id);
+                                    setEditingFeedbackText(f.text);
+                                  }}
+                                  className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                                  title="Editar feedback"
+                                  aria-label="Editar feedback"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmingDeleteFeedbackId(f.id)}
+                                  className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  title="Eliminar feedback"
+                                  aria-label="Eliminar feedback"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            )
                           )}
                         </div>
 
@@ -1852,35 +1885,65 @@ export default function PostModal({
             )}
 
             {activeTab === 'history' && (
-              <motion.div 
+              <motion.div
                 key="history"
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
                 className="space-y-4"
               >
-                {history.length === 0 && (
-                   <div className="text-center py-20 text-gray-400">
+                {historyEntries.length === 0 ? (
+                  <div className="text-center py-20 text-gray-400">
                     <HistoryIcon className="mx-auto mb-2 opacity-20" size={48} />
                     <p className="font-medium text-sm">No hay versiones guardadas</p>
+                    <p className="text-xs text-gray-400 mt-1">Usa "💾 Guardar Versión" junto al copy, caption o diseño en la tab Producción.</p>
                   </div>
-                )}
-                {history.map((h, i) => (
-                  <div key={i} className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between hover:bg-gray-100 transition-colors group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-xs font-bold text-app-accent shadow-sm">
-                        v{history.length - i}
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">Versión del {format(h.createdAt, 'dd/MM/yyyy HH:mm')}</p>
-                        <p className="text-xs text-gray-500">Editado por {h.authorName}</p>
-                      </div>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap gap-1.5">
+                      {([
+                        { id: 'all', label: 'Todo' },
+                        { id: 'creativity', label: 'Copy' },
+                        { id: 'caption', label: 'Caption' },
+                        { id: 'design', label: 'Diseño' }
+                      ] as const).map(f => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setHistoryFilter(f.id)}
+                          className={cn(
+                            "text-xs font-bold px-3 py-1.5 rounded-full border transition-all",
+                            historyFilter === f.id
+                              ? "bg-app-accent/10 border-app-accent text-app-accent"
+                              : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                          )}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
                     </div>
-                    <button className="opacity-0 group-hover:opacity-100 p-2 text-app-accent font-bold text-xs hover:underline flex items-center gap-1 transition-opacity">
-                      Restaurar Versión <ChevronRight size={14} />
-                    </button>
-                  </div>
-                ))}
+
+                    <div className="relative pl-2 space-y-4">
+                      <div className="absolute left-[9px] top-1.5 bottom-1.5 w-px bg-gray-150" />
+                      {filteredHistoryEntries.map((entry) => {
+                        const key = `${entry.type}-${entry.version.id}`;
+                        return (
+                          <HistoryEntryCard
+                            key={key}
+                            entry={entry}
+                            isAgencyMember={isAgencyMember}
+                            accessibleUsers={accessibleUsers}
+                            isConfirmingRestore={confirmingRestoreKey === key}
+                            onRequestRestore={() => setConfirmingRestoreKey(key)}
+                            onConfirmRestore={() => handleRestoreEntry(entry)}
+                            onCancelRestore={() => setConfirmingRestoreKey(null)}
+                            onAddFeedback={handleAddVersionFeedback}
+                          />
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

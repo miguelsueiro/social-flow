@@ -22,7 +22,7 @@ import {
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db, signIn, logOut } from './lib/firebase';
 import { cn, Role, ROLES, Phase, PHASES } from './lib/utils';
-import { useModalA11y } from './lib/useModalA11y';
+import NewProjectModal, { NewProjectData } from './components/NewProjectModal';
 import Calendar from './components/Calendar';
 import Board from './components/Board';
 import PostModal from './components/PostModal';
@@ -51,7 +51,6 @@ import {
   Instagram,
   Globe,
   Linkedin,
-  Palette,
   X,
   BookOpen,
   Video,
@@ -217,7 +216,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState<any[]>([]);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
-  const [history, setHistory] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -289,10 +287,6 @@ export default function App() {
 
   // Project modal states
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
-  const newProjectModalRef = useModalA11y(() => setShowNewProjectModal(false), showNewProjectModal);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectClient, setNewProjectClient] = useState('');
-  const [newProjectColor, setNewProjectColor] = useState('#2563EB'); // default elegant blue
 
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
@@ -542,11 +536,6 @@ export default function App() {
       ]);
     });
 
-    // Seed post details into history for realistic audit tracking
-    setHistory([
-      { createdAt: new Date(), authorName: 'Carlos Díaz', copyCaption: selectedPost.copyCaption || 'Idea inicial', copyCreativity: selectedPost.copyCreativity || '', designUrl: selectedPost.currentDesignUrl || '' }
-    ]);
-
     return () => {
       unsubComments();
       unsubFeedbacks();
@@ -573,12 +562,13 @@ export default function App() {
         feedbackCount: 0
       };
       setPosts(prev => [...prev, newPost]);
-      toast.success('Post creado en el calendario (Modo Demo)');
+      setSelectedPost(newPost);
+      toast.success('Post creado (Modo Demo)');
       return;
     }
     try {
       const assignedProjectId = activeProjectId === 'all' ? (projects[0]?.id || '') : activeProjectId;
-      await addDoc(collection(db, 'posts'), {
+      const newPostData = {
         date: Timestamp.fromDate(date),
         platform: 'instagram',
         phase: 'idea_1',
@@ -591,8 +581,10 @@ export default function App() {
         createdBy: currentUser?.uid,
         projectId: assignedProjectId,
         updatedAt: serverTimestamp()
-      });
-      toast.success('Post creado en el calendario');
+      };
+      const docRef = await addDoc(collection(db, 'posts'), newPostData);
+      setSelectedPost({ ...newPostData, id: docRef.id, date });
+      toast.success('Post creado');
     } catch (err) {
       toast.error('Error al crear el post');
       handleFirestoreError(err, OperationType.CREATE, 'posts');
@@ -681,6 +673,48 @@ export default function App() {
     } catch (err) {
       toast.error('Error al eliminar el post');
       handleFirestoreError(err, OperationType.DELETE, `posts/${postId}`);
+    }
+  };
+
+  const handleDuplicatePost = async (post: any) => {
+    const titleCopy = post.title ? `${post.title} (copia)` : 'Nuevo Post (copia)';
+
+    if (isOfflineMode) {
+      const newPost = {
+        ...post,
+        id: `local-post-${Date.now()}`,
+        title: titleCopy,
+        phase: 'idea_1',
+        captionVersions: [],
+        creativityVersions: [],
+        designVersions: [],
+        updatedAt: new Date()
+      };
+      setPosts(prev => [...prev, newPost]);
+      setSelectedPost(newPost);
+      toast.success('Post duplicado (Modo Demo)');
+      return;
+    }
+
+    try {
+      const { id, ...rest } = post;
+      const newPostData = {
+        ...rest,
+        date: post.date instanceof Date ? Timestamp.fromDate(post.date) : post.date,
+        title: titleCopy,
+        phase: 'idea_1',
+        captionVersions: [],
+        creativityVersions: [],
+        designVersions: [],
+        createdBy: currentUser?.uid,
+        updatedAt: serverTimestamp()
+      };
+      const docRef = await addDoc(collection(db, 'posts'), newPostData);
+      toast.success('Post duplicado correctamente');
+      setSelectedPost({ ...post, id: docRef.id, title: titleCopy, phase: 'idea_1', captionVersions: [], creativityVersions: [], designVersions: [] });
+    } catch (err) {
+      toast.error('Error al duplicar el post');
+      handleFirestoreError(err, OperationType.CREATE, 'posts');
     }
   };
 
@@ -878,44 +912,29 @@ export default function App() {
     }
   };
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProjectName.trim() || !newProjectClient.trim()) {
-      toast.error('Por favor, rellena los campos requeridos.');
-      return;
-    }
+  const handleCreateProject = async (data: NewProjectData) => {
     if (isOfflineMode) {
       const newProjId = `local-project-${Date.now()}`;
       const newProj = {
         id: newProjId,
-        name: newProjectName.trim(),
-        clientName: newProjectClient.trim(),
-        color: newProjectColor,
+        ...data,
         createdAt: new Date()
       };
       setProjects(prev => [...prev, newProj]);
       toast.success('¡Proyecto creado con éxito! (Modo Demo)');
       setActiveProjectId(newProjId);
       setShowNewProjectModal(false);
-      setNewProjectName('');
-      setNewProjectClient('');
-      setNewProjectColor('#2563EB');
       return;
     }
 
     try {
       const docRef = await addDoc(collection(db, 'projects'), {
-        name: newProjectName.trim(),
-        clientName: newProjectClient.trim(),
-        color: newProjectColor,
+        ...data,
         createdAt: new Date()
       });
       toast.success('¡Proyecto creado con éxito!');
       setActiveProjectId(docRef.id); // Auto select the brand new project!
       setShowNewProjectModal(false);
-      setNewProjectName('');
-      setNewProjectClient('');
-      setNewProjectColor('#2563EB');
     } catch (err) {
       toast.error('Error al crear el proyecto');
       handleFirestoreError(err, OperationType.CREATE, 'projects');
@@ -1627,7 +1646,6 @@ export default function App() {
             userRole={userRole}
             comments={comments}
             feedbacks={feedbacks}
-            history={history}
             onAddComment={handleAddComment}
             onAddFeedback={handleAddFeedback}
             onToggleFeedbackDone={handleToggleFeedbackDone}
@@ -1635,106 +1653,16 @@ export default function App() {
             onDeleteFeedback={handleDeleteFeedback}
             onUpdate={handleUpdatePost}
             onDelete={handleDeletePost}
+            onDuplicate={handleDuplicatePost}
             projects={projects}
           />
         )}
 
         {showNewProjectModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div
-              ref={newProjectModalRef}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="new-project-title"
-              tabIndex={-1}
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden outline-none"
-            >
-              {/* Modal Header */}
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 bg-app-accent/10 text-app-accent rounded-lg">
-                    <Palette size={18} />
-                  </div>
-                  <h3 id="new-project-title" className="text-lg font-bold text-gray-900">Crear Nuevo Proyecto</h3>
-                </div>
-                <button
-                  onClick={() => setShowNewProjectModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
-                  aria-label="Cerrar"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Modal Body / Form */}
-              <form onSubmit={handleCreateProject} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Nombre del Proyecto</label>
-                  <input 
-                    type="text"
-                    required
-                    value={newProjectName}
-                    onChange={(e) => setNewProjectName(e.target.value)}
-                    placeholder="E.g., Lanzamiento Primavera 2026"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:bg-white focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Nombre del Cliente / Empresa</label>
-                  <input 
-                    type="text"
-                    required
-                    value={newProjectClient}
-                    onChange={(e) => setNewProjectClient(e.target.value)}
-                    placeholder="E.g., EcoGlow Cosmetics S.L."
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:bg-white focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Color de Identidad (Personaliza la App)</label>
-                  <div className="flex items-center gap-3">
-                    <input 
-                      type="color"
-                      value={newProjectColor}
-                      onChange={(e) => setNewProjectColor(e.target.value)}
-                      className="w-12 h-12 bg-white border border-gray-200 rounded-xl cursor-pointer p-1"
-                    />
-                    <div className="flex-1">
-                      <input 
-                        type="text"
-                        value={newProjectColor}
-                        onChange={(e) => setNewProjectColor(e.target.value)}
-                        placeholder="#2563EB"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs font-mono uppercase focus:bg-white focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
-                      />
-                      <p className="text-[10px] text-gray-400 mt-1">Este color se convertirá en el color de acento visual al seleccionar el proyecto.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 flex gap-3 justify-end">
-                  <button 
-                    type="button"
-                    onClick={() => setShowNewProjectModal(false)}
-                    className="px-4 py-2 text-xs font-bold text-gray-500 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit"
-                    className="px-5 py-2.5 bg-app-accent hover:bg-app-accent-hover text-white rounded-xl text-xs font-bold shadow-md shadow-app-accent/15 transition-all"
-                  >
-                    Crear Proyecto
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
+          <NewProjectModal
+            onClose={() => setShowNewProjectModal(false)}
+            onSubmit={handleCreateProject}
+          />
         )}
       </AnimatePresence>
       </div>

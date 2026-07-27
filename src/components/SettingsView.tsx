@@ -23,6 +23,8 @@ import {
   Edit2
 } from 'lucide-react';
 import { InstagramIcon, TikTokIcon, LinkedInIcon } from './SocialIcons';
+import ConfirmInline from './ConfirmInline';
+import NewProjectModal, { NewProjectData } from './NewProjectModal';
 import { toast } from 'react-hot-toast';
 import { db } from '../lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -189,12 +191,8 @@ export default function SettingsView({
     return true; // Default for other agency roles if not explicitly restricted
   };
 
-  // New project inline form states
+  // New project modal open flag
   const [isAdding, setIsAdding] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newClient, setNewClient] = useState('');
-  const [newColor, setNewColor] = useState('#2563EB');
-  const [newPlatforms, setNewPlatforms] = useState<string[]>(['instagram', 'linkedin', 'tiktok']);
 
   // Edit states for projects
   const [editingProjId, setEditingProjId] = useState<string | null>(null);
@@ -223,27 +221,14 @@ export default function SettingsView({
     }
   };
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName.trim() || !newClient.trim()) {
-      toast.error('Por favor introduce nombre y cliente');
-      return;
-    }
-
+  const handleCreateProject = async (data: NewProjectData) => {
     try {
       const docRef = await addDoc(collection(db, 'projects'), {
-        name: newName.trim(),
-        clientName: newClient.trim(),
-        color: newColor,
-        platforms: newPlatforms,
+        ...data,
         createdAt: new Date()
       });
       toast.success('¡Proyecto creado con éxito!');
       setActiveProjectId(docRef.id);
-      setNewName('');
-      setNewClient('');
-      setNewColor('#2563EB');
-      setNewPlatforms(['instagram', 'linkedin', 'tiktok']);
       setIsAdding(false);
     } catch (err) {
       toast.error('Error al crear el proyecto');
@@ -706,21 +691,15 @@ export default function SettingsView({
                                 </button>
                                 
                                 {userToDelete === usr.id ? (
-                                  <div className="flex items-center gap-1 bg-red-50 border border-red-200 rounded-lg p-0.5 ml-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteUser(usr.id)}
-                                      className="bg-red-600 hover:bg-red-700 text-white font-bold text-[9px] px-2 py-1 rounded shadow-sm"
-                                    >
-                                      Sí
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setUserToDelete(null)}
-                                      className="bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold text-[9px] px-2 py-1 rounded shadow-sm"
-                                    >
-                                      No
-                                    </button>
+                                  <div className="ml-1">
+                                    <ConfirmInline
+                                      message="¿Seguro?"
+                                      size="sm"
+                                      confirmLabel="Sí"
+                                      cancelLabel="No"
+                                      onConfirm={() => handleDeleteUser(usr.id)}
+                                      onCancel={() => setUserToDelete(null)}
+                                    />
                                   </div>
                                 ) : (
                                   <button
@@ -769,130 +748,11 @@ export default function SettingsView({
           </div>
 
           <div className="p-6 space-y-4">
-            {/* Project Creation Form Modal Overlay */}
             {isAdding && (
-              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-                <div 
-                  className="bg-white rounded-3xl border border-gray-100 shadow-2xl w-full max-w-lg overflow-hidden animate-scale-up"
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-                    <div>
-                      <h3 className="font-extrabold text-gray-900 text-sm">Crear Nuevo Proyecto</h3>
-                      <p className="text-xs text-gray-400 mt-1">Configura los datos del nuevo cliente o marca.</p>
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={() => setIsAdding(false)}
-                      className="p-1.5 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-xl transition-all"
-                      aria-label="Cerrar formulario de nuevo proyecto"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleCreateProject} className="p-6 space-y-5">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre del Proyecto / Marca</label>
-                        <input 
-                          type="text" 
-                          required
-                          value={newName}
-                          onChange={e => setNewName(e.target.value)}
-                          placeholder="Ej. EcoGlow S.L."
-                          className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-blue-500 transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre del Cliente Legal</label>
-                        <input 
-                          type="text" 
-                          required
-                          value={newClient}
-                          onChange={e => setNewClient(e.target.value)}
-                          placeholder="Ej. EcoGlow Cosmetics S.L."
-                          className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-blue-500 transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Color de Marca (Identidad)</label>
-                        <div className="flex gap-2">
-                          <input 
-                            type="color" 
-                            value={newColor}
-                            onChange={e => setNewColor(e.target.value)}
-                            className="w-11 h-9 bg-white border border-gray-200 rounded-xl cursor-pointer p-0.5 shrink-0"
-                          />
-                          <input 
-                            type="text" 
-                            value={newColor}
-                            onChange={e => setNewColor(e.target.value)}
-                            placeholder="#2563EB"
-                            className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-xl py-2 px-3 text-xs font-mono outline-none focus:border-blue-500 transition-all uppercase font-bold text-gray-700"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Redes Sociales Activas</label>
-                      <div className="flex gap-3 flex-wrap">
-                        {[
-                          { id: 'instagram', label: 'Instagram', icon: InstagramIcon, color: 'text-[#E1306C] border-[#E1306C]/20 bg-[#E1306C]/5' },
-                          { id: 'linkedin', label: 'LinkedIn', icon: LinkedInIcon, color: 'text-[#0A66C2] border-[#0A66C2]/20 bg-[#0A66C2]/5' },
-                          { id: 'tiktok', label: 'TikTok', icon: TikTokIcon, color: 'text-zinc-900 border-zinc-900/20 bg-zinc-900/5' }
-                        ].map(platform => {
-                          const isActive = newPlatforms.includes(platform.id);
-                          const Icon = platform.icon;
-                          return (
-                            <button
-                              key={platform.id}
-                              type="button"
-                              onClick={() => {
-                                if (isActive) {
-                                  if (newPlatforms.length > 1) {
-                                    setNewPlatforms(newPlatforms.filter(p => p !== platform.id));
-                                  } else {
-                                    toast.error('El proyecto debe usar al menos una red social.');
-                                  }
-                                } else {
-                                  setNewPlatforms([...newPlatforms, platform.id]);
-                                }
-                              }}
-                              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
-                                isActive 
-                                  ? platform.color
-                                  : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-700'
-                              }`}
-                            >
-                              <Icon size={14} className="shrink-0" />
-                              <span>{platform.label}</span>
-                              {isActive && <Check size={12} className="stroke-[3]" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-4 border-t border-gray-50">
-                      <button
-                        type="button"
-                        onClick={() => setIsAdding(false)}
-                        className="text-xs text-gray-500 hover:text-gray-700 font-bold px-4 py-2 hover:bg-gray-50 rounded-xl transition-all"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="submit"
-                        className="bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition-all"
-                      >
-                        Crear Proyecto
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
+              <NewProjectModal
+                onClose={() => setIsAdding(false)}
+                onSubmit={handleCreateProject}
+              />
             )}
 
             {/* List Table */}
