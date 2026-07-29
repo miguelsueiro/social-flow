@@ -128,20 +128,21 @@
      Tailwind's cascade puts @layer utilities above @layer base, so a
      className like rounded-xl, border, or px-4 on an actual button in the
      app still wins over these — this is the fallback, not a repaint of
-     already-styled buttons. */
+     already-styled buttons.
+
+     Deliberately NOT setting border-radius or a hover box-shadow/filter
+     here anymore: every real button in the app already has its own radius
+     and hover treatment, so this had zero visible benefit — except on flat,
+     intentionally-unrounded controls like the underline tabs (border-b-2,
+     no rounded-* class), which it was rounding into fake buttons and
+     lifting with a shadow on hover. */
   button,
   .btn {
-    border-radius: var(--radius-md);
     padding: 0.5rem 1rem;
     border: none;
     background-image: none;
     transition: all 0.2s ease;
     cursor: pointer;
-  }
-  button:hover,
-  .btn:hover {
-    filter: brightness(0.96);
-    box-shadow: var(--shadow-sm);
   }
   button:disabled,
   .btn:disabled {
