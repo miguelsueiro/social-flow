@@ -1257,7 +1257,7 @@ export default function App() {
                 {/* Information Icon Tooltip */}
                 <div className="relative group leading-none flex items-center justify-center">
                   <Info size={14} className="text-slate-400 hover:text-slate-600 cursor-pointer transition-colors" />
-                  <div className="absolute right-0 bottom-full mb-2 w-52 bg-slate-800 text-white text-[10px] p-2.5 rounded-xl shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 z-50 leading-normal font-medium border border-slate-700">
+                  <div className="absolute right-0 bottom-full mb-2 w-52 bg-slate-800 text-white text-[11px] p-2.5 rounded-xl shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 z-50 leading-normal font-medium border border-slate-700">
                     {userRole !== 'client' 
                       ? "Puedes cambiar de proyecto en el Dashboard o Configuración." 
                       : "Acceso exclusivo a tus proyectos autorizados."}
@@ -1279,7 +1279,7 @@ export default function App() {
               {activeProjectId !== 'dashboard' && (
                 <button 
                   onClick={() => selectProject('dashboard')}
-                  className="mt-3 w-full bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-black py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm"
+                  className="mt-3 w-full bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-black py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm"
                 >
                   ← Volver al Dashboard
                 </button>
@@ -1353,7 +1353,7 @@ export default function App() {
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
                     className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100"
                   >
-                    <div className="p-3 bg-slate-50 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <div className="p-3 bg-slate-50 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                       <span>Sugerencias predictivas</span>
                       <span>
                         {matchingSuggestions.length} {matchingSuggestions.length === 1 ? 'post' : 'posts'}
@@ -1385,7 +1385,7 @@ export default function App() {
                                   )}
                                   {proj && (
                                     <span 
-                                      className="text-[9px] font-black px-1.5 py-0.5 rounded-md truncate shrink-0 max-w-[130px]"
+                                      className="text-[11px] font-black px-1.5 py-0.5 rounded-md truncate shrink-0 max-w-[130px]"
                                       style={{ backgroundColor: `${proj.color}12`, color: proj.color }}
                                     >
                                       {proj.name}
@@ -1394,7 +1394,7 @@ export default function App() {
                                 </div>
                                 {/* Right side: Phase Badge */}
                                 {phaseInfo && (
-                                  <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0", phaseInfo.color)}>
+                                  <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0", phaseInfo.color)}>
                                     {phaseInfo.label.split(': ').pop()}
                                   </span>
                                 )}
@@ -1407,7 +1407,7 @@ export default function App() {
 
                               {/* Caption preview if available */}
                               {post.copyCaption && (
-                                <p className="text-[10px] text-slate-400 line-clamp-1 italic">
+                                <p className="text-[11px] text-slate-400 line-clamp-1 italic">
                                   "{post.copyCaption}"
                                 </p>
                               )}
@@ -1418,7 +1418,7 @@ export default function App() {
                         <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
                           <span>🔍</span>
                           <p className="font-bold text-slate-400">No se encontraron posts</p>
-                          <p className="text-[10px] text-slate-400 font-normal">Prueba a buscar otra palabra clave, idea o plataforma.</p>
+                          <p className="text-[11px] text-slate-400 font-normal">Prueba a buscar otra palabra clave, idea o plataforma.</p>
                         </div>
                       )}
                     </div>
@@ -1507,7 +1507,7 @@ export default function App() {
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/30 rounded-full translate-x-32 -translate-y-32 blur-3xl" />
                 <div className="relative z-10 space-y-3">
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black text-indigo-600 uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-indigo-600 uppercase tracking-wider">
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
                     Panel de Control Global
                   </span>
@@ -1845,7 +1845,7 @@ export default function App() {
                 key={item.id}
                 onClick={() => setSidebarTab(item.id as any)}
                 className={cn(
-                  "flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-extrabold transition-all",
+                  "flex flex-col items-center justify-center flex-1 h-full py-1 text-[11px] font-extrabold transition-all",
                   sidebarTab === item.id 
                     ? "text-app-accent font-black" 
                     : "text-gray-400 hover:text-gray-500"

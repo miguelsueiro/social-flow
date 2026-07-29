@@ -198,7 +198,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                         <PlatformBadge platform={post.platform} size={9} showLabel className="font-semibold opacity-75 tracking-normal truncate" />
                         {post.assigneeName && (
                           <span
-                            className="w-3.5 h-3.5 rounded-full bg-white/70 flex items-center justify-center text-[7px] font-bold shrink-0"
+                            className="w-3.5 h-3.5 rounded-full bg-white/70 flex items-center justify-center text-[11px] font-bold shrink-0"
                             title={post.assigneeName}
                           >
                             {post.assigneeName[0].toUpperCase()}
@@ -206,7 +206,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                         )}
                       </div>
                       <p className="font-bold truncate text-[11px] text-gray-900">{post.title || "Post sin título"}</p>
-                      <p className="line-clamp-1 opacity-75 text-[10px] leading-tight text-gray-500 mt-0.5">{post.idea}</p>
+                      <p className="line-clamp-1 opacity-75 text-[11px] leading-tight text-gray-500 mt-0.5">{post.idea}</p>
                     </motion.button>
                   );
                 })}

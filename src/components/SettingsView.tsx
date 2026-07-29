@@ -15,7 +15,6 @@ import {
   AlertTriangle,
   X,
   Search,
-  ChevronDown,
   UserPlus,
   Mail,
   Users,
@@ -30,7 +29,8 @@ import Button from './Button';
 import { toast } from 'react-hot-toast';
 import { db, auth } from '../lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { ROLES, Role, ASSIGNABLE_ROLES } from '../lib/utils';
+import { cn, ROLES, Role, ASSIGNABLE_ROLES } from '../lib/utils';
+import { useModalA11y } from '../lib/useModalA11y';
 
 interface Project {
   id: string;
@@ -83,8 +83,47 @@ export default function SettingsView({
   }, []);
 
   const [usersList, setUsersList] = useState<any[]>([]);
-  const [activeUserPopover, setActiveUserPopover] = useState<string | null>(null);
-  const [popoverSearch, setPopoverSearch] = useState('');
+  const [projectAccessUserId, setProjectAccessUserId] = useState<string | null>(null);
+  const [projectAccessDraft, setProjectAccessDraft] = useState<string[]>([]);
+  const [projectAccessSearch, setProjectAccessSearch] = useState('');
+  const [isSavingProjectAccess, setIsSavingProjectAccess] = useState(false);
+
+  const openProjectAccessModal = (usr: any) => {
+    const current = usr.permittedProjects || (usr.projectId ? [usr.projectId] : []);
+    setProjectAccessUserId(usr.id);
+    setProjectAccessDraft(current);
+    setProjectAccessSearch('');
+  };
+
+  const closeProjectAccessModal = () => {
+    setProjectAccessUserId(null);
+    setProjectAccessDraft([]);
+    setProjectAccessSearch('');
+  };
+
+  const handleSaveProjectAccess = async () => {
+    if (!projectAccessUserId) return;
+    const targetUser = usersList.find(u => u.id === projectAccessUserId);
+    setIsSavingProjectAccess(true);
+    try {
+      await updateDoc(doc(db, 'users', projectAccessUserId), {
+        permittedProjects: projectAccessDraft,
+        // Kept for the client-scoping rule in firestore.rules, which still
+        // reads the single `projectId` field — always the first assigned one.
+        projectId: projectAccessDraft[0] || ''
+      });
+      toast.success(`Acceso a proyectos actualizado para ${targetUser?.name || 'el usuario'}`);
+      closeProjectAccessModal();
+    } catch (err) {
+      toast.error('Error al actualizar el acceso a proyectos');
+      console.error(err);
+    } finally {
+      setIsSavingProjectAccess(false);
+    }
+  };
+
+  const projectAccessModalRef = useModalA11y(closeProjectAccessModal, projectAccessUserId !== null);
+  const projectAccessUser = usersList.find(u => u.id === projectAccessUserId) || null;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -336,7 +375,7 @@ export default function SettingsView({
                 }`}
               >
                 <div className="flex items-center justify-between w-full">
-                  <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-app-accent' : 'text-gray-400'}`}>
+                  <span className={`text-[11px] font-black uppercase tracking-wider ${isSelected ? 'text-app-accent' : 'text-gray-400'}`}>
                     {key === 'client' ? 'Externo' : 'Agencia'}
                   </span>
                   {isSelected && (
@@ -347,7 +386,7 @@ export default function SettingsView({
                 </div>
                 <div>
                   <p className="text-xs font-black text-gray-900 leading-snug">{label}</p>
-                  <p className="text-[9px] text-gray-400 mt-0.5 truncate">Permisos de {key === 'client' ? 'revisión' : 'edición'}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5 truncate">Permisos de {key === 'client' ? 'revisión' : 'edición'}</p>
                 </div>
               </button>
             );
@@ -381,7 +420,7 @@ export default function SettingsView({
               </div>
               <div>
                 <p className="text-xs font-black text-gray-900">Todos los Proyectos</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">Vea la parrilla global consolidada</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">Vea la parrilla global consolidada</p>
               </div>
             </button>
           )}
@@ -408,7 +447,7 @@ export default function SettingsView({
               </div>
               <div>
                 <p className="text-xs font-black text-gray-900 line-clamp-1">{proj.name}</p>
-                <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">Cliente: {proj.clientName}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-1">Cliente: {proj.clientName}</p>
               </div>
               {activeProjectId === proj.id && (
                 <div className="absolute top-3 right-3 text-white rounded-full p-0.5" style={{ backgroundColor: proj.color }}>
@@ -480,7 +519,7 @@ export default function SettingsView({
                           {isEditing ? (
                             <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
                               <div>
-                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Nombre</label>
+                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Nombre</label>
                                 <input
                                   type="text"
                                   value={editUserName}
@@ -490,7 +529,7 @@ export default function SettingsView({
                                 />
                               </div>
                               <div>
-                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Correo</label>
+                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Correo</label>
                                 <input
                                   type="email"
                                   value={editUserEmail}
@@ -500,7 +539,7 @@ export default function SettingsView({
                                 />
                               </div>
                               <div>
-                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Estado</label>
+                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Estado</label>
                                 <select
                                   value={editUserStatus}
                                   onChange={(e) => setEditUserStatus(e.target.value)}
@@ -516,9 +555,9 @@ export default function SettingsView({
                               <div className="flex items-center gap-2">
                                 <p className="font-bold text-gray-900 text-xs">{usr.name}</p>
                                 {usr.status === 'pending' ? (
-                                  <span className="bg-amber-50 text-amber-700 font-extrabold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider animate-pulse">Pendiente</span>
+                                  <span className="bg-amber-50 text-amber-700 font-extrabold px-1.5 py-0.5 rounded text-[11px] uppercase tracking-wider animate-pulse">Pendiente</span>
                                 ) : (
-                                  <span className="bg-emerald-50 text-emerald-700 font-extrabold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">Activo</span>
+                                  <span className="bg-emerald-50 text-emerald-700 font-extrabold px-1.5 py-0.5 rounded text-[11px] uppercase tracking-wider">Activo</span>
                                 )}
                               </div>
                               <p className="text-[11px] text-gray-400">{usr.email}</p>
@@ -546,7 +585,7 @@ export default function SettingsView({
                             <>
                               {/* Role Selector */}
                               <div className="flex flex-col">
-                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rol / Permisos</span>
+                                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rol / Permisos</span>
                                 {isUserAdmin ? (
                                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-app-accent/10 text-app-accent font-bold rounded-xl text-xs">
                                     {ROLES.admin}
@@ -565,129 +604,38 @@ export default function SettingsView({
                               </div>
 
                               {/* Projects Selector */}
-                              <div className="flex flex-col">
-                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Acceso a Proyectos</span>
+                              <div className="flex flex-col items-end max-w-[260px]">
+                                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Acceso a Proyectos</span>
                                 {isUserAdmin ? (
                                   <span className="inline-flex items-center px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-400 italic">
                                     Acceso Total (Admin)
                                   </span>
                                 ) : (
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex flex-wrap gap-1 max-w-[200px] justify-end items-center">
+                                  <div className="flex flex-col items-end gap-1.5">
+                                    <div className="flex flex-wrap gap-1 justify-end">
                                       {userPermitted.length === 0 ? (
-                                        <span className="text-xs text-gray-400">Sin acceso</span>
+                                        <span className="text-xs text-gray-400 italic">Sin proyectos asignados</span>
                                       ) : (
-                                        <>
-                                          {userPermitted.slice(0, 1).map((projId: string) => {
-                                            const pObj = projects.find(p => p.id === projId);
-                                            if (!pObj) return null;
-                                            return (
-                                              <span key={projId} className="inline-flex items-center gap-1 bg-gray-50 border border-gray-100 px-2 py-1 rounded-xl text-xs text-gray-600 max-w-[110px] truncate">
-                                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: pObj.color }} />
-                                                <span className="truncate">{pObj.name}</span>
-                                              </span>
-                                            );
-                                          })}
-                                          {userPermitted.length > 1 && (
-                                            <span className="inline-flex items-center bg-app-accent/10 border border-app-accent/20 px-2 py-1 rounded-xl text-[10px] text-app-accent font-bold shrink-0">
-                                              +{userPermitted.length - 1}
+                                        userPermitted.map((projId: string) => {
+                                          const pObj = projects.find(p => p.id === projId);
+                                          if (!pObj) return null;
+                                          return (
+                                            <span key={projId} className="inline-flex items-center gap-1 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg text-xs text-gray-600 max-w-[160px]">
+                                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: pObj.color }} />
+                                              <span className="truncate">{pObj.name}</span>
                                             </span>
-                                          )}
-                                        </>
+                                          );
+                                        })
                                       )}
                                     </div>
-
-                                    {/* Popover trigger */}
-                                    <div className="relative">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (activeUserPopover === usr.id) {
-                                            setActiveUserPopover(null);
-                                            setPopoverSearch('');
-                                          } else {
-                                            setActiveUserPopover(usr.id);
-                                            setPopoverSearch('');
-                                          }
-                                        }}
-                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 text-xs transition-all font-bold shadow-sm"
-                                      >
-                                        <span>Asignar</span>
-                                        <ChevronDown size={13} className={`text-gray-400 transition-transform ${activeUserPopover === usr.id ? 'rotate-180' : ''}`} />
-                                      </button>
-
-                                      {activeUserPopover === usr.id && (
-                                        <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-100 shadow-2xl rounded-2xl p-3.5 z-50 space-y-2">
-                                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Permisos para {usr.name}</p>
-                                          
-                                          {projects.length > 4 && (
-                                            <div className="relative flex items-center">
-                                              <Search size={13} className="absolute left-2.5 text-gray-400" />
-                                              <input
-                                                type="text"
-                                                placeholder="Buscar proyecto..."
-                                                value={popoverSearch}
-                                                onChange={(e) => setPopoverSearch(e.target.value)}
-                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl py-1 pl-7 pr-3 text-xs outline-none focus:bg-white focus:border-app-accent transition-all text-gray-800"
-                                              />
-                                            </div>
-                                          )}
-
-                                          <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
-                                            {projects
-                                              .filter(p => !popoverSearch || p.name.toLowerCase().includes(popoverSearch.toLowerCase()) || p.clientName.toLowerCase().includes(popoverSearch.toLowerCase()))
-                                              .map((proj) => {
-                                                const hasPerm = userPermitted.includes(proj.id);
-                                                return (
-                                                  <button
-                                                    key={proj.id}
-                                                    type="button"
-                                                    onClick={async () => {
-                                                      try {
-                                                        let nextPermitted = [...userPermitted];
-                                                        if (nextPermitted.includes(proj.id)) {
-                                                          nextPermitted = nextPermitted.filter(id => id !== proj.id);
-                                                        } else {
-                                                          nextPermitted.push(proj.id);
-                                                        }
-                                                        
-                                                        const { updateDoc, doc } = await import('firebase/firestore');
-                                                        await updateDoc(doc(db, 'users', usr.id), { 
-                                                          permittedProjects: nextPermitted,
-                                                          projectId: nextPermitted[0] || ''
-                                                        });
-                                                        toast.success(`Permisos actualizados para ${usr.name}`);
-                                                      } catch (err) {
-                                                        console.error(err);
-                                                        toast.error('Error al actualizar permisos');
-                                                      }
-                                                    }}
-                                                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all text-xs hover:bg-gray-50 ${
-                                                      hasPerm ? 'text-app-accent font-bold' : 'text-gray-600'
-                                                    }`}
-                                                  >
-                                                    <div className="flex items-center gap-2">
-                                                      <div className="w-2.5 h-2.5 rounded-full border border-white shrink-0" style={{ backgroundColor: proj.color }} />
-                                                      <div className="truncate">
-                                                        <p className="truncate font-bold text-gray-800">{proj.name}</p>
-                                                        <p className="text-[10px] text-gray-400 font-normal truncate">Cliente: {proj.clientName}</p>
-                                                      </div>
-                                                    </div>
-                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${
-                                                      hasPerm ? 'bg-app-accent border-app-accent text-white' : 'border-gray-200 bg-white'
-                                                    }`}>
-                                                      {hasPerm && <Check size={10} className="stroke-[3]" />}
-                                                    </div>
-                                                  </button>
-                                                );
-                                              })}
-                                            {projects.filter(p => !popoverSearch || p.name.toLowerCase().includes(popoverSearch.toLowerCase())).length === 0 && (
-                                              <p className="text-center text-xs text-gray-400 py-3">No se encontraron proyectos</p>
-                                            )}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => openProjectAccessModal(usr)}
+                                      className="flex items-center gap-1 text-[11px] font-bold text-app-accent hover:text-app-accent-hover transition-colors"
+                                    >
+                                      <Edit2 size={11} />
+                                      Editar accesos
+                                    </button>
                                   </div>
                                 )}
                               </div>
@@ -770,7 +718,7 @@ export default function SettingsView({
             <div className="overflow-x-auto rounded-xl border border-gray-100">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                  <tr className="border-b border-gray-100 bg-gray-50 text-[11px] font-black text-gray-400 uppercase tracking-wider">
                     <th className="px-4 py-3">Color</th>
                     <th className="px-4 py-3">Nombre del Proyecto</th>
                     <th className="px-4 py-3">Cliente Legal</th>
@@ -859,7 +807,7 @@ export default function SettingsView({
                             <div className="flex gap-1.5 flex-wrap">
                               {(proj.platforms || ['instagram', 'linkedin', 'tiktok']).map(p => {
                                 return (
-                                  <span key={p} className={`px-1.5 py-0.5 rounded-md font-extrabold text-[9px] uppercase tracking-wider flex items-center gap-1 ${
+                                  <span key={p} className={`px-1.5 py-0.5 rounded-md font-extrabold text-[11px] uppercase tracking-wider flex items-center gap-1 ${
                                     p === 'instagram' ? 'bg-[#E1306C]/10 text-[#E1306C]' : p === 'linkedin' ? 'bg-[#0A66C2]/10 text-[#0A66C2]' : 'bg-zinc-900/10 text-zinc-900'
                                   }`}>
                                     {p === 'instagram' && <InstagramIcon size={10} />}
@@ -884,13 +832,13 @@ export default function SettingsView({
                             proj.territories && proj.territories.length > 0 ? (
                               <div className="flex gap-1 flex-wrap">
                                 {proj.territories.map(t => (
-                                  <span key={t} className="px-1.5 py-0.5 rounded-md font-bold text-[9px] bg-slate-100 text-slate-600">
+                                  <span key={t} className="px-1.5 py-0.5 rounded-md font-bold text-[11px] bg-slate-100 text-slate-600">
                                     {t}
                                   </span>
                                 ))}
                               </div>
                             ) : (
-                              <span className="text-gray-300 text-[10px]">—</span>
+                              <span className="text-gray-300 text-[11px]">—</span>
                             )
                           )}
                         </td>
@@ -899,13 +847,13 @@ export default function SettingsView({
                             <div className="flex justify-end gap-1.5">
                               <button
                                 onClick={() => setEditingProjId(null)}
-                                className="text-[10px] font-bold text-gray-400 hover:text-gray-600 px-2 py-1"
+                                className="text-[11px] font-bold text-gray-400 hover:text-gray-600 px-2 py-1"
                               >
                                 Cancelar
                               </button>
                               <button
                                 onClick={() => handleUpdateProject(proj.id)}
-                                className="text-[10px] font-bold bg-app-accent text-white rounded px-2.5 py-1 hover:bg-app-accent-hover"
+                                className="text-[11px] font-bold bg-app-accent text-white rounded px-2.5 py-1 hover:bg-app-accent-hover"
                               >
                                 Guardar
                               </button>
@@ -914,7 +862,7 @@ export default function SettingsView({
                             <div className="flex justify-end gap-2.5">
                               <button
                                 onClick={() => startEditProject(proj)}
-                                className="text-[10px] font-bold text-app-accent hover:underline"
+                                className="text-[11px] font-bold text-app-accent hover:underline"
                               >
                                 Modificar
                               </button>
@@ -958,7 +906,7 @@ export default function SettingsView({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre de la Agencia</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre de la Agencia</label>
                 <input 
                   type="text" 
                   value={agencyName}
@@ -969,7 +917,7 @@ export default function SettingsView({
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Zona Horaria Predeterminada</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Zona Horaria Predeterminada</label>
                 <select 
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
@@ -997,7 +945,7 @@ export default function SettingsView({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-gray-800">Alertas por Correo</p>
-                  <p className="text-[10px] text-gray-400">Recibe resúmenes diarios con los comentarios y cambios de estado.</p>
+                  <p className="text-[11px] text-gray-400">Recibe resúmenes diarios con los comentarios y cambios de estado.</p>
                 </div>
                 <button
                   type="button"
@@ -1014,7 +962,7 @@ export default function SettingsView({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-gray-800">Notificaciones en Slack</p>
-                  <p className="text-[10px] text-gray-400">Notifica automáticamente al canal #social-media cuando haya un nuevo post.</p>
+                  <p className="text-[11px] text-gray-400">Notifica automáticamente al canal #social-media cuando haya un nuevo post.</p>
                 </div>
                 <button
                   type="button"
@@ -1031,7 +979,7 @@ export default function SettingsView({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-gray-800">Flujo Aprobación de Cliente</p>
-                  <p className="text-[10px] text-gray-400">Recibe una alerta inmediata cuando el cliente apruebe un post final.</p>
+                  <p className="text-[11px] text-gray-400">Recibe una alerta inmediata cuando el cliente apruebe un post final.</p>
                 </div>
                 <button
                   type="button"
@@ -1103,6 +1051,114 @@ export default function SettingsView({
         </div>
       )}
 
+      {/* Project Access Modal — batches every checkbox toggle into local
+          state; nothing is written to Firestore until "Guardar". */}
+      {projectAccessUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            ref={projectAccessModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Acceso a proyectos de ${projectAccessUser.name}`}
+            tabIndex={-1}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-gray-100 outline-none"
+          >
+            <div className="flex justify-between items-start mb-1">
+              <div>
+                <h4 className="text-base font-extrabold text-gray-900">Acceso a proyectos</h4>
+                <p className="text-xs text-gray-500 mt-0.5">{projectAccessUser.name} · {projectAccessUser.email}</p>
+              </div>
+              <button
+                onClick={closeProjectAccessModal}
+                className="p-1.5 hover:bg-gray-100 rounded-xl transition-all text-gray-400 hover:text-gray-600 shrink-0"
+                aria-label="Cerrar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-400 leading-relaxed mt-3 mb-3">
+              Marca los proyectos a los que {projectAccessUser.role === 'client' ? 'este cliente' : 'esta persona'} puede acceder. Los cambios no se guardan hasta que pulses "Guardar".
+            </p>
+
+            {projects.length > 4 && (
+              <div className="relative flex items-center mb-2">
+                <Search size={13} className="absolute left-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar proyecto..."
+                  value={projectAccessSearch}
+                  onChange={(e) => setProjectAccessSearch(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 pl-8 pr-3 text-xs outline-none focus:bg-white focus:border-app-accent transition-all text-gray-800"
+                />
+              </div>
+            )}
+
+            <div className="max-h-72 overflow-y-auto space-y-1 pr-1 custom-scrollbar -mx-1 px-1">
+              {projects
+                .filter(p => !projectAccessSearch || p.name.toLowerCase().includes(projectAccessSearch.toLowerCase()) || p.clientName.toLowerCase().includes(projectAccessSearch.toLowerCase()))
+                .map((proj) => {
+                  const hasPerm = projectAccessDraft.includes(proj.id);
+                  return (
+                    <button
+                      key={proj.id}
+                      type="button"
+                      onClick={() => {
+                        setProjectAccessDraft(prev =>
+                          prev.includes(proj.id) ? prev.filter(id => id !== proj.id) : [...prev, proj.id]
+                        );
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all text-xs border",
+                        hasPerm ? "bg-app-accent/5 border-app-accent/20" : "bg-white border-gray-100 hover:bg-gray-50"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-full border border-white shrink-0" style={{ backgroundColor: proj.color }} />
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-gray-800">{proj.name}</p>
+                          <p className="text-[11px] text-gray-400 font-normal truncate">Cliente: {proj.clientName}</p>
+                        </div>
+                      </div>
+                      <div className={cn(
+                        "w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0",
+                        hasPerm ? "bg-app-accent border-app-accent text-white" : "border-gray-200 bg-white"
+                      )}>
+                        {hasPerm && <Check size={10} className="stroke-[3]" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              {projects.filter(p => !projectAccessSearch || p.name.toLowerCase().includes(projectAccessSearch.toLowerCase())).length === 0 && (
+                <p className="text-center text-xs text-gray-400 py-3">No se encontraron proyectos</p>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-5">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={closeProjectAccessModal}
+                className="flex-1 border-transparent bg-gray-100 hover:bg-gray-200"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleSaveProjectAccess}
+                disabled={isSavingProjectAccess}
+                className="flex-1"
+              >
+                {isSavingProjectAccess ? 'Guardando...' : 'Guardar'}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Invite User Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1133,7 +1189,7 @@ export default function SettingsView({
 
             <form onSubmit={handleInvite} className="space-y-4">
               <div>
-                <label className="text-[10px] font-bold text-gray-400 block mb-1">Nombre completo</label>
+                <label className="text-[11px] font-bold text-gray-400 block mb-1">Nombre completo</label>
                 <input 
                   type="text" 
                   value={inviteName}
@@ -1145,7 +1201,7 @@ export default function SettingsView({
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-gray-400 block mb-1">Correo electrónico</label>
+                <label className="text-[11px] font-bold text-gray-400 block mb-1">Correo electrónico</label>
                 <input 
                   type="email" 
                   value={inviteEmail}
@@ -1157,7 +1213,7 @@ export default function SettingsView({
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-gray-400 block mb-1">Rol en SocialFlow</label>
+                <label className="text-[11px] font-bold text-gray-400 block mb-1">Rol en SocialFlow</label>
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as Role)}
@@ -1171,7 +1227,7 @@ export default function SettingsView({
 
               {inviteRole === 'client' && (
                 <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Proyecto del cliente</label>
+                  <label className="text-[11px] font-bold text-gray-400 block mb-1">Proyecto del cliente</label>
                   <select
                     value={inviteProjectId}
                     onChange={(e) => setInviteProjectId(e.target.value)}

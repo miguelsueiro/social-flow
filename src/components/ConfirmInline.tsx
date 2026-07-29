@@ -24,7 +24,7 @@ export default function ConfirmInline({
   size = 'md'
 }: ConfirmInlineProps) {
   const t = TONE_CLASSES[tone];
-  const textSize = size === 'sm' ? 'text-[9px]' : 'text-[11px]';
+  const textSize = size === 'sm' ? 'text-[11px]' : 'text-[11px]';
   const padding = size === 'sm' ? 'px-2 py-1' : 'px-2.5 py-1';
 
   return (

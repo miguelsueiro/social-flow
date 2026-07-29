@@ -117,7 +117,7 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
           <Bell size={18} className="text-blue-600 animate-pulse" />
           Historial de Notificaciones y Actividad
         </h3>
-        <span className="text-[10px] bg-indigo-50 text-indigo-600 font-extrabold px-2.5 py-0.5 rounded-full uppercase">
+        <span className="text-[11px] bg-indigo-50 text-indigo-600 font-extrabold px-2.5 py-0.5 rounded-full uppercase">
           En Vivo
         </span>
       </div>
@@ -158,7 +158,7 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold text-gray-900">{notif.user}</span>
-                  <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1 shrink-0">
+                  <span className="text-[11px] font-bold text-gray-400 flex items-center gap-1 shrink-0">
                     <Clock size={10} />
                     {formatNotificationTime(notif.createdAt)}
                   </span>

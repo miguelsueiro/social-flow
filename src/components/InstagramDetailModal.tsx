@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { cn, PHASES, Phase, isVideoUrl } from '../lib/utils';
 import { Post, Comment } from '../types';
 import { useModalA11y } from '../lib/useModalA11y';
+import SocialCaption from './SocialCaption';
 
 interface InstagramDetailModalProps {
   post: Post;
@@ -194,7 +195,7 @@ export default function InstagramDetailModal({
               <p className="text-xs text-white/90 line-clamp-3 leading-relaxed drop-shadow-sm font-medium">
                 {post.copyCaption || post.idea}
               </p>
-              <p className="text-[10px] text-white/60 flex items-center gap-1">
+              <p className="text-[11px] text-white/60 flex items-center gap-1">
                 <span>🎵 Audio original - socialflow_agency</span>
               </p>
             </div>
@@ -251,7 +252,7 @@ export default function InstagramDetailModal({
                     <p className="text-base font-bold px-4">{post.idea}</p>
                     <p className="text-xs text-white/85 px-4 italic">{post.copyCaption || 'Diseño de carrusel en producción...'}</p>
                   </div>
-                  <div className="text-right text-[10px] opacity-50 font-mono">v{currentSlide + 1}</div>
+                  <div className="text-right text-[11px] opacity-50 font-mono">v{currentSlide + 1}</div>
                 </div>
               )}
             </motion.div>
@@ -290,7 +291,7 @@ export default function InstagramDetailModal({
             ))}
           </div>
 
-          <span className="absolute top-4 right-4 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
+          <span className="absolute top-4 right-4 bg-black/60 text-white text-[11px] font-bold px-2 py-0.5 rounded-full z-10">
             {currentSlide + 1}/{activeSlides.length}
           </span>
         </div>
@@ -321,7 +322,7 @@ export default function InstagramDetailModal({
         ) : (
           <div className={cn("w-full h-full bg-gradient-to-tr flex flex-col justify-between p-6 text-white", mediaGradient)}>
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">
+              <span className="text-[11px] font-bold bg-white/20 px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">
                 {PHASES[post.phase].label.split(':')[0]}
               </span>
               <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center border border-white/10">✨</div>
@@ -332,7 +333,7 @@ export default function InstagramDetailModal({
               <p className="text-xs text-white/80 leading-relaxed italic">{post.copyCaption || 'El copy se está revisando'}</p>
             </div>
             
-            <div className="flex justify-between items-center text-[10px] opacity-60 font-medium">
+            <div className="flex justify-between items-center text-[11px] opacity-60 font-medium">
               <span>SocialFlow Simulator</span>
               <span>1080 x 1080 px (1:1)</span>
             </div>
@@ -384,9 +385,9 @@ export default function InstagramDetailModal({
               <div className="text-left">
                 <div className="flex items-center gap-1">
                   <span className="text-xs font-semibold text-gray-900">socialflow_agency</span>
-                  <span className="w-3 h-3 bg-blue-500 rounded-full text-white flex items-center justify-center text-[6px] font-bold">✓</span>
+                  <span className="w-3 h-3 bg-blue-500 rounded-full text-white flex items-center justify-center text-[11px] font-bold">✓</span>
                 </div>
-                <p className="text-[10px] text-gray-400 font-medium capitalize">{PHASES[post.phase].label}</p>
+                <p className="text-[11px] text-gray-400 font-medium capitalize">{PHASES[post.phase].label}</p>
               </div>
             </div>
             
@@ -412,13 +413,16 @@ export default function InstagramDetailModal({
           <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs scrollbar-hide max-h-[220px] md:max-h-none">
             {/* The Post Caption acts as the first comment */}
             <div className="flex gap-3 text-left">
-              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 text-[10px] shrink-0">S</div>
+              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 text-[11px] shrink-0">S</div>
               <div className="flex-1">
-                <span className="font-bold text-gray-900 mr-1.5">socialflow_agency</span>
-                <span className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                  {post.copyCaption || post.idea}
-                </span>
-                <div className="text-[9px] text-gray-400 mt-1 flex items-center gap-2 font-medium">
+                <SocialCaption
+                  username="socialflow_agency"
+                  text={post.copyCaption || post.idea}
+                  maxChars={125}
+                  highlightClass="font-semibold text-blue-600"
+                  className="text-gray-800 leading-relaxed whitespace-pre-wrap"
+                />
+                <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-2 font-medium">
                   <span>1 h</span>
                   {post.copyCreativity && <span className="text-blue-500 font-semibold">Copy de diseño adjunto</span>}
                 </div>
@@ -428,15 +432,15 @@ export default function InstagramDetailModal({
             {/* User comments list — internal agency discussion, never shown to clients */}
             {userRole !== 'client' && comments.map((comment) => (
               <div key={comment.id} className="flex gap-3 text-left">
-                <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center font-bold text-blue-600 text-[10px] shrink-0">
+                <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center font-bold text-blue-600 text-[11px] shrink-0">
                   {comment.authorName[0]}
                 </div>
                 <div className="flex-1">
                   <span className="font-bold text-gray-900 mr-1.5">{comment.authorName}</span>
                   <span className="text-gray-700 leading-relaxed">{comment.text}</span>
-                  <div className="text-[9px] text-gray-400 mt-1 flex items-center gap-2 font-medium">
+                  <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-2 font-medium">
                     <span>{format(comment.createdAt, 'HH:mm dd/MM')}</span>
-                    <span className="capitalize text-[9px] font-semibold text-gray-500">{comment.roleAtTime}</span>
+                    <span className="capitalize text-[11px] font-semibold text-gray-500">{comment.roleAtTime}</span>
                   </div>
                 </div>
               </div>
@@ -445,7 +449,7 @@ export default function InstagramDetailModal({
             {userRole !== 'client' && comments.length === 0 && (
               <div className="text-center py-6 text-gray-400">
                 <p className="font-medium">Sin comentarios adicionales</p>
-                <p className="text-[10px]">Escribe abajo para dejar feedback</p>
+                <p className="text-[11px]">Escribe abajo para dejar feedback</p>
               </div>
             )}
           </div>
@@ -473,7 +477,7 @@ export default function InstagramDetailModal({
               {likesCount} Me gusta
             </div>
             
-            <div className="text-[10px] text-gray-500 font-semibold capitalize text-left">
+            <div className="text-[11px] text-gray-500 font-semibold capitalize text-left">
               Fase: {PHASES[post.phase].label.split(': ')[1] || PHASES[post.phase].label}
             </div>
           </div>

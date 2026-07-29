@@ -14,6 +14,7 @@ import {
   Volume2
 } from 'lucide-react';
 import { cn, PHASES, Phase, isVideoUrl } from '../lib/utils';
+import SocialCaption from './SocialCaption';
 
 interface Post {
   id: string;
@@ -44,13 +45,18 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
   const [currentPostIndex, setCurrentPostIndex] = useState(0);
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
   const [savedPosts, setSavedPosts] = useState<Record<string, boolean>>({});
+  const [grayscalePublished, setGrayscalePublished] = useState(false);
 
   // Filter TikTok posts
   const tiktokPosts = posts.filter(p => p.platform === 'tiktok');
 
   // Filter based on roles and selection — most recent first, like a real feed.
+  // Only posts with a creativity actually uploaded show up here; an empty
+  // placeholder isn't a real preview of anything.
   const visiblePosts = tiktokPosts
     .filter(p => {
+      if (!p.currentDesignUrl) return false;
+
       const isVisibleForRole = userRole !== 'client' || PHASES[p.phase].clientVisible;
       if (!isVisibleForRole) return false;
 
@@ -106,36 +112,31 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
         onClick={() => onSelectPost(activePost)}
         className="relative w-full h-full bg-black rounded-[2.5rem] overflow-hidden select-none cursor-pointer flex flex-col justify-between group"
       >
-        {/* Visual Content (Creativity) */}
+        {/* Visual Content (Creativity) — every post reaching this view already
+            has a creativity uploaded (filtered in visiblePosts). */}
         <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-zinc-950">
-          {activePost.currentDesignUrl ? (
-            isVideoUrl(activePost.currentDesignUrl) ? (
-              <video 
-                src={activePost.currentDesignUrl} 
-                className="w-full h-full object-cover opacity-90 filter brightness-95"
-                autoPlay
-                loop
-                muted
-                playsInline
-              />
-            ) : (
-              <img 
-                src={activePost.currentDesignUrl} 
-                alt={activePost.idea}
-                className="w-full h-full object-cover opacity-90 filter brightness-95"
-                referrerPolicy="no-referrer"
-              />
-            )
+          {isVideoUrl(activePost.currentDesignUrl!) ? (
+            <video
+              src={activePost.currentDesignUrl}
+              className={cn(
+                "w-full h-full object-cover opacity-90 filter brightness-95",
+                grayscalePublished && activePost.phase === 'published' && "grayscale"
+              )}
+              autoPlay
+              loop
+              muted
+              playsInline
+            />
           ) : (
-            <div className="w-full h-full bg-gradient-to-tr from-zinc-900 via-neutral-950 to-zinc-900 flex flex-col items-center justify-center p-6 text-center">
-              <span className="text-4xl mb-4">🎵</span>
-              <p className="text-white font-extrabold text-sm line-clamp-2 leading-snug px-4">
-                {activePost.title || activePost.idea}
-              </p>
-              <p className="text-zinc-500 text-[10px] mt-2 italic px-6 line-clamp-3">
-                {activePost.idea}
-              </p>
-            </div>
+            <img
+              src={activePost.currentDesignUrl}
+              alt={activePost.idea}
+              className={cn(
+                "w-full h-full object-cover opacity-90 filter brightness-95",
+                grayscalePublished && activePost.phase === 'published' && "grayscale"
+              )}
+              referrerPolicy="no-referrer"
+            />
           )}
           {/* Ambient lighting gradient overlay for TikTok UI elements readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 z-1" />
@@ -149,7 +150,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
 
         {/* Floating process indicator badge */}
         <div className="absolute top-4 left-6 z-10">
-          <span className="bg-cyan-500/80 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] font-black text-black uppercase tracking-wider shadow-sm">
+          <span className="bg-cyan-500/80 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-black text-black uppercase tracking-wider shadow-sm">
             {PHASES[activePost.phase]?.label.split(': ').pop() || activePost.phase}
           </span>
         </div>
@@ -164,7 +165,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
             >
               {proj ? proj.name[0].toUpperCase() : 'T'}
             </div>
-            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#FE2C55] flex items-center justify-center text-white text-[10px] font-bold">
+            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#FE2C55] flex items-center justify-center text-white text-[11px] font-bold">
               +
             </div>
           </div>
@@ -223,21 +224,21 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
         <div className="relative z-10 p-6 pt-0 text-white space-y-2 max-w-[80%]">
           <div className="flex items-center gap-2">
             <span className="font-extrabold text-sm truncate">@{proj?.name?.toLowerCase().replace(/\s+/g, '') || 'brand_tiktok'}</span>
-            <span className="text-[9px] bg-white/20 px-1 py-0.5 rounded font-bold text-white uppercase tracking-widest shrink-0">OFICIAL</span>
+            <span className="text-[11px] bg-white/20 px-1 py-0.5 rounded font-bold text-white uppercase tracking-widest shrink-0">OFICIAL</span>
           </div>
           
-          <p className="text-xs leading-normal font-medium text-zinc-100 line-clamp-3">
-            {activePost.copyCaption || activePost.idea}
-          </p>
-
-          <p className="text-[11px] font-bold text-cyan-400">
-            #viral #socialflow #socialmedia #agency
-          </p>
+          <SocialCaption
+            text={activePost.copyCaption || activePost.idea}
+            lineClamp={3}
+            highlightClass="font-bold text-cyan-400"
+            className="text-xs leading-normal font-medium text-zinc-100"
+            moreClassName="font-semibold text-zinc-400 hover:text-white"
+          />
 
           {/* Sound bar */}
           <div className="flex items-center gap-1.5 overflow-hidden text-xs text-zinc-300">
             <Music size={12} className="shrink-0" />
-            <div className="truncate text-[10px] font-semibold tracking-wide">
+            <div className="truncate text-[11px] font-semibold tracking-wide">
               <span>sonido original - {proj?.name || 'SocialFlow'}</span>
             </div>
           </div>
@@ -266,28 +267,26 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
               onClick={() => onSelectPost(post)}
               className="group aspect-[9/16] bg-zinc-950 rounded-2xl overflow-hidden relative border border-zinc-900 cursor-pointer shadow-sm hover:shadow-md transition-all active:scale-[0.99]"
             >
-              {post.currentDesignUrl ? (
-                isVideoUrl(post.currentDesignUrl) ? (
-                  <video 
-                    src={post.currentDesignUrl} 
-                    className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <img 
-                    src={post.currentDesignUrl} 
-                    alt={post.idea} 
-                    className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
-                    referrerPolicy="no-referrer"
-                  />
-                )
+              {isVideoUrl(post.currentDesignUrl!) ? (
+                <video
+                  src={post.currentDesignUrl}
+                  className={cn(
+                    "w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105",
+                    grayscalePublished && post.phase === 'published' && "grayscale"
+                  )}
+                  muted
+                  playsInline
+                />
               ) : (
-                <div className="w-full h-full bg-gradient-to-tr from-zinc-900 via-neutral-950 to-zinc-900 flex flex-col justify-between p-4">
-                  <span className="text-2xl">🎵</span>
-                  <p className="text-white text-xs font-extrabold line-clamp-3 leading-snug">{post.title || post.idea}</p>
-                  <span className="text-[9px] text-zinc-500 tracking-wider">CREATIVITY PREVIEW</span>
-                </div>
+                <img
+                  src={post.currentDesignUrl}
+                  alt={post.idea}
+                  className={cn(
+                    "w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105",
+                    grayscalePublished && post.phase === 'published' && "grayscale"
+                  )}
+                  referrerPolicy="no-referrer"
+                />
               )}
 
               {/* Grid Overlays */}
@@ -295,7 +294,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
                 <div className="flex items-center gap-1">
                   <Play size={11} className="fill-white" />
                 </div>
-                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-cyan-500 text-black uppercase scale-90 origin-right">
+                <span className="text-[11px] font-black px-1.5 py-0.5 rounded bg-cyan-500 text-black uppercase scale-90 origin-right">
                   {PHASES[post.phase]?.label.split(': ').pop() || post.phase}
                 </span>
               </div>
@@ -319,8 +318,27 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
             <p className="text-xs text-gray-400 leading-normal">Simula la visualización de tus vídeos y reels en TikTok.</p>
           </div>
 
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-gray-600">Publicados en B/N</span>
+            <button
+              role="switch"
+              aria-checked={grayscalePublished}
+              aria-label="Poner en blanco y negro los posts publicados"
+              onClick={() => setGrayscalePublished(!grayscalePublished)}
+              className={cn(
+                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                grayscalePublished ? "bg-blue-600" : "bg-gray-200"
+              )}
+            >
+              <span className={cn(
+                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                grayscalePublished ? "translate-x-6" : "translate-x-1"
+              )} />
+            </button>
+          </div>
+
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Filtrar Estado</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Filtrar Estado</label>
             <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
               <button 
                 onClick={() => setFilterPhase('all')}
@@ -344,7 +362,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Modo de Vista</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Modo de Vista</label>
             <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
               <button 
                 onClick={() => setViewMode('phone')}

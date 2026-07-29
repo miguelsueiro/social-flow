@@ -19,6 +19,7 @@ import {
 import { cn, PHASES, Phase, isVideoUrl } from '../lib/utils';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import SocialCaption from './SocialCaption';
 
 interface Post {
   id: string;
@@ -47,13 +48,21 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
   const [filterPhase, setFilterPhase] = useState<'all' | 'approved_only'>('all');
   const [activeCarouselSlides, setActiveCarouselSlides] = useState<Record<string, number>>({});
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
+  const [grayscalePublished, setGrayscalePublished] = useState(false);
 
   // Filter posts for LinkedIn platform
   const linkedInPosts = posts.filter(p => p.platform === 'linkedin');
 
   // Filter based on roles and selection — most recent first, like a real feed.
+  // Only posts with a creativity actually uploaded show up here; an empty
+  // placeholder isn't a real preview of anything.
   const visiblePosts = linkedInPosts
     .filter(p => {
+      const hasCreativity = p.format === 'carrusel'
+        ? (p.carouselUrls && p.carouselUrls.some(Boolean))
+        : !!p.currentDesignUrl;
+      if (!hasCreativity) return false;
+
       const isVisibleForRole = userRole !== 'client' || PHASES[p.phase].clientVisible;
       if (!isVisibleForRole) return false;
 
@@ -84,24 +93,26 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
     });
   };
 
-  const getPostMedia = (post: Post) => {
+  const getPostMedia = (post: Post, grayscale: boolean) => {
+    const isGray = grayscale && post.phase === 'published';
+
     if (post.format === 'carrusel' && post.carouselUrls && post.carouselUrls.length > 0) {
       const activeIdx = activeCarouselSlides[post.id] || 0;
       return (
         <div className="relative bg-slate-50 border-y border-gray-100 overflow-hidden group">
           {isVideoUrl(post.carouselUrls[activeIdx]) ? (
-            <video 
-              src={post.carouselUrls[activeIdx]} 
-              className="w-full h-auto block max-h-[500px] mx-auto bg-black"
+            <video
+              src={post.carouselUrls[activeIdx]}
+              className={cn("w-full h-auto block max-h-[500px] mx-auto bg-black", isGray && "grayscale")}
               controls
               muted
               playsInline
             />
           ) : (
-            <img 
-              src={post.carouselUrls[activeIdx]} 
-              alt={`Slide ${activeIdx + 1}`} 
-              className="w-full h-auto block"
+            <img
+              src={post.carouselUrls[activeIdx]}
+              alt={`Slide ${activeIdx + 1}`}
+              className={cn("w-full h-auto block", isGray && "grayscale")}
               referrerPolicy="no-referrer"
             />
           )}
@@ -121,7 +132,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
               >
                 <ChevronRight size={16} />
               </button>
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 px-2 py-0.5 rounded text-[10px] font-bold text-white tracking-widest">
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 px-2 py-0.5 rounded text-[11px] font-bold text-white tracking-widest">
                 {activeIdx + 1} / {post.carouselUrls.length}
               </div>
             </>
@@ -130,66 +141,32 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
       );
     }
 
-    if (post.currentDesignUrl) {
-      const isReel = post.format === 'reel';
-      return (
-        <div className="relative bg-slate-50 border-y border-gray-100 overflow-hidden">
-          {isVideoUrl(post.currentDesignUrl) ? (
-            <video 
-              src={post.currentDesignUrl} 
-              className="w-full h-auto block max-h-[500px] mx-auto bg-black"
-              controls
-              muted
-              playsInline
-            />
-          ) : (
-            <img 
-              src={post.currentDesignUrl} 
-              alt={post.idea} 
-              className="w-full h-auto block"
-              referrerPolicy="no-referrer"
-            />
-          )}
-          {isReel && (
-            <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-bold">
-              🎥 Reel Vertical
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Default beautiful fallback gradient card
-    const gradients = [
-      'from-slate-700 via-indigo-900 to-slate-800',
-      'from-blue-900 to-indigo-950',
-      'from-emerald-900 to-teal-950'
-    ];
-    const charSum = post.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const gradient = gradients[charSum % gradients.length];
-
+    // Every post reaching this view already has a creativity uploaded
+    // (filtered in visiblePosts), so a plain design/video is always here.
+    const isReel = post.format === 'reel';
     return (
-      <div className={cn("aspect-square w-full bg-gradient-to-tr flex flex-col justify-between p-6 text-white relative border-y border-gray-100", gradient)}>
-        <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]" />
-        <div className="relative z-10 flex justify-between items-start">
-          <span className="bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] font-bold border border-white/10 uppercase tracking-wider">
-            {PHASES[post.phase].label}
-          </span>
-          <span className="text-[10px] bg-indigo-500/20 px-2 py-0.5 rounded text-indigo-200 border border-indigo-500/30 font-medium">
-            Creative Draft
-          </span>
-        </div>
-        <div className="relative z-10 space-y-2">
-          <p className="text-sm font-bold leading-relaxed line-clamp-4">
-            {post.idea}
-          </p>
-          <p className="text-xs text-slate-300 font-normal line-clamp-2 italic">
-            {post.copyCaption || 'Sin caption redactado aún.'}
-          </p>
-        </div>
-        <div className="relative z-10 flex justify-end text-[10px] text-white/50 font-semibold tracking-wider">
-          SOCIALFLOW PREVIEW
-        </div>
+      <div className="relative bg-slate-50 border-y border-gray-100 overflow-hidden">
+        {isVideoUrl(post.currentDesignUrl!) ? (
+          <video
+            src={post.currentDesignUrl}
+            className={cn("w-full h-auto block max-h-[500px] mx-auto bg-black", isGray && "grayscale")}
+            controls
+            muted
+            playsInline
+          />
+        ) : (
+          <img
+            src={post.currentDesignUrl}
+            alt={post.idea}
+            className={cn("w-full h-auto block", isGray && "grayscale")}
+            referrerPolicy="no-referrer"
+          />
+        )}
+        {isReel && (
+          <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[11px] font-bold">
+            🎥 Reel Vertical
+          </div>
+        )}
       </div>
     );
   };
@@ -204,8 +181,27 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
             <p className="text-xs text-gray-400 mt-1">Simulador de feed corporativo.</p>
           </div>
 
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-gray-600">Publicados en B/N</span>
+            <button
+              role="switch"
+              aria-checked={grayscalePublished}
+              aria-label="Poner en blanco y negro los posts publicados"
+              onClick={() => setGrayscalePublished(!grayscalePublished)}
+              className={cn(
+                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                grayscalePublished ? "bg-blue-600" : "bg-gray-200"
+              )}
+            >
+              <span className={cn(
+                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                grayscalePublished ? "translate-x-6" : "translate-x-1"
+              )} />
+            </button>
+          </div>
+
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Filtrar Estado</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Filtrar Estado</label>
             <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
               <button 
                 onClick={() => setFilterPhase('all')}
@@ -229,7 +225,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Modo de Vista</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Modo de Vista</label>
             <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
               <button 
                 onClick={() => setDeviceMode('desktop')}
@@ -299,11 +295,11 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                             <h4 className="font-bold text-gray-900 text-xs sm:text-sm">
                               {project?.name || 'Cliente Corporativo'}
                             </h4>
-                            <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-bold">
+                            <span className="text-[11px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-bold">
                               {PHASES[post.phase].label.split(':')[1] || PHASES[post.phase].label}
                             </span>
                           </div>
-                          <p className="text-[10px] text-gray-400 font-medium leading-none mt-0.5">
+                          <p className="text-[11px] text-gray-400 font-medium leading-none mt-0.5">
                             {project?.clientName ? `Socio en ${project.clientName}` : 'Planificación de LinkedIn'} • 1h • <Globe size={10} className="inline ml-0.5" />
                           </p>
                         </div>
@@ -319,14 +315,17 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
 
                     {/* Post Text Description */}
                     <div className="px-4 pb-3">
-                      <p className="text-gray-800 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed line-clamp-5">
-                        {post.copyCaption || post.idea}
-                      </p>
+                      <SocialCaption
+                        text={post.copyCaption || post.idea}
+                        lineClamp={3}
+                        highlightClass="font-semibold text-blue-600"
+                        className="text-gray-800 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed"
+                      />
                     </div>
 
                     {/* Post Media Rendering */}
                     <div className="cursor-pointer" onClick={() => onSelectPost(post)}>
-                      {getPostMedia(post)}
+                      {getPostMedia(post, grayscalePublished)}
                     </div>
 
                     {/* Engagement Buttons */}

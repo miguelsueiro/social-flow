@@ -5,15 +5,29 @@
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
 
-  --radius-3xl: 12px;
-  --radius-2xl: 10px;
-  --radius-xl: 8px;
-  --radius-lg: 6px;
-  --radius-md: 4px;
+  /* Softer, more generous rounding than Tailwind's defaults — reads as a
+     premium/modern surface instead of the previous flattened-down scale. */
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+  --radius-3xl: 26px;
 
-  --font-weight-bold: 500;
-  --font-weight-extrabold: 600;
-  --font-weight-black: 600;
+  /* Real font weights instead of the previous 500/600/600 cap, which made
+     every "bold" in the app look identically semi-bold with no headline
+     contrast. Geist ships the full 100-900 range, so this is free. */
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  /* Layered, low-opacity shadows (à la Linear/Stripe) instead of Tailwind's
+     flat single-layer defaults — this alone upgrades every existing
+     shadow-sm/md/lg/xl/2xl usage across the app with no per-component edits. */
+  --shadow-sm: 0 1px 2px 0 rgba(16, 24, 40, 0.04), 0 1px 3px 0 rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 2px 4px -2px rgba(16, 24, 40, 0.04), 0 4px 8px -2px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 4px 6px -2px rgba(16, 24, 40, 0.03), 0 12px 16px -4px rgba(16, 24, 40, 0.08);
+  --shadow-xl: 0 8px 8px -4px rgba(16, 24, 40, 0.03), 0 20px 24px -4px rgba(16, 24, 40, 0.08);
+  --shadow-2xl: 0 24px 48px -12px rgba(16, 24, 40, 0.18);
 
   /* Registering these as real theme colors (not just hand-written .bg-app-accent
      classes) makes Tailwind generate every variant for free: bg/text/border/ring,
@@ -56,17 +70,6 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
-}
-
-/* Fallback class overrides to guarantee consistent rendering across browsers */
-.font-black {
-  font-weight: 600 !important;
-}
-.font-extrabold {
-  font-weight: 600 !important;
-}
-.font-bold {
-  font-weight: 500 !important;
 }
 
 /* Avoid uppercase text styling globally as per user request */

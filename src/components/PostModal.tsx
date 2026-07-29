@@ -184,7 +184,7 @@ function SaveVersionButton({ type, currentValue, versions = [], isAgencyMember, 
     >
       💾 Guardar Versión
       {versions.length > 0 && (
-        <span className="text-[10px] text-slate-400 font-semibold">({versions.length} guardada{versions.length !== 1 ? 's' : ''})</span>
+        <span className="text-[11px] text-slate-400 font-semibold">({versions.length} guardada{versions.length !== 1 ? 's' : ''})</span>
       )}
     </button>
   );
@@ -292,7 +292,7 @@ function HistoryEntryCard({
               />
             ))}
           </div>
-          <span className="text-[10px] text-slate-400 font-semibold">
+          <span className="text-[11px] text-slate-400 font-semibold">
             {isCarousel ? `📊 Carrusel (${urls.length} diapositivas)` : '🖼️ Diseño'}
           </span>
         </div>
@@ -307,9 +307,9 @@ function HistoryEntryCard({
       <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-xs space-y-2.5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={cn("text-[10px] font-black px-2 py-0.5 rounded-md", meta.badgeClass)}>{meta.label}</span>
-            <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">v{versionNumber}</span>
-            <span className="text-[10px] font-bold text-slate-500">
+            <span className={cn("text-[11px] font-black px-2 py-0.5 rounded-md", meta.badgeClass)}>{meta.label}</span>
+            <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">v{versionNumber}</span>
+            <span className="text-[11px] font-bold text-slate-500">
               {version.authorName} • {format(new Date(version.createdAt), 'dd/MM HH:mm')}
             </span>
           </div>
@@ -317,7 +317,7 @@ function HistoryEntryCard({
             <button
               type="button"
               onClick={onRequestRestore}
-              className="text-[10px] text-app-accent hover:text-app-accent-hover font-extrabold flex items-center gap-0.5 shrink-0"
+              className="text-[11px] text-app-accent hover:text-app-accent-hover font-extrabold flex items-center gap-0.5 shrink-0"
             >
               Restaurar ↩
             </button>
@@ -342,13 +342,13 @@ function HistoryEntryCard({
         {isAgencyMember && (
           <div className="space-y-1.5 pl-2 border-l-2 border-slate-200">
             {version.feedbacks?.length > 0 && (
-              <span className="text-[10px] font-bold text-slate-500 block mb-1">Comentarios internos:</span>
+              <span className="text-[11px] font-bold text-slate-500 block mb-1">Comentarios internos:</span>
             )}
             {version.feedbacks?.map((fb) => (
               <div key={fb.id} className="text-[11px] leading-relaxed bg-slate-50/50 p-2 rounded-lg border border-slate-100/50">
                 <div className="flex items-baseline gap-1">
                   <span className="font-extrabold text-slate-800">{fb.authorName}</span>
-                  <span className="text-[9px] text-slate-400 font-bold">({format(new Date(fb.createdAt), 'dd/MM HH:mm')})</span>
+                  <span className="text-[11px] text-slate-400 font-bold">({format(new Date(fb.createdAt), 'dd/MM HH:mm')})</span>
                 </div>
                 <p className="text-slate-600 mt-0.5 font-medium">{fb.text}</p>
               </div>
@@ -357,7 +357,7 @@ function HistoryEntryCard({
             <div className="flex gap-1.5 mt-2 relative">
               {mentionQuery !== null && filteredMentionUsers.length > 0 && (
                 <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-36 overflow-y-auto divide-y divide-slate-100">
-                  <div className="p-1.5 bg-slate-50 text-[10px] font-semibold text-slate-500">Mencionar usuario:</div>
+                  <div className="p-1.5 bg-slate-50 text-[11px] font-semibold text-slate-500">Mencionar usuario:</div>
                   {filteredMentionUsers.map(user => (
                     <button
                       key={user.id}
@@ -365,12 +365,12 @@ function HistoryEntryCard({
                       onClick={() => selectMentionUser(user)}
                       className="w-full text-left p-2 hover:bg-slate-50 transition-colors flex items-center gap-2"
                     >
-                      <div className="w-5 h-5 rounded-full bg-indigo-50 flex items-center justify-center font-bold text-indigo-600 text-[10px]">
+                      <div className="w-5 h-5 rounded-full bg-indigo-50 flex items-center justify-center font-bold text-indigo-600 text-[11px]">
                         {user.name[0]}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-bold text-gray-800 truncate">{user.name}</p>
-                        <p className="text-[9px] text-gray-400 truncate">@{getMentionHandle(user)} • {user.role}</p>
+                        <p className="text-[11px] text-gray-400 truncate">@{getMentionHandle(user)} • {user.role}</p>
                       </div>
                     </button>
                   ))}
@@ -392,7 +392,7 @@ function HistoryEntryCard({
               <button
                 type="button"
                 onClick={submitFeedback}
-                className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[10px] px-2.5 py-1.5 rounded-lg transition-colors"
+                className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[11px] px-2.5 py-1.5 rounded-lg transition-colors"
               >
                 Enviar
               </button>
@@ -1253,7 +1253,7 @@ export default function PostModal({
               <tab.icon size={18} />
               {tab.label}
               {tab.count !== undefined && (
-                <span className="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded-full ml-1">
+                <span className="bg-gray-100 text-gray-600 text-[11px] px-1.5 py-0.5 rounded-full ml-1">
                   {tab.count}
                 </span>
               )}
@@ -1365,7 +1365,7 @@ export default function PostModal({
                             className="w-16 h-16 border-2 border-dashed border-gray-200 hover:border-app-accent text-gray-400 hover:text-app-accent rounded-lg flex flex-col items-center justify-center transition-all bg-gray-50 cursor-pointer"
                           >
                             <Plus size={16} />
-                            <span className="text-[9px] font-semibold">Subir</span>
+                            <span className="text-[11px] font-semibold">Subir</span>
                           </label>
                         </div>
                       )}
@@ -1530,7 +1530,7 @@ export default function PostModal({
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-semibold text-gray-500 block">Carrusel Slides:</span>
                             {canEditDesign && localPost.carouselUrls && localPost.carouselUrls.length > 1 && (
-                              <span className="text-[9px] text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded-full animate-pulse shrink-0">
+                              <span className="text-[11px] text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded-full animate-pulse shrink-0">
                                 ↔ Arrastra para reordenar
                               </span>
                             )}
@@ -1553,7 +1553,7 @@ export default function PostModal({
                                   )}
                                 >
                                   <img src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover select-none pointer-events-none" />
-                                  <div className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[8px] font-bold text-white select-none">
+                                  <div className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[11px] font-bold text-white select-none">
                                     {idx + 1}
                                   </div>
                                   {canEditDesign && (
@@ -1643,7 +1643,7 @@ export default function PostModal({
 
                           {localPost.format !== 'carrusel' && (
                             <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-1.5 text-left">
-                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
                                 O pegar URL del archivo (Imagen/Video)
                               </label>
                               <div className="flex gap-1.5">
@@ -1673,7 +1673,7 @@ export default function PostModal({
                                   </button>
                                 )}
                               </div>
-                              <p className="text-[10px] text-gray-400">
+                              <p className="text-[11px] text-gray-400">
                                 Recomendado para videos de más de 700KB para evitar el límite de base de datos de 1MB de Firestore.
                               </p>
                             </div>
@@ -1740,12 +1740,12 @@ export default function PostModal({
                          ) : (isClient && localPost.phase === 'changes_requested') ? (
                            <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-2.5 text-center">
                              <p className="text-xs text-orange-900 font-semibold">Has solicitado cambios en este post.</p>
-                             <p className="text-[10px] text-orange-700 mt-0.5">La agencia lo está revisando y volverá a enviártelo cuando esté listo.</p>
+                             <p className="text-[11px] text-orange-700 mt-0.5">La agencia lo está revisando y volverá a enviártelo cuando esté listo.</p>
                            </div>
                          ) : isAgencyResumeAction ? (
                            <div className="space-y-2">
                              <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-2.5">
-                               <p className="text-[10px] font-bold text-orange-800 mb-1">
+                               <p className="text-[11px] font-bold text-orange-800 mb-1">
                                  Cambios solicitados por {localPost.changesRequestedBy || 'el cliente'}
                                  {localPost.changesRequestedAt && ` · ${format(new Date(localPost.changesRequestedAt), 'dd/MM HH:mm')}`}
                                </p>
@@ -1780,7 +1780,7 @@ export default function PostModal({
                            </div>
                          )}
                          {localPost.phase === 'approved' && (
-                           <p className="text-[10px] text-emerald-600 font-semibold text-center">
+                           <p className="text-[11px] text-emerald-600 font-semibold text-center">
                              ✓ Post aprobado{localPost.approvedBy ? ` por ${localPost.approvedBy}` : ''}
                            </p>
                          )}
@@ -1831,7 +1831,7 @@ export default function PostModal({
                         <div className="flex items-baseline gap-2 mb-1">
                           <span className="text-sm font-bold text-gray-900">{comment.authorName}</span>
                           <span className="text-[11px] font-semibold text-gray-400">{comment.roleAtTime}</span>
-                          <span className="text-[10px] text-gray-400">{format(comment.createdAt, 'HH:mm dd/MM')}</span>
+                          <span className="text-[11px] text-gray-400">{format(comment.createdAt, 'HH:mm dd/MM')}</span>
                         </div>
                         <div className="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-xs sm:text-sm text-gray-700">
                           {comment.text}
@@ -1861,7 +1861,7 @@ export default function PostModal({
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-gray-800 truncate">{user.name}</p>
-                              <p className="text-[10px] text-gray-400 font-medium truncate">@{getMentionHandle(user)} • {user.role}</p>
+                              <p className="text-[11px] text-gray-400 font-medium truncate">@{getMentionHandle(user)} • {user.role}</p>
                             </div>
                           </button>
                         ))}
@@ -1883,7 +1883,7 @@ export default function PostModal({
                       <Send size={18} />
                     </button>
                   </div>
-                  <p className="mt-2 text-[10px] text-gray-400 italic">Los clientes solo podrán ver comentarios públicos marcados para fase 5.</p>
+                  <p className="mt-2 text-[11px] text-gray-400 italic">Los clientes solo podrán ver comentarios públicos marcados para fase 5.</p>
                 </div>
               </motion.div>
             )}
@@ -1923,8 +1923,8 @@ export default function PostModal({
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <div className="flex items-baseline gap-2 flex-wrap">
                             <span className="text-sm font-bold text-gray-900">{f.authorName}</span>
-                            <span className="text-[9px] bg-blue-50 text-blue-600 font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">{f.roleAtTime}</span>
-                            <span className="text-[10px] text-gray-400">
+                            <span className="text-[11px] bg-blue-50 text-blue-600 font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">{f.roleAtTime}</span>
+                            <span className="text-[11px] text-gray-400">
                               {f.createdAt instanceof Date ? format(f.createdAt, 'HH:mm dd/MM') : 'Ahora'}
                             </span>
                           </div>
@@ -2015,7 +2015,7 @@ export default function PostModal({
                         )}
 
                         {f.done && f.doneBy && (
-                          <p className="text-[10px] text-emerald-600 font-extrabold mt-1.5 flex items-center gap-1">
+                          <p className="text-[11px] text-emerald-600 font-extrabold mt-1.5 flex items-center gap-1">
                             ✓ Hecho por {f.doneBy}
                           </p>
                         )}
@@ -2044,7 +2044,7 @@ export default function PostModal({
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-gray-800 truncate">{user.name}</p>
-                              <p className="text-[10px] text-gray-400 font-medium truncate">@{getMentionHandle(user)} • {user.role}</p>
+                              <p className="text-[11px] text-gray-400 font-medium truncate">@{getMentionHandle(user)} • {user.role}</p>
                             </div>
                           </button>
                         ))}
@@ -2066,7 +2066,7 @@ export default function PostModal({
                       <Send size={18} />
                     </button>
                   </div>
-                  <p className="mt-2 text-[10px] text-gray-400">Los elementos de feedback tienen checkboxes interactivos para marcar tareas como resueltas.</p>
+                  <p className="mt-2 text-[11px] text-gray-400">Los elementos de feedback tienen checkboxes interactivos para marcar tareas como resueltas.</p>
                 </div>
               </motion.div>
             )}

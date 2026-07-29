@@ -97,7 +97,7 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="space-y-4">
             <div>
-              <label htmlFor="new-project-name" className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre del Proyecto / Marca</label>
+              <label htmlFor="new-project-name" className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre del Proyecto / Marca</label>
               <input
                 id="new-project-name"
                 type="text"
@@ -109,7 +109,7 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
               />
             </div>
             <div>
-              <label htmlFor="new-project-client" className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre del Cliente Legal</label>
+              <label htmlFor="new-project-client" className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre del Cliente Legal</label>
               <input
                 id="new-project-client"
                 type="text"
@@ -121,7 +121,7 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
               />
             </div>
             <div>
-              <label htmlFor="new-project-color" className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Color de Marca (Identidad)</label>
+              <label htmlFor="new-project-color" className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Color de Marca (Identidad)</label>
               <div className="flex gap-2">
                 <input
                   type="color"
@@ -139,12 +139,12 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
                   className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-xl py-2 px-3 text-xs font-mono outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all uppercase font-bold text-gray-700"
                 />
               </div>
-              <p className="text-[10px] text-gray-400 mt-1">Este color se convertirá en el color de acento visual al seleccionar el proyecto.</p>
+              <p className="text-[11px] text-gray-400 mt-1">Este color se convertirá en el color de acento visual al seleccionar el proyecto.</p>
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Redes Sociales Activas</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Redes Sociales Activas</label>
             <div className="flex gap-3 flex-wrap">
               {PLATFORM_OPTIONS.map(platform => {
                 const isActive = platforms.includes(platform.id);
@@ -170,13 +170,13 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Territorios (temáticas del proyecto)</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Territorios (temáticas del proyecto)</label>
             <TagListEditor
               tags={territories}
               onChange={setTerritories}
               placeholder="Ej. Producto, Sostenibilidad, Lifestyle..."
             />
-            <p className="text-[10px] text-gray-400 mt-1.5">Opcional. Si añades alguno, aparecerá como desplegable al editar los posts de este proyecto.</p>
+            <p className="text-[11px] text-gray-400 mt-1.5">Opcional. Si añades alguno, aparecerá como desplegable al editar los posts de este proyecto.</p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t border-gray-50">

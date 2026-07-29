@@ -215,7 +215,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
             </div>
           </div>
 
-          <div className="text-[10px] text-slate-400 font-semibold mt-4 hidden md:block">
+          <div className="text-[11px] text-slate-400 font-semibold mt-4 hidden md:block">
             Paso {currentStep + 1} de {steps.length}
           </div>
         </div>
@@ -229,7 +229,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
                 <IconComponent size={24} />
               </div>
               <div>
-                <span className="text-[9px] font-extrabold text-app-accent uppercase tracking-widest bg-app-accent/10 px-2 py-0.5 rounded-md">
+                <span className="text-[11px] font-extrabold text-app-accent uppercase tracking-widest bg-app-accent/10 px-2 py-0.5 rounded-md">
                   PASO {currentStep + 1} DE {steps.length}
                 </span>
                 <h3 id="user-guide-title" className="text-lg font-black text-slate-900 tracking-tight mt-1">
@@ -269,9 +269,9 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
               <div className="p-3 bg-indigo-50/40 rounded-xl border border-indigo-100/50">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Zap size={11} className="text-indigo-600" />
-                  <span className="text-[9px] font-black text-indigo-800 uppercase tracking-wider">Como Agencia</span>
+                  <span className="text-[11px] font-black text-indigo-800 uppercase tracking-wider">Como Agencia</span>
                 </div>
-                <p className="text-[10px] text-indigo-950/80 font-medium leading-relaxed">
+                <p className="text-[11px] text-indigo-950/80 font-medium leading-relaxed">
                   {ActiveStep.roleTip.agency}
                 </p>
               </div>
@@ -279,9 +279,9 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
               <div className="p-3 bg-emerald-50/40 rounded-xl border border-emerald-100/50">
                 <div className="flex items-center gap-1.5 mb-1">
                   <BookmarkCheck size={11} className="text-emerald-600" />
-                  <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider">Como Cliente</span>
+                  <span className="text-[11px] font-black text-emerald-800 uppercase tracking-wider">Como Cliente</span>
                 </div>
-                <p className="text-[10px] text-emerald-950/80 font-medium leading-relaxed">
+                <p className="text-[11px] text-emerald-950/80 font-medium leading-relaxed">
                   {ActiveStep.roleTip.client}
                 </p>
               </div>

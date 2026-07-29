@@ -4,8 +4,7 @@ import {
   Grid,
   Tv,
   Camera,
-  CheckCircle, 
-  Layers,
+  CheckCircle,
   Sparkles,
   Smartphone,
   Info,
@@ -43,6 +42,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
   const [showDeviceFrame, setShowDeviceFrame] = useState(true);
   const [isPersonalizerExpanded, setIsPersonalizerExpanded] = useState(false);
   const [filterPhase, setFilterPhase] = useState<'all' | 'approved_only'>('all');
+  const [grayscalePublished, setGrayscalePublished] = useState(false);
   const [selectedIgPost, setSelectedIgPost] = useState<any | null>(null);
   const [igComments, setIgComments] = useState<any[]>([]);
 
@@ -120,7 +120,14 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
   const instagramPosts = posts.filter(p => p.platform === 'instagram');
   
   // Apply optional phase filter (clients may only see approved/published)
+  // and only show posts that actually have a creativity uploaded — an
+  // empty gradient placeholder isn't a real preview of anything.
   const visiblePosts = instagramPosts.filter(p => {
+    const hasCreativity = p.format === 'carrusel'
+      ? (p.carouselUrls && p.carouselUrls.some(Boolean))
+      : !!p.currentDesignUrl;
+    if (!hasCreativity) return false;
+
     const isVisibleForRole = userRole !== 'client' || PHASES[p.phase].clientVisible;
     if (!isVisibleForRole) return false;
 
@@ -140,56 +147,27 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
     })
     .sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  // Helper to generate a clean gradient background or show the design URL (no technical info overlays!)
-  const getPostMedia = (post: Post) => {
-    if (post.currentDesignUrl) {
-      if (isVideoUrl(post.currentDesignUrl)) {
-        return (
-          <video 
-            src={post.currentDesignUrl} 
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            muted
-            playsInline
-          />
-        );
-      }
-      return (
-        <img 
-          src={post.currentDesignUrl} 
-          alt={post.idea} 
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          referrerPolicy="no-referrer"
-        />
-      );
+  // Every post reaching this point already has a creativity uploaded
+  // (filtered in visiblePosts), so this only ever renders real media.
+  const getPostMedia = (post: Post, grayscale: boolean) => {
+    const mediaUrl = post.currentDesignUrl || (post.carouselUrls || []).find(Boolean);
+    if (!mediaUrl) return null;
+
+    const mediaClass = cn(
+      "w-full h-full object-cover transition-all duration-500 group-hover:scale-105",
+      grayscale && post.phase === 'published' && "grayscale"
+    );
+
+    if (isVideoUrl(mediaUrl)) {
+      return <video src={mediaUrl} className={mediaClass} muted playsInline />;
     }
-
-    // Elegant neutral/gradient matching the aspect-ratio
-    const gradients = [
-      'from-neutral-800 to-stone-950',
-      'from-zinc-900 to-neutral-950',
-      'from-stone-900 to-zinc-950',
-      'from-neutral-900 to-stone-900'
-    ];
-    
-    const charSum = post.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const gradient = gradients[charSum % gradients.length];
-
     return (
-      <div className={cn("w-full h-full bg-gradient-to-tr flex flex-col justify-center items-center p-4 text-center text-white relative", gradient)}>
-        <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
-        
-        <div className="relative z-10 space-y-1">
-          <p className="text-[10px] font-black uppercase text-app-accent tracking-widest">{post.format || 'Estático'}</p>
-          <p className="text-xs font-semibold leading-normal line-clamp-4 text-white/95 px-2 drop-shadow-md">
-            {post.idea}
-          </p>
-        </div>
-
-        {/* Subtle format icon */}
-        <div className="absolute bottom-2 right-2 opacity-35">
-          <Layers size={13} className="text-white" />
-        </div>
-      </div>
+      <img
+        src={mediaUrl}
+        alt={post.idea}
+        className={mediaClass}
+        referrerPolicy="no-referrer"
+      />
     );
   };
 
@@ -222,7 +200,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-center md:justify-start">
             <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-1 justify-center sm:justify-start truncate">
               {profileUsername}
-              <span className="inline-block w-3.5 h-3.5 bg-blue-500 rounded-full text-white flex items-center justify-center p-0.5 text-[6px] font-bold shrink-0">✓</span>
+              <span className="inline-block w-3.5 h-3.5 bg-blue-500 rounded-full text-white flex items-center justify-center p-0.5 text-[11px] font-bold shrink-0">✓</span>
             </h2>
           </div>
 
@@ -240,7 +218,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
             <p className="font-bold text-gray-900">{profileUsername}</p>
             <p className="text-gray-500 whitespace-pre-wrap">{profileBio}</p>
             <div className="flex items-center gap-1 text-blue-600 font-semibold justify-center md:justify-start mt-1.5">
-              <span className="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">
+              <span className="text-[11px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">
                 Aprobados: {approvedCount}/{postsCount}
               </span>
             </div>
@@ -273,7 +251,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
             className="relative aspect-[4/5] bg-gray-100 overflow-hidden group cursor-pointer border border-transparent shadow-none transition-all rounded-none"
             whileHover={{ scale: 0.99 }}
           >
-            {getPostMedia(post)}
+            {getPostMedia(post, grayscalePublished)}
 
             {/* Hover overlay — no engagement numbers, this is a planning
                 mockup and doesn't have real likes/comments to show. */}
@@ -301,7 +279,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
               <Smartphone size={16} className="text-blue-600" />
               Vista Instagram
             </h3>
-            <span className="bg-pink-50 text-pink-600 font-bold text-[9px] px-2 py-0.5 rounded-full uppercase">
+            <span className="bg-pink-50 text-pink-600 font-bold text-[11px] px-2 py-0.5 rounded-full uppercase">
               1080x1350 Standard
             </span>
           </div>
@@ -328,14 +306,34 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
             </button>
           </div>
 
+          {/* Toggle B&W for published posts */}
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-gray-600">Publicados en B/N</span>
+            <button
+              role="switch"
+              aria-checked={grayscalePublished}
+              aria-label="Poner en blanco y negro los posts publicados"
+              onClick={() => setGrayscalePublished(!grayscalePublished)}
+              className={cn(
+                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                grayscalePublished ? "bg-blue-600" : "bg-gray-200"
+              )}
+            >
+              <span className={cn(
+                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                grayscalePublished ? "translate-x-6" : "translate-x-1"
+              )} />
+            </button>
+          </div>
+
           {/* Filter Phases */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-gray-400 uppercase block">Fases Incluidas</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase block">Fases Incluidas</label>
             <div className="grid grid-cols-2 gap-1.5 bg-gray-50 p-1 rounded-xl border border-gray-200">
               <button
                 onClick={() => setFilterPhase('all')}
                 className={cn(
-                  "py-1.5 text-[10px] font-bold rounded-lg transition-all",
+                  "py-1.5 text-[11px] font-bold rounded-lg transition-all",
                   filterPhase === 'all' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
                 )}
               >
@@ -344,7 +342,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
               <button
                 onClick={() => setFilterPhase('approved_only')}
                 className={cn(
-                  "py-1.5 text-[10px] font-bold rounded-lg transition-all",
+                  "py-1.5 text-[11px] font-bold rounded-lg transition-all",
                   filterPhase === 'approved_only' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
                 )}
               >
@@ -367,7 +365,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
             <motion.span
               animate={{ rotate: isPersonalizerExpanded ? 180 : 0 }}
               transition={{ duration: 0.2 }}
-              className="text-gray-400 text-[10px]"
+              className="text-gray-400 text-[11px]"
             >
               ▼
             </motion.span>
@@ -383,7 +381,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                 className="space-y-3 text-xs overflow-hidden pt-2 border-t border-gray-100"
               >
                 <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Nombre de Usuario</label>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase block mb-1">Nombre de Usuario</label>
                   <input 
                     type="text" 
                     value={profileUsername}
@@ -394,7 +392,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Biografía / Descripción</label>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase block mb-1">Biografía / Descripción</label>
                   <textarea 
                     rows={3}
                     value={profileBio}
@@ -405,7 +403,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Foto de Perfil</label>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase block mb-1">Foto de Perfil</label>
                   <div className="flex gap-2 items-center">
                     <input 
                       type="file" 
@@ -416,7 +414,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                     />
                     <label 
                       htmlFor="profile-pic-upload"
-                      className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg py-2 px-3 flex items-center gap-1.5 cursor-pointer font-bold text-gray-600 text-[10px] transition-colors"
+                      className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg py-2 px-3 flex items-center gap-1.5 cursor-pointer font-bold text-gray-600 text-[11px] transition-colors"
                     >
                       <Upload size={12} />
                       Subir Foto
@@ -428,7 +426,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                         setProfileImage(fallback);
                         localStorage.setItem('ig_profile_image', fallback);
                       }}
-                      className="text-gray-400 hover:text-red-500 text-[10px] font-semibold"
+                      className="text-gray-400 hover:text-red-500 text-[11px] font-semibold"
                     >
                       Resetear
                     </button>
@@ -462,7 +460,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
             {/* Simulated Phone Screen */}
             <div className="bg-white rounded-[2.5rem] overflow-hidden border border-gray-950/20 pt-4 pb-2 min-h-[640px] flex flex-col">
               {/* Phone Status bar */}
-              <div className="flex justify-between items-center px-6 text-[10px] font-bold text-gray-500 select-none">
+              <div className="flex justify-between items-center px-6 text-[11px] font-bold text-gray-500 select-none">
                 <span>09:41</span>
                 <div className="flex items-center gap-1">
                   <span>5G</span>

@@ -34,7 +34,7 @@ export default function TagListEditor({ tags, onChange, placeholder = 'Añadir..
     }
   };
 
-  const chipSize = size === 'sm' ? 'text-[10px] py-0.5 px-2' : 'text-xs py-1 px-2.5';
+  const chipSize = size === 'sm' ? 'text-[11px] py-0.5 px-2' : 'text-xs py-1 px-2.5';
   const inputSize = size === 'sm' ? 'text-[11px] py-1 px-2' : 'text-xs py-1.5 px-3';
 
   return (
