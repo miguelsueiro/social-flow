@@ -34,15 +34,17 @@
   --color-slate-900: #18181b;
   --color-slate-950: #09090b;
 
-  /* Radii capped at 16px, a contained SaaS-premium scale instead of the
+  /* Radii capped at 12px, a contained SaaS-premium scale instead of the
      softer, larger one from the previous pass (rounded-2xl and rounded-3xl
-     used to go up to 18-26px). */
+     used to go up to 18-26px). Everything from rounded-lg upward converges
+     on the same 12px "card" radius, since the app's existing markup uses
+     rounded-lg/xl/2xl/3xl fairly interchangeably for cards and panels. */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 16px;
-  --radius-3xl: 16px;
+  --radius-xl: 12px;
+  --radius-2xl: 12px;
+  --radius-3xl: 12px;
 
   /* Headings 700, labels and subtitles 600 (Tailwind's font-semibold
      default, untouched), body 400 (untouched font-normal default). */
@@ -146,6 +148,14 @@
     cursor: not-allowed;
   }
 
+  /* Toggle switches (role="switch") are fixed-size (h-6 w-11) with an
+     absolutely-centered thumb and no padding class of their own — the
+     generic button padding above was leaking in and squeezing them out of
+     shape, since nothing overrode it. */
+  button[role="switch"] {
+    padding: 0;
+  }
+
   label {
     font-weight: 500;
     color: var(--color-gray-700);
@@ -161,7 +171,10 @@
   input[type="tel"],
   select,
   textarea {
-    width: 100%;
+    /* No width here on purpose: every field that needs full width already
+       carries its own w-full class. A blanket width:100% forced compact
+       inline selects (e.g. the calendar's phase/platform/territory filter
+       row) to fill their flex row and wrap onto separate lines. */
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--color-gray-300);
     border-radius: var(--radius-md);
