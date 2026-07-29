@@ -29,7 +29,7 @@ interface NewProjectModalProps {
 export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalProps) {
   const [name, setName] = useState('');
   const [clientName, setClientName] = useState('');
-  const [color, setColor] = useState('#2563EB');
+  const [color, setColor] = useState('#4F46E5');
   const [platforms, setPlatforms] = useState<string[]>(['instagram', 'linkedin', 'tiktok']);
   const [territories, setTerritories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,7 +62,7 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <motion.div
         ref={modalRef}
         role="dialog"
@@ -74,7 +74,7 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className="bg-white rounded-3xl border border-gray-100 shadow-2xl w-full max-w-lg overflow-hidden outline-none"
       >
-        <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+        <div className="p-4 sm:p-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
           <div className="flex items-center gap-2.5">
             <div className="p-2 bg-app-accent/10 text-app-accent rounded-lg">
               <Palette size={18} />
@@ -94,7 +94,7 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5">
           <div className="space-y-4">
             <div>
               <label htmlFor="new-project-name" className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre del Proyecto / Marca</label>
@@ -105,7 +105,7 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="Ej. EcoGlow S.L."
-                className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
+                className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-md py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
               />
             </div>
             <div>
@@ -117,7 +117,7 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
                 value={clientName}
                 onChange={e => setClientName(e.target.value)}
                 placeholder="Ej. EcoGlow Cosmetics S.L."
-                className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
+                className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-md py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
               />
             </div>
             <div>
@@ -127,7 +127,7 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
                   type="color"
                   value={color}
                   onChange={e => setColor(e.target.value)}
-                  className="w-11 h-9 bg-white border border-gray-200 rounded-xl cursor-pointer p-0.5 shrink-0"
+                  className="w-11 h-9 bg-white border border-gray-200 rounded-md cursor-pointer p-0.5 shrink-0 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20"
                   aria-label="Selector de color de marca"
                 />
                 <input
@@ -135,8 +135,8 @@ export default function NewProjectModal({ onClose, onSubmit }: NewProjectModalPr
                   type="text"
                   value={color}
                   onChange={e => setColor(e.target.value)}
-                  placeholder="#2563EB"
-                  className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-xl py-2 px-3 text-xs font-mono outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all uppercase font-bold text-gray-700"
+                  placeholder="#4F46E5"
+                  className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-md py-2 px-3 text-xs font-mono outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all uppercase font-bold text-gray-700"
                 />
               </div>
               <p className="text-[11px] text-gray-400 mt-1">Este color se convertirá en el color de acento visual al seleccionar el proyecto.</p>

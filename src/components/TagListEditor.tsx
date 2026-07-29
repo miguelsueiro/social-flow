@@ -66,7 +66,7 @@ export default function TagListEditor({ tags, onChange, placeholder = 'Añadir..
           onChange={e => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={`flex-1 bg-white border border-gray-200 rounded-lg outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all ${inputSize}`}
+          className={`flex-1 bg-white border border-gray-200 rounded-md outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all ${inputSize}`}
         />
         <button
           type="button"

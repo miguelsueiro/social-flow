@@ -98,7 +98,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
               className={cn(
                 "flex-1 rounded-2xl p-3 space-y-3 min-h-[200px] border transition-all duration-200",
                 activeDropColumn === phase 
-                  ? "bg-blue-50/70 border-solid border-blue-300 shadow-inner" 
+                  ? "bg-app-accent-subtle/70 border-solid border-app-accent/40 shadow-inner" 
                   : "bg-gray-100/50 border-dashed border-gray-200"
               )}
             >
@@ -199,7 +199,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                         <MessageSquare size={11} />
                         Detalles
                       </div>
-                      <div className="p-1 rounded bg-gray-50 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                      <div className="p-1 rounded bg-gray-50 group-hover:bg-app-accent-subtle group-hover:text-app-accent transition-colors">
                         <ChevronRight size={14} />
                       </div>
                     </div>

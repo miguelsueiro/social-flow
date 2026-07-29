@@ -345,7 +345,7 @@ export default function InstagramDetailModal({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
       onClick={onClose}
     >
       <div
@@ -398,7 +398,7 @@ export default function InstagramDetailModal({
                     onClose();
                     onOpenEdit();
                   }}
-                  className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded text-[11px] font-semibold transition-colors"
+                  className="px-2.5 py-1 bg-app-accent-subtle hover:bg-app-accent/20 text-app-accent rounded text-[11px] font-semibold transition-colors"
                 >
                   Editar
                 </button>
@@ -424,7 +424,7 @@ export default function InstagramDetailModal({
                 />
                 <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-2 font-medium">
                   <span>1 h</span>
-                  {post.copyCreativity && <span className="text-blue-500 font-semibold">Copy de diseño adjunto</span>}
+                  {post.copyCreativity && <span className="text-app-accent font-semibold">Copy de diseño adjunto</span>}
                 </div>
               </div>
             </div>
@@ -432,7 +432,7 @@ export default function InstagramDetailModal({
             {/* User comments list — internal agency discussion, never shown to clients */}
             {userRole !== 'client' && comments.map((comment) => (
               <div key={comment.id} className="flex gap-3 text-left">
-                <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center font-bold text-blue-600 text-[11px] shrink-0">
+                <div className="w-7 h-7 rounded-full bg-app-accent-subtle flex items-center justify-center font-bold text-app-accent text-[11px] shrink-0">
                   {comment.authorName[0]}
                 </div>
                 <div className="flex-1">
@@ -491,12 +491,12 @@ export default function InstagramDetailModal({
                 placeholder="Añade un comentario..."
                 value={commentText}
                 onChange={e => setCommentText(e.target.value)}
-                className="w-full text-xs outline-none pr-10 py-1.5 pl-1.5 focus:bg-gray-50/30 rounded"
+                className="w-full text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 pr-10 py-1.5 pl-1.5 focus:bg-gray-50/30 rounded"
               />
               <button
                 type="submit"
                 disabled={!commentText.trim()}
-                className="absolute right-4 text-xs font-bold text-blue-600 disabled:opacity-40 hover:text-blue-800 transition-colors"
+                className="absolute right-4 text-xs font-bold text-app-accent disabled:opacity-40 hover:text-app-accent-hover transition-colors"
               >
                 Publicar
               </button>
@@ -512,7 +512,7 @@ export default function InstagramDetailModal({
       <AnimatePresence>
         {zoomedImageUrl && (
           <div 
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 cursor-default"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 cursor-default"
             onClick={(e) => {
               e.stopPropagation();
               setZoomedImageUrl(null);

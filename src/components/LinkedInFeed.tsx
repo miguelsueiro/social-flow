@@ -175,7 +175,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
     <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
       {/* Controls panel */}
       <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
           <div>
             <h3 className="font-bold text-gray-800 text-sm">Feed LinkedIn</h3>
             <p className="text-xs text-gray-400 mt-1">Simulador de feed corporativo.</p>
@@ -190,7 +190,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
               onClick={() => setGrayscalePublished(!grayscalePublished)}
               className={cn(
                 "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                grayscalePublished ? "bg-blue-600" : "bg-gray-200"
+                grayscalePublished ? "bg-app-accent" : "bg-gray-200"
               )}
             >
               <span className={cn(
@@ -295,7 +295,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                             <h4 className="font-bold text-gray-900 text-xs sm:text-sm">
                               {project?.name || 'Cliente Corporativo'}
                             </h4>
-                            <span className="text-[11px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-bold">
+                            <span className="text-[11px] bg-app-accent-subtle text-app-accent px-1.5 py-0.5 rounded-full font-bold">
                               {PHASES[post.phase].label.split(':')[1] || PHASES[post.phase].label}
                             </span>
                           </div>

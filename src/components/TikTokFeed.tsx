@@ -161,7 +161,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
           <div className="relative mb-2">
             <div 
               className="w-11 h-11 rounded-full border-2 border-white flex items-center justify-center font-bold text-xs shadow-lg overflow-hidden shrink-0"
-              style={{ backgroundColor: proj?.color || '#2563EB' }}
+              style={{ backgroundColor: proj?.color || '#4F46E5' }}
             >
               {proj ? proj.name[0].toUpperCase() : 'T'}
             </div>
@@ -309,7 +309,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
     <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
       {/* Sidebar Controls */}
       <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -327,7 +327,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
               onClick={() => setGrayscalePublished(!grayscalePublished)}
               className={cn(
                 "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                grayscalePublished ? "bg-blue-600" : "bg-gray-200"
+                grayscalePublished ? "bg-app-accent" : "bg-gray-200"
               )}
             >
               <span className={cn(
@@ -389,7 +389,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
         </div>
 
         {viewMode === 'phone' && visiblePosts.length > 1 && (
-          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
             <button
               disabled={currentPostIndex === 0}
               onClick={handlePrevPost}

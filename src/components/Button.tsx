@@ -10,15 +10,15 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: 'bg-app-accent hover:bg-app-accent-hover text-white shadow-md',
-  secondary: 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50',
-  danger: 'bg-red-600 hover:bg-red-700 text-white shadow-md',
+  primary: 'bg-app-accent hover:bg-app-accent-hover text-white shadow-sm hover:shadow-md',
+  secondary: 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:shadow-sm',
+  danger: 'bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md',
   ghost: 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: 'text-xs px-3 py-1.5 rounded-lg gap-1.5',
-  md: 'text-xs px-5 py-2.5 rounded-xl gap-2'
+  sm: 'text-xs px-3 py-1.5 rounded-md gap-1.5',
+  md: 'text-xs px-4 py-2 rounded-md gap-2'
 };
 
 /** Shared button treatment (variant + size) — the app had ~7 divergent
@@ -29,7 +29,7 @@ export default function Button({ variant = 'primary', size = 'md', className, ..
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center font-bold transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100',
+        'inline-flex items-center justify-center font-bold transition-all duration-200 ease-out active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100',
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],
         className

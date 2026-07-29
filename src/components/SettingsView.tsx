@@ -345,7 +345,7 @@ export default function SettingsView({
       {/* Role Selection Simulator Panel — admin only: it writes the real role to Firestore,
           it's not a preview. Firestore rules also enforce this independently of the UI. */}
       {userRole === 'admin' && (
-      <div className="bg-white rounded-3xl border border-amber-200 shadow-sm overflow-hidden p-6">
+      <div className="bg-white rounded-3xl border border-amber-200 shadow-sm overflow-hidden p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 bg-app-accent/10 text-app-accent rounded-2xl">
             <ShieldCheck size={22} />
@@ -396,7 +396,7 @@ export default function SettingsView({
       )}
 
       {/* 1. Project switching panel (moved from sidebar/topbar) */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-4">
           <Folder size={20} className="text-app-accent" />
           <div>
@@ -462,7 +462,7 @@ export default function SettingsView({
       {/* 1.5. Permissions panel for Admin */}
       {userRole === 'admin' && (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-fade-in">
-          <div className="p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="p-4 sm:p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
                 <Users size={18} className="text-app-accent" />
@@ -476,7 +476,7 @@ export default function SettingsView({
             </Button>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-6">
             {/* Search Input */}
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
@@ -484,7 +484,7 @@ export default function SettingsView({
                 placeholder="Buscar usuarios por nombre o correo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-2 pl-10 pr-4 text-xs focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 outline-none transition-all"
+                className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 pl-10 pr-4 text-xs focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 outline-none transition-all"
               />
             </div>
 
@@ -524,7 +524,7 @@ export default function SettingsView({
                                   type="text"
                                   value={editUserName}
                                   onChange={(e) => setEditUserName(e.target.value)}
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-app-accent transition-all"
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
                                   placeholder="Nombre completo"
                                 />
                               </div>
@@ -534,7 +534,7 @@ export default function SettingsView({
                                   type="email"
                                   value={editUserEmail}
                                   onChange={(e) => setEditUserEmail(e.target.value)}
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-app-accent transition-all"
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
                                   placeholder="correo@ejemplo.com"
                                 />
                               </div>
@@ -543,7 +543,7 @@ export default function SettingsView({
                                 <select
                                   value={editUserStatus}
                                   onChange={(e) => setEditUserStatus(e.target.value)}
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-app-accent transition-all cursor-pointer"
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all cursor-pointer"
                                 >
                                   <option value="active">Activo</option>
                                   <option value="pending">Pendiente</option>
@@ -555,9 +555,9 @@ export default function SettingsView({
                               <div className="flex items-center gap-2">
                                 <p className="font-bold text-gray-900 text-xs">{usr.name}</p>
                                 {usr.status === 'pending' ? (
-                                  <span className="bg-amber-50 text-amber-700 font-extrabold px-1.5 py-0.5 rounded text-[11px] uppercase tracking-wider animate-pulse">Pendiente</span>
+                                  <span className="bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded-full text-[11px] uppercase tracking-wider animate-pulse">Pendiente</span>
                                 ) : (
-                                  <span className="bg-emerald-50 text-emerald-700 font-extrabold px-1.5 py-0.5 rounded text-[11px] uppercase tracking-wider">Activo</span>
+                                  <span className="bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-full text-[11px] uppercase tracking-wider">Activo</span>
                                 )}
                               </div>
                               <p className="text-[11px] text-gray-400">{usr.email}</p>
@@ -594,7 +594,7 @@ export default function SettingsView({
                                   <select
                                     value={usr.role || 'client'}
                                     onChange={(e) => handleRoleChangeInDb(usr.id, e.target.value as Role)}
-                                    className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-app-accent transition-all cursor-pointer"
+                                    className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all cursor-pointer"
                                   >
                                     {Object.entries(ROLES).map(([key, label]) => (
                                       <option key={key} value={key}>{label}</option>
@@ -690,7 +690,7 @@ export default function SettingsView({
       {/* 2. Global Project & Client Admin CRUD Panel */}
       {userRole !== 'client' && (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+          <div className="p-4 sm:p-6 border-b border-gray-50 flex items-center justify-between">
             <div>
               <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
                 <Folder size={18} className="text-app-accent" />
@@ -706,7 +706,7 @@ export default function SettingsView({
             )}
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             {isAdding && (
               <NewProjectModal
                 onClose={() => setIsAdding(false)}
@@ -718,13 +718,13 @@ export default function SettingsView({
             <div className="overflow-x-auto rounded-xl border border-gray-100">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50 text-[11px] font-black text-gray-400 uppercase tracking-wider">
-                    <th className="px-4 py-3">Color</th>
-                    <th className="px-4 py-3">Nombre del Proyecto</th>
-                    <th className="px-4 py-3">Cliente Legal</th>
-                    <th className="px-4 py-3">Redes Activas</th>
-                    <th className="px-4 py-3">Territorios</th>
-                    <th className="px-4 py-3 text-right">Acciones</th>
+                  <tr className="border-b border-gray-100 bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-4">Color</th>
+                    <th className="px-4 py-4">Nombre del Proyecto</th>
+                    <th className="px-4 py-4">Cliente Legal</th>
+                    <th className="px-4 py-4">Redes Activas</th>
+                    <th className="px-4 py-4">Territorios</th>
+                    <th className="px-4 py-4 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -732,7 +732,7 @@ export default function SettingsView({
                     const isEditing = editingProjId === proj.id;
                     return (
                       <tr key={proj.id} className="hover:bg-gray-50/40">
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-4">
                           {isEditing ? (
                             <input 
                               type="color" 
@@ -744,31 +744,31 @@ export default function SettingsView({
                             <div className="w-5 h-5 rounded-full border border-gray-100" style={{ backgroundColor: proj.color }} />
                           )}
                         </td>
-                        <td className="px-4 py-3 font-bold text-gray-900">
+                        <td className="px-4 py-4 font-bold text-gray-900">
                           {isEditing ? (
                             <input 
                               type="text"
                               value={editName}
                               onChange={e => setEditName(e.target.value)}
-                              className="bg-white border border-gray-200 rounded px-2 py-1 text-xs w-full font-bold"
+                              className="bg-white border border-gray-200 rounded px-3 py-2 text-xs w-full font-bold"
                             />
                           ) : (
                             proj.name
                           )}
                         </td>
-                        <td className="px-4 py-3 text-gray-500 font-medium">
+                        <td className="px-4 py-4 text-gray-500 font-medium">
                           {isEditing ? (
                             <input 
                               type="text"
                               value={editClient}
                               onChange={e => setEditClient(e.target.value)}
-                              className="bg-white border border-gray-200 rounded px-2 py-1 text-xs w-full"
+                              className="bg-white border border-gray-200 rounded px-3 py-2 text-xs w-full"
                             />
                           ) : (
                             proj.clientName
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-4">
                           {isEditing ? (
                             <div className="flex gap-2 flex-wrap items-center">
                               {[
@@ -820,7 +820,7 @@ export default function SettingsView({
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 max-w-[220px]">
+                        <td className="px-4 py-4 max-w-[220px]">
                           {isEditing ? (
                             <TagListEditor
                               tags={editTerritories}
@@ -842,7 +842,7 @@ export default function SettingsView({
                             )
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-4 text-right">
                           {isEditing ? (
                             <div className="flex justify-end gap-1.5">
                               <button
@@ -888,7 +888,7 @@ export default function SettingsView({
 
       {/* 3. Original agency/workspace settings */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-50">
+        <div className="p-4 sm:p-6 border-b border-gray-50">
           <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
             <Settings size={18} className="text-app-accent" />
             Configuración del Workspace
@@ -896,7 +896,7 @@ export default function SettingsView({
           <p className="text-xs text-gray-400 mt-1">Establece los parámetros generales y las preferencias de notificación de tu agencia.</p>
         </div>
 
-        <form onSubmit={handleSaveAgencySettings} className="p-6 space-y-6">
+        <form onSubmit={handleSaveAgencySettings} className="p-4 sm:p-6 space-y-6">
           {/* General Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest">
@@ -911,7 +911,7 @@ export default function SettingsView({
                   type="text" 
                   value={agencyName}
                   onChange={(e) => setAgencyName(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:bg-white transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all"
                   required
                 />
               </div>
@@ -921,7 +921,7 @@ export default function SettingsView({
                 <select 
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:bg-white transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all"
                 >
                   <option value="Europe/Madrid">Madrid (CET) - Europe/Madrid</option>
                   <option value="America/New_York">New York (EST) - America/New_York</option>
@@ -1006,12 +1006,12 @@ export default function SettingsView({
 
       {/* Custom Confirmation Modal */}
       {projectToDelete && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-3xl p-6 max-w-md w-full shadow-xl border border-gray-100"
+            className="bg-white rounded-3xl p-4 sm:p-6 max-w-md w-full shadow-xl border border-gray-100"
           >
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
@@ -1063,7 +1063,7 @@ export default function SettingsView({
             tabIndex={-1}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-gray-100 outline-none"
+            className="bg-white rounded-3xl p-4 sm:p-6 max-w-md w-full shadow-2xl border border-gray-100 outline-none"
           >
             <div className="flex justify-between items-start mb-1">
               <div>
@@ -1091,7 +1091,7 @@ export default function SettingsView({
                   placeholder="Buscar proyecto..."
                   value={projectAccessSearch}
                   onChange={(e) => setProjectAccessSearch(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 pl-8 pr-3 text-xs outline-none focus:bg-white focus:border-app-accent transition-all text-gray-800"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 pl-8 pr-3 text-xs outline-none focus:bg-white focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all text-gray-800"
                 />
               </div>
             )}
@@ -1165,7 +1165,7 @@ export default function SettingsView({
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-gray-100"
+            className="bg-white rounded-3xl p-4 sm:p-6 max-w-md w-full shadow-2xl border border-gray-100"
           >
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-app-accent/10 text-app-accent rounded-2xl">
@@ -1195,7 +1195,7 @@ export default function SettingsView({
                   value={inviteName}
                   onChange={(e) => setInviteName(e.target.value)}
                   placeholder="Ej. Ana Belén"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-app-accent focus:bg-white transition-all text-gray-800"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-gray-800"
                   required
                 />
               </div>
@@ -1207,7 +1207,7 @@ export default function SettingsView({
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="Ej. ana.client@basetis.com"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-app-accent focus:bg-white transition-all text-gray-800"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-gray-800"
                   required
                 />
               </div>
@@ -1217,7 +1217,7 @@ export default function SettingsView({
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as Role)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-app-accent focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
                 >
                   {ASSIGNABLE_ROLES.map((key) => (
                     <option key={key} value={key}>{ROLES[key]}</option>
@@ -1232,7 +1232,7 @@ export default function SettingsView({
                     value={inviteProjectId}
                     onChange={(e) => setInviteProjectId(e.target.value)}
                     required
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-app-accent focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
                   >
                     <option value="">Selecciona un proyecto...</option>
                     {projects.map(p => (

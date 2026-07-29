@@ -483,7 +483,7 @@ export default function App() {
   // Set the dynamic accent colors on documentElement based on the active project
   useEffect(() => {
     const activeProj = projects.find(p => p.id === activeProjectId);
-    const color = activeProj?.color || '#2563EB'; // Fallback to Royal Blue
+    const color = activeProj?.color || '#4F46E5'; // Fallback to the app accent
     document.documentElement.style.setProperty('--app-accent', color);
     const hoverColor = darkenColor(color, -10);
     document.documentElement.style.setProperty('--app-accent-hover', hoverColor);
@@ -1112,20 +1112,20 @@ export default function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent"></div>
+        <div className="w-12 h-12 bg-app-accent rounded-2xl animate-pulse shadow-lg shadow-app-accent/20" />
       </div>
     );
   }
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-50/50 to-blue-50/50">
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 bg-gradient-to-br from-app-accent-subtle/60 to-app-accent-subtle/20">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md w-full text-center space-y-8"
         >
-          <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-indigo-100">
+          <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-app-accent/20">
              <div className="w-20 h-20 bg-app-accent rounded-3xl mx-auto flex items-center justify-center text-white shadow-lg shadow-app-accent/20 mb-6">
                 <LayoutDashboard size={40} />
              </div>
@@ -1151,13 +1151,13 @@ export default function App() {
 
   if (userRole === 'pending' && !isOfflineMode) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-50/50 to-blue-50/50">
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 bg-gradient-to-br from-app-accent-subtle/60 to-app-accent-subtle/20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md w-full text-center space-y-6"
         >
-          <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-indigo-100">
+          <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-app-accent/20">
             <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-3xl mx-auto flex items-center justify-center mb-6">
               <Clock size={40} />
             </div>
@@ -1270,7 +1270,7 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <div 
                   className="w-3.5 h-3.5 rounded-full shrink-0"
-                  style={{ backgroundColor: activeProjectId === 'dashboard' ? '#6366F1' : (projects.find(p => p.id === activeProjectId)?.color || '#2563EB') }}
+                  style={{ backgroundColor: activeProjectId === 'dashboard' ? '#4F46E5' : (projects.find(p => p.id === activeProjectId)?.color || '#4F46E5') }}
                 />
                 <span className="text-xs font-bold text-gray-800 truncate">
                   {activeProjectId === 'dashboard' ? '📂 Panel de Proyectos' : activeProjectId === 'all' ? '📁 Todos los Proyectos' : (projects.find(p => p.id === activeProjectId)?.name || 'Cargando...')}
@@ -1329,7 +1329,7 @@ export default function App() {
                   }
                 }}
                 placeholder="Buscar posts, ideas, copys, plataformas..." 
-                className="w-full bg-gray-50 border border-transparent rounded-2xl py-2.5 pl-12 pr-10 text-sm focus:bg-white focus:border-app-accent/20 focus:ring-4 focus:ring-app-accent/5 transition-all outline-none"
+                className="w-full bg-gray-50 border border-transparent rounded-md py-2.5 pl-12 pr-10 text-sm focus:bg-white focus:border-app-accent/20 focus:ring-4 focus:ring-app-accent/5 transition-all outline-none"
               />
               {searchQuery && (
                 <button 
@@ -1439,7 +1439,7 @@ export default function App() {
 
               <button 
                 onClick={() => setShowGuideModal(true)}
-                className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all flex items-center justify-center shrink-0"
+                className="p-2.5 bg-app-accent-subtle text-app-accent hover:bg-app-accent/20 rounded-xl transition-all flex items-center justify-center shrink-0"
                 title="Abrir Guía de Uso"
                 aria-label="Abrir Guía de Uso"
               >
@@ -1470,7 +1470,7 @@ export default function App() {
               {/* Dashboard top navigation bar (only inside dashboard itself) */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-base shadow-sm">
+                  <div className="w-9 h-9 bg-app-accent rounded-xl flex items-center justify-center text-white font-black text-base shadow-sm">
                     <LayoutDashboard size={18} />
                   </div>
                   <span className="text-lg font-black text-slate-900 tracking-tight">SocialFlow</span>
@@ -1505,10 +1505,10 @@ export default function App() {
 
               {/* Welcome banner (Minimalist look) */}
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/30 rounded-full translate-x-32 -translate-y-32 blur-3xl" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-app-accent/10 rounded-full translate-x-32 -translate-y-32 blur-3xl" />
                 <div className="relative z-10 space-y-3">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-indigo-600 uppercase tracking-wider">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-app-accent uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-app-accent animate-pulse" />
                     Panel de Control Global
                   </span>
                   <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
@@ -1524,7 +1524,7 @@ export default function App() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
-                    <Grid size={16} className="text-indigo-600" />
+                    <Grid size={16} className="text-app-accent" />
                     Tus proyectos
                   </h3>
                   {userRole === 'admin' && (
@@ -1568,7 +1568,7 @@ export default function App() {
                             {/* Card Header */}
                             <div className="flex items-start justify-between gap-4">
                               <div className="space-y-1.5">
-                                <h4 className="font-black text-slate-900 text-lg sm:text-xl group-hover:text-indigo-600 transition-colors line-clamp-1 tracking-tight">
+                                <h4 className="font-black text-slate-900 text-lg sm:text-xl group-hover:text-app-accent transition-colors line-clamp-1 tracking-tight">
                                   {proj.name}
                                 </h4>
                                 <p className="text-xs text-slate-400 font-semibold">
@@ -1599,14 +1599,14 @@ export default function App() {
                               </div>
                               <div className="space-y-1">
                                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">Publicados</p>
-                                <p className="text-xl sm:text-2xl font-black text-indigo-600">{publicados}</p>
+                                <p className="text-xl sm:text-2xl font-black text-app-accent">{publicados}</p>
                               </div>
                             </div>
 
                             {/* Access Button */}
                             <button
                               type="button"
-                              className="w-full bg-slate-50 group-hover:bg-indigo-600 group-hover:text-white text-slate-700 font-extrabold text-xs py-3 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 border border-slate-100"
+                              className="w-full bg-slate-50 group-hover:bg-app-accent group-hover:text-white text-slate-700 font-extrabold text-xs py-3 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 border border-slate-100"
                             >
                               Entrar al Proyecto
                               <span className="text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-transform">→</span>
@@ -1628,7 +1628,7 @@ export default function App() {
                     { label: 'Total Posts', value: stats.total, icon: FileText, color: 'text-app-accent', bg: 'bg-app-accent/10' },
                     { label: 'En Producción', value: stats.pending, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
                     { label: 'Aprobados', value: stats.approved, icon: Trophy, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                    { label: 'Publicados', value: stats.published, icon: ShieldCheck, color: 'text-indigo-600', bg: 'bg-indigo-50' }
+                    { label: 'Publicados', value: stats.published, icon: ShieldCheck, color: 'text-app-accent', bg: 'bg-app-accent-subtle' }
                   ].map((stat, i) => (
                     <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:scale-[1.02]">
                       <div className={cn("p-3 rounded-xl", stat.bg, stat.color)}>
@@ -1679,7 +1679,7 @@ export default function App() {
                           value={filterPhase}
                           onChange={e => setFilterPhase(e.target.value as Phase | 'all')}
                           aria-label="Filtrar por fase"
-                          className="bg-white border border-gray-200 rounded-lg py-1.5 px-2.5 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent cursor-pointer"
+                          className="bg-white border border-gray-200 rounded-md py-2 px-3 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
                         >
                           <option value="all">Todas las fases</option>
                           {(Object.keys(PHASES) as Phase[]).filter(p => p !== 'idea_2').map(p => (
@@ -1690,7 +1690,7 @@ export default function App() {
                           value={filterPlatform}
                           onChange={e => setFilterPlatform(e.target.value as any)}
                           aria-label="Filtrar por plataforma"
-                          className="bg-white border border-gray-200 rounded-lg py-1.5 px-2.5 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent cursor-pointer"
+                          className="bg-white border border-gray-200 rounded-md py-2 px-3 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
                         >
                           <option value="all">Todas las plataformas</option>
                           <option value="instagram">Instagram</option>
@@ -1702,7 +1702,7 @@ export default function App() {
                             value={filterTerritory}
                             onChange={e => setFilterTerritory(e.target.value)}
                             aria-label="Filtrar por territorio"
-                            className="bg-white border border-gray-200 rounded-lg py-1.5 px-2.5 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent cursor-pointer"
+                            className="bg-white border border-gray-200 rounded-md py-2 px-3 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
                           >
                             <option value="all">Todos los territorios</option>
                             {projectTerritories.map(t => (

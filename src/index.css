@@ -1,51 +1,194 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Geist+Mono:wght@100..900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* Softer, more generous rounding than Tailwind's defaults — reads as a
-     premium/modern surface instead of the previous flattened-down scale. */
+  /* Neutral scale consolidated onto Zinc. Overriding Tailwind's built-in
+     gray and slate namespaces (instead of editing every gray- and
+     slate-prefixed class across the app) makes every existing
+     text-gray-400, border-slate-100, bg-gray-50, etc. resolve to this exact
+     scale with zero component edits. Zinc itself already matches these
+     values, so it is left untouched. */
+  --color-gray-50:  #fafafa;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #e4e4e7;
+  --color-gray-300: #d4d4d8;
+  --color-gray-400: #a1a1aa;
+  --color-gray-500: #71717a;
+  --color-gray-600: #52525b;
+  --color-gray-700: #3f3f46;
+  --color-gray-800: #27272a;
+  --color-gray-900: #18181b;
+  --color-gray-950: #09090b;
+  --color-slate-50:  #fafafa;
+  --color-slate-100: #f4f4f5;
+  --color-slate-200: #e4e4e7;
+  --color-slate-300: #d4d4d8;
+  --color-slate-400: #a1a1aa;
+  --color-slate-500: #71717a;
+  --color-slate-600: #52525b;
+  --color-slate-700: #3f3f46;
+  --color-slate-800: #27272a;
+  --color-slate-900: #18181b;
+  --color-slate-950: #09090b;
+
+  /* Radii capped at 16px, a contained SaaS-premium scale instead of the
+     softer, larger one from the previous pass (rounded-2xl and rounded-3xl
+     used to go up to 18-26px). */
+  --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-lg: 10px;
-  --radius-xl: 14px;
-  --radius-2xl: 18px;
-  --radius-3xl: 26px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 16px;
+  --radius-3xl: 16px;
 
-  /* Real font weights instead of the previous 500/600/600 cap, which made
-     every "bold" in the app look identically semi-bold with no headline
-     contrast. Geist ships the full 100-900 range, so this is free. */
+  /* Headings 700, labels and subtitles 600 (Tailwind's font-semibold
+     default, untouched), body 400 (untouched font-normal default). */
   --font-weight-bold: 700;
-  --font-weight-extrabold: 800;
-  --font-weight-black: 900;
+  --font-weight-extrabold: 700;
+  --font-weight-black: 700;
 
-  /* Layered, low-opacity shadows (à la Linear/Stripe) instead of Tailwind's
-     flat single-layer defaults — this alone upgrades every existing
-     shadow-sm/md/lg/xl/2xl usage across the app with no per-component edits. */
-  --shadow-sm: 0 1px 2px 0 rgba(16, 24, 40, 0.04), 0 1px 3px 0 rgba(16, 24, 40, 0.06);
-  --shadow-md: 0 2px 4px -2px rgba(16, 24, 40, 0.04), 0 4px 8px -2px rgba(16, 24, 40, 0.08);
-  --shadow-lg: 0 4px 6px -2px rgba(16, 24, 40, 0.03), 0 12px 16px -4px rgba(16, 24, 40, 0.08);
-  --shadow-xl: 0 8px 8px -4px rgba(16, 24, 40, 0.03), 0 20px 24px -4px rgba(16, 24, 40, 0.08);
-  --shadow-2xl: 0 24px 48px -12px rgba(16, 24, 40, 0.18);
+  /* Two shadow families: sm and md read as a resting card, barely visible;
+     lg, xl and 2xl read as elevated, soft, wide blur, low opacity. */
+  --shadow-sm: 0 1px 2px 0 rgba(24, 24, 27, 0.04), 0 1px 3px 0 rgba(24, 24, 27, 0.06);
+  --shadow-md: 0 2px 4px 0 rgba(24, 24, 27, 0.04), 0 4px 12px 0 rgba(24, 24, 27, 0.08);
+  --shadow-lg: 0 8px 16px -4px rgba(24, 24, 27, 0.10), 0 20px 40px -12px rgba(24, 24, 27, 0.14);
+  --shadow-xl: 0 12px 20px -4px rgba(24, 24, 27, 0.12), 0 24px 48px -12px rgba(24, 24, 27, 0.16);
+  --shadow-2xl: 0 24px 48px -12px rgba(24, 24, 27, 0.22);
 
-  /* Registering these as real theme colors (not just hand-written .bg-app-accent
-     classes) makes Tailwind generate every variant for free: bg/text/border/ring,
-     hover:, and opacity modifiers like bg-app-accent/10 — none of which worked
-     before, since a plain CSS custom property isn't a color Tailwind knows about. */
+  /* Registering these as real theme colors (not just hand-written classes)
+     makes Tailwind generate every variant for free: bg, text, border, ring,
+     hover, and opacity modifiers such as bg-app-accent/10. */
   --color-app-accent: var(--app-accent);
   --color-app-accent-hover: var(--app-accent-hover);
+  --color-app-accent-subtle: var(--app-accent-subtle);
 }
 
 @layer base {
+  /* Global "no more abrupt swaps" pass: background/border/text color changes
+     (hover states, active nav items, theme-driven recolors) ease in instead
+     of snapping. Opacity and transform are deliberately excluded — Framer
+     Motion drives those directly on its own animated elements throughout
+     the app, and a competing CSS transition on the same properties would
+     fight it and look janky rather than smooth. */
+  *, *::before, *::after {
+    transition-property: background-color, border-color, color;
+    transition-duration: 150ms;
+    transition-timing-function: ease;
+  }
+
   body {
     @apply font-sans;
+    line-height: 1.6;
+    color: var(--color-gray-600);
+  }
+
+  /* "Imprenta" look for real heading tags: tighter tracking, never pure
+     black. Most headings in the app already set their own text-gray-900
+     (now Zinc-900 via the palette override above) and font-bold/extrabold,
+     which still win for color/weight — this only fills in letter-spacing
+     and a color fallback for any heading that doesn't set one. */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+    color: var(--color-gray-900);
+    font-weight: 600;
+  }
+
+  hr {
+    border-color: var(--color-gray-100);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  thead th {
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-gray-500);
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--color-gray-200);
+  }
+  tbody td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--color-gray-100);
+  }
+  tbody tr:hover {
+    background-color: var(--color-gray-50);
+  }
+
+  /* Baseline for any button without its own Tailwind utility classes.
+     Tailwind's cascade puts @layer utilities above @layer base, so a
+     className like rounded-xl, border, or px-4 on an actual button in the
+     app still wins over these — this is the fallback, not a repaint of
+     already-styled buttons. */
+  button,
+  .btn {
+    border-radius: var(--radius-md);
+    padding: 0.5rem 1rem;
+    border: none;
+    background-image: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  button:hover,
+  .btn:hover {
+    filter: brightness(0.96);
+    box-shadow: var(--shadow-sm);
+  }
+  button:disabled,
+  .btn:disabled {
+    cursor: not-allowed;
+  }
+
+  label {
+    font-weight: 500;
+    color: var(--color-gray-700);
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  input[type="date"],
+  input[type="url"],
+  input[type="tel"],
+  select,
+  textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    background-color: white;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    outline: none;
+  }
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="search"]:focus,
+  input[type="number"]:focus,
+  input[type="date"]:focus,
+  input[type="url"]:focus,
+  input[type="tel"]:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--color-app-accent);
+    box-shadow: 0 0 0 3px var(--app-accent-ring);
   }
 }
 
 :root {
-  --app-accent: #2563eb;
-  --app-accent-hover: #1d4ed8;
+  --app-accent: #4f46e5;
+  --app-accent-hover: #4338ca;
+  --app-accent-subtle: #eef2ff;
+  --app-accent-ring: rgb(79 70 229 / 0.15);
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -99,8 +242,3 @@
 .shadow-text {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
 }
-
-
-
-
-

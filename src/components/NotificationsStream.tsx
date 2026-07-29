@@ -114,10 +114,10 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
     <div className="flex-1 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col max-w-4xl mx-auto w-full">
       <div className="p-6 border-b border-gray-50 flex items-center justify-between">
         <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
-          <Bell size={18} className="text-blue-600 animate-pulse" />
+          <Bell size={18} className="text-app-accent animate-pulse" />
           Historial de Notificaciones y Actividad
         </h3>
-        <span className="text-[11px] bg-indigo-50 text-indigo-600 font-extrabold px-2.5 py-0.5 rounded-full uppercase">
+        <span className="text-[11px] bg-app-accent-subtle text-app-accent font-extrabold px-2.5 py-0.5 rounded-full uppercase">
           En Vivo
         </span>
       </div>
@@ -125,7 +125,7 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
       <div className="flex-1 overflow-y-auto divide-y divide-gray-100 p-4 space-y-2">
         {loading ? (
           <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <div className="w-8 h-8 bg-app-accent/20 rounded-xl animate-pulse"></div>
           </div>
         ) : notifications.length === 0 ? (
           <div className="text-center py-24 text-gray-400">
@@ -164,7 +164,7 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
                   </span>
                 </div>
                 <p className="text-xs text-gray-600 font-medium leading-relaxed">
-                  {notif.action} <span className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">"{notif.target}"</span>
+                  {notif.action} <span className="font-bold text-gray-900 group-hover:text-app-accent transition-colors">"{notif.target}"</span>
                 </p>
               </div>
 

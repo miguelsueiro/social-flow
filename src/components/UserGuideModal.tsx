@@ -175,7 +175,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
   const IconComponent = ActiveStep.icon;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div
         ref={containerRef}
         role="dialog"
@@ -188,7 +188,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
         className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col md:flex-row h-[550px] outline-none"
       >
         {/* Left Side: Step Indicator Panel */}
-        <div className="w-full md:w-52 bg-slate-50 border-r border-slate-100 p-6 flex flex-col justify-between shrink-0">
+        <div className="w-full md:w-52 bg-slate-50 border-r border-slate-100 p-4 sm:p-6 flex flex-col justify-between shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-6">
               <div className="p-1.5 bg-app-accent text-white rounded-lg">
@@ -221,7 +221,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
         </div>
 
         {/* Right Side: Step Content Area */}
-        <div className="flex-1 p-6 md:p-8 flex flex-col justify-between overflow-hidden">
+        <div className="flex-1 p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-hidden">
           {/* Header */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -266,12 +266,12 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
 
             {/* Role tips section */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-100">
-              <div className="p-3 bg-indigo-50/40 rounded-xl border border-indigo-100/50">
+              <div className="p-3 bg-app-accent-subtle/40 rounded-xl border border-app-accent/20">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Zap size={11} className="text-indigo-600" />
-                  <span className="text-[11px] font-black text-indigo-800 uppercase tracking-wider">Como Agencia</span>
+                  <Zap size={11} className="text-app-accent" />
+                  <span className="text-[11px] font-black text-app-accent-hover uppercase tracking-wider">Como Agencia</span>
                 </div>
-                <p className="text-[11px] text-indigo-950/80 font-medium leading-relaxed">
+                <p className="text-[11px] text-app-accent-hover/90 font-medium leading-relaxed">
                   {ActiveStep.roleTip.agency}
                 </p>
               </div>
