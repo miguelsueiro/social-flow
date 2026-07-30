@@ -29,11 +29,12 @@ interface Post {
   copyCreativity?: string;
   copyCaption?: string;
   currentDesignUrl?: string;
+  reelCoverUrl?: string;
 }
 
 interface InstagramFeedProps {
   posts: Post[];
-  onSelectPost: (post: Post) => void;
+  onSelectPost: (post: Post, initialTab?: 'comments' | 'feedback') => void;
   userRole: string;
 }
 
@@ -150,7 +151,11 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
   // Every post reaching this point already has a creativity uploaded
   // (filtered in visiblePosts), so this only ever renders real media.
   const getPostMedia = (post: Post, grayscale: boolean) => {
-    const mediaUrl = post.currentDesignUrl || (post.carouselUrls || []).find(Boolean);
+    // Reels show their uploaded cover image in the grid, just like real
+    // Instagram — the grid is a static thumbnail wall, not a video player.
+    const mediaUrl = (post.format === 'reel' && post.reelCoverUrl)
+      || post.currentDesignUrl
+      || (post.carouselUrls || []).find(Boolean);
     if (!mediaUrl) return null;
 
     const mediaClass = cn(
@@ -549,7 +554,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
           onAddComment={handleAddIgComment}
           onClose={() => setSelectedIgPost(null)}
           userRole={userRole}
-          onOpenEdit={() => onSelectPost(selectedIgPost)}
+          onOpenEdit={(tab) => onSelectPost(selectedIgPost, tab)}
         />
       )}
     </div>

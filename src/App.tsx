@@ -218,6 +218,14 @@ export default function App() {
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [activeProjectId, setActiveProjectId] = useState<string>('dashboard');
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
+  const [selectedPostInitialTab, setSelectedPostInitialTab] = useState<'comments' | 'feedback' | undefined>(undefined);
+  // Feeds' "Comentar" buttons call this so the modal opens straight on the
+  // right conversation thread — Comentarios for the agency, Feedback
+  // (Cliente) for clients — instead of always landing on Producción.
+  const openPostModal = (post: any, initialTab?: 'comments' | 'feedback') => {
+    setSelectedPostInitialTab(initialTab);
+    setSelectedPost(post);
+  };
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState<any[]>([]);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
@@ -1751,7 +1759,7 @@ export default function App() {
                       posts={calendarBoardPosts}
                       userRole={userRole}
                       onAddPost={handleCreatePost}
-                      onSelectPost={setSelectedPost}
+                      onSelectPost={openPostModal}
                       onUpdatePost={handleUpdatePostDirectly}
                       loading={postsLoading || projectsLoading}
                     />
@@ -1759,7 +1767,7 @@ export default function App() {
                     <Board
                       posts={calendarBoardPosts}
                       userRole={userRole}
-                      onSelectPost={setSelectedPost}
+                      onSelectPost={openPostModal}
                       onUpdatePost={handleUpdatePostDirectly}
                       loading={postsLoading || projectsLoading}
                     />
@@ -1769,7 +1777,7 @@ export default function App() {
                 {sidebarTab === 'instagram_feed' && (
                   <InstagramFeed 
                     posts={filteredPosts} 
-                    onSelectPost={setSelectedPost}
+                    onSelectPost={openPostModal}
                     userRole={userRole}
                   />
                 )}
@@ -1777,7 +1785,7 @@ export default function App() {
                 {sidebarTab === 'linkedin_feed' && (
                   <LinkedInFeed 
                     posts={filteredPosts} 
-                    onSelectPost={setSelectedPost}
+                    onSelectPost={openPostModal}
                     userRole={userRole}
                     projects={projects}
                   />
@@ -1786,7 +1794,7 @@ export default function App() {
                 {sidebarTab === 'tiktok_feed' && (
                   <TikTokFeed 
                     posts={filteredPosts} 
-                    onSelectPost={setSelectedPost}
+                    onSelectPost={openPostModal}
                     userRole={userRole}
                     projects={projects}
                   />
@@ -1873,9 +1881,9 @@ export default function App() {
         )}
 
         {selectedPost && (
-          <PostModal 
-            post={selectedPost} 
-            onClose={() => setSelectedPost(null)}
+          <PostModal
+            post={selectedPost}
+            onClose={() => { setSelectedPost(null); setSelectedPostInitialTab(undefined); }}
             userRole={userRole}
             comments={comments}
             feedbacks={feedbacks}
@@ -1888,6 +1896,7 @@ export default function App() {
             onDelete={handleDeletePost}
             onDuplicate={handleDuplicatePost}
             projects={projects}
+            initialTab={selectedPostInitialTab}
           />
         )}
 

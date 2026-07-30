@@ -38,7 +38,7 @@ interface Post {
 
 interface LinkedInFeedProps {
   posts: Post[];
-  onSelectPost: (post: Post) => void;
+  onSelectPost: (post: Post, initialTab?: 'comments' | 'feedback') => void;
   userRole: string;
   projects?: any[];
 }
@@ -164,7 +164,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
         )}
         {isReel && (
           <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[11px] font-bold">
-            🎥 Reel Vertical
+            🎥 Reel Horizontal (1920x1080)
           </div>
         )}
       </div>
@@ -340,8 +340,8 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                         <ThumbsUp size={14} fill={isLiked ? "currentColor" : "none"} />
                         <span>Reaccionar</span>
                       </button>
-                      <button 
-                        onClick={() => onSelectPost(post)}
+                      <button
+                        onClick={() => onSelectPost(post, userRole !== 'client' ? 'comments' : 'feedback')}
                         className="py-2 flex items-center justify-center gap-1.5 hover:bg-gray-50 rounded-lg transition-colors hover:text-gray-700"
                       >
                         <MessageSquare size={14} />

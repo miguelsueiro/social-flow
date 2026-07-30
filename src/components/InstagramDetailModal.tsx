@@ -26,7 +26,7 @@ interface InstagramDetailModalProps {
   onAddComment: (text: string) => void;
   onClose: () => void;
   userRole: string;
-  onOpenEdit?: () => void;
+  onOpenEdit?: (initialTab?: 'comments' | 'feedback') => void;
 }
 
 export default function InstagramDetailModal({ 
@@ -461,7 +461,15 @@ export default function InstagramDetailModal({
                 <button onClick={toggleLike} className="hover:scale-110 transition-transform" aria-label={isLiked ? "Quitar me gusta" : "Me gusta"}>
                   <Heart size={20} className={cn(isLiked ? "fill-red-500 text-red-500" : "text-gray-700")} />
                 </button>
-                <button className="hover:scale-110 transition-transform" aria-label="Comentar">
+                <button
+                  onClick={() => {
+                    if (!onOpenEdit) return;
+                    onClose();
+                    onOpenEdit(userRole !== 'client' ? 'comments' : 'feedback');
+                  }}
+                  className="hover:scale-110 transition-transform"
+                  aria-label="Comentar"
+                >
                   <MessageCircle size={20} />
                 </button>
                 <button className="hover:scale-110 transition-transform" aria-label="Compartir">

@@ -80,6 +80,7 @@ interface Post {
   copyCreativity: string;
   copyCaption: string;
   currentDesignUrl: string;
+  reelCoverUrl?: string;
   format?: 'estatico' | 'reel' | 'carrusel';
   carouselUrls?: string[];
   projectId?: string;
@@ -114,6 +115,7 @@ interface PostModalProps {
   onUpdateFeedback?: (feedbackId: string, text: string) => void;
   onDeleteFeedback?: (feedbackId: string) => void;
   projects?: any[];
+  initialTab?: 'comments' | 'feedback';
 }
 
 interface VersionFeedbackControlProps {
@@ -418,10 +420,11 @@ export default function PostModal({
   onToggleFeedbackDone,
   onUpdateFeedback,
   onDeleteFeedback,
-  projects = []
+  projects = [],
+  initialTab
 }: PostModalProps) {
   const [activeTab, setActiveTab] = useState<'idea' | 'production' | 'history' | 'comments' | 'feedback'>(
-    userRole !== 'client' && post && post.phase === 'idea_1' ? 'idea' : 'production'
+    initialTab || (userRole !== 'client' && post && post.phase === 'idea_1' ? 'idea' : 'production')
   );
   const [commentText, setCommentText] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
@@ -956,6 +959,32 @@ export default function PostModal({
     reader.readAsDataURL(file);
   };
 
+  const processAndSetReelCover = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('La portada del reel debe ser una imagen.');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('La imagen de portada es demasiado grande (máximo 15MB).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // 1080x1350 (4:5) is Instagram's own recommended reel cover size.
+      compressImage(reader.result as string, 1080, 1350).then(compressedUrl => {
+        if (compressedUrl.length > 1000000) {
+          toast.error('La portada comprimida es demasiado grande para Firestore (>1MB). Intenta con una imagen de menor resolución.');
+          return;
+        }
+        const updated = { ...localPost, reelCoverUrl: compressedUrl };
+        setLocalPost(updated);
+        onUpdate(updated);
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const processAndAppendCarousel = (files: FileList) => {
     const promises = (Array.from(files) as File[]).map(file => {
       return new Promise<string>((resolve, reject) => {
@@ -1147,9 +1176,16 @@ export default function PostModal({
                 className="w-full bg-white border border-gray-200 rounded-md p-2.5 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
               >
                 <option value="estatico">Estático (Imagen única)</option>
-                <option value="reel">Reel / Video (Vertical)</option>
+                <option value="reel">{localPost.platform === 'linkedin' ? 'Reel / Video (Horizontal)' : 'Reel / Video (Vertical)'}</option>
                 <option value="carrusel">Carrusel (Múltiples Diapositivas)</option>
               </select>
+              {localPost.format === 'reel' && (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  {localPost.platform === 'linkedin'
+                    ? 'Tamaño recomendado: 1920x1080 (horizontal).'
+                    : 'Tamaño recomendado: 1080x1920 (vertical).'}
+                </p>
+              )}
             </section>
 
             <section>
@@ -1230,7 +1266,7 @@ export default function PostModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-100 px-6 bg-white shrink-0">
+        <div className="flex border-b border-gray-200 px-4 pt-2 bg-gray-50/60 gap-1 shrink-0">
           {[
             // La Idea and Historial expose internal drafts, versions and rationale that
             // the client is never meant to see — only agency roles get these two tabs.
@@ -1244,10 +1280,10 @@ export default function PostModal({
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                "py-4 px-4 border-b-2 transition-all flex items-center gap-2 text-sm font-semibold",
-                activeTab === tab.id 
-                  ? "border-app-accent text-app-accent" 
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200"
+                "py-3 px-4 border-b-[3px] transition-all flex items-center gap-2 text-sm rounded-t-lg",
+                activeTab === tab.id
+                  ? "border-app-accent text-app-accent font-bold bg-white shadow-[0_-1px_4px_rgba(24,24,27,0.04)]"
+                  : "border-transparent text-gray-500 font-semibold hover:text-gray-700 hover:bg-white/60"
               )}
             >
               <tab.icon size={18} />
@@ -1676,6 +1712,55 @@ export default function PostModal({
                               <p className="text-[11px] text-gray-400">
                                 Recomendado para videos de más de 700KB para evitar el límite de base de datos de 1MB de Firestore.
                               </p>
+                            </div>
+                          )}
+
+                          {localPost.platform === 'instagram' && localPost.format === 'reel' && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-2 text-left">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
+                                Portada del Reel (1080x1350)
+                              </label>
+                              <p className="text-[11px] text-gray-400">
+                                Instagram muestra esta imagen como miniatura en la parrilla del feed en vez del vídeo.
+                              </p>
+                              {localPost.reelCoverUrl && (
+                                <img
+                                  src={localPost.reelCoverUrl}
+                                  alt="Portada del reel"
+                                  className="w-16 aspect-[4/5] object-cover rounded-md border border-gray-200"
+                                />
+                              )}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                id="reel-cover-upload"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) processAndSetReelCover(file);
+                                }}
+                              />
+                              <div className="flex gap-1.5">
+                                <label
+                                  htmlFor="reel-cover-upload"
+                                  className="flex-1 bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors cursor-pointer text-center"
+                                >
+                                  {localPost.reelCoverUrl ? 'Cambiar portada' : 'Subir portada'}
+                                </label>
+                                {localPost.reelCoverUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = { ...localPost, reelCoverUrl: '' };
+                                      setLocalPost(updated);
+                                      onUpdate(updated);
+                                    }}
+                                    className="px-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-semibold transition-colors"
+                                  >
+                                    Borrar
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>

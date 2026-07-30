@@ -34,7 +34,7 @@ interface Post {
 
 interface TikTokFeedProps {
   posts: Post[];
-  onSelectPost: (post: Post) => void;
+  onSelectPost: (post: Post, initialTab?: 'comments' | 'feedback') => void;
   userRole: string;
   projects?: any[];
 }
@@ -185,7 +185,11 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
           </button>
 
           {/* Comments */}
-          <button className="flex flex-col items-center gap-1" aria-label="Comentarios">
+          <button
+            onClick={(e) => { e.stopPropagation(); onSelectPost(activePost, userRole !== 'client' ? 'comments' : 'feedback'); }}
+            className="flex flex-col items-center gap-1"
+            aria-label="Comentarios"
+          >
             <div className="p-2 bg-black/40 rounded-full backdrop-blur-md hover:bg-black/60 transition-all">
               <MessageSquare size={22} className="text-white" />
             </div>
