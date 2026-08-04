@@ -79,6 +79,9 @@ interface Post {
   references: string[];
   copyCreativity: string;
   copyCaption: string;
+  translationEnabled?: boolean;
+  copyCreativityTranslated?: string;
+  copyCaptionTranslated?: string;
   currentDesignUrl: string;
   reelCoverUrl?: string;
   format?: 'estatico' | 'reel' | 'carrusel';
@@ -439,8 +442,6 @@ export default function PostModal({
   const [changesRequestReason, setChangesRequestReason] = useState('');
   const [historyFilter, setHistoryFilter] = useState<'all' | VersionType>('all');
   const [confirmingRestoreKey, setConfirmingRestoreKey] = useState<string | null>(null);
-  const [isTranslatingCopy, setIsTranslatingCopy] = useState(false);
-  const [isTranslatingCaption, setIsTranslatingCaption] = useState(false);
   const modalContainerRef = useModalA11y(() => {
     // Escape doesn't blur the focused field, so title/idea/copy/caption
     // (which only autosave onBlur) would otherwise lose an unsaved draft.
@@ -458,71 +459,6 @@ export default function PostModal({
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [zoomedImageUrl]);
-
-  const handleTranslate = async (fieldType: 'copy' | 'caption') => {
-    if (!localPost) return;
-    
-    const textToTranslate = fieldType === 'copy' ? localPost.copyCreativity : localPost.copyCaption;
-    if (!textToTranslate || !textToTranslate.trim()) {
-      toast.error('Por favor escribe un texto primero antes de traducir.');
-      return;
-    }
-
-    const targetLangCode = localPost.language || 'es';
-    const langNames: Record<string, string> = {
-      es: 'castellano',
-      en: 'inglés',
-      ca: 'catalán',
-      fr: 'francés',
-      pt: 'portugués'
-    };
-    const targetLangName = langNames[targetLangCode] || 'castellano';
-
-    if (fieldType === 'copy') {
-      setIsTranslatingCopy(true);
-    } else {
-      setIsTranslatingCaption(true);
-    }
-
-    try {
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: textToTranslate,
-          targetLanguage: targetLangName,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al conectar con el servidor de traducción');
-      }
-
-      const data = await response.json();
-      if (data.translatedText) {
-        const updated = {
-          ...localPost,
-          [fieldType === 'copy' ? 'copyCreativity' : 'copyCaption']: data.translatedText,
-        };
-        setLocalPost(updated);
-        onUpdate(updated);
-        toast.success(`Traducido al ${targetLangName} con éxito ✨`);
-      } else {
-        throw new Error('Respuesta inválida del servidor de traducción');
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || 'Ocurrió un error al traducir el contenido');
-    } finally {
-      if (fieldType === 'copy') {
-        setIsTranslatingCopy(false);
-      } else {
-        setIsTranslatingCaption(false);
-      }
-    }
-  };
 
   const getFormattedDateForInput = (d: any) => {
     if (!d) return '';
@@ -1468,20 +1404,37 @@ export default function PostModal({
                 exit={{ opacity: 0, x: 10 }}
                 className="space-y-8"
               >
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">Traducción</p>
+                    <p className="text-[11px] text-gray-400">Activa campos aparte para el copy y el caption traducidos manualmente.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={!!localPost.translationEnabled}
+                    aria-label="Traducción"
+                    disabled={!canEditCopy}
+                    onClick={() => {
+                      const updated = { ...localPost, translationEnabled: !localPost.translationEnabled };
+                      setLocalPost(updated);
+                      onUpdate(updated);
+                    }}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                      localPost.translationEnabled ? "bg-app-accent" : "bg-gray-200"
+                    )}
+                  >
+                    <span className={cn(
+                      "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                      localPost.translationEnabled ? "translate-x-6" : "translate-x-1"
+                    )} />
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <section>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-semibold text-gray-700">Copy en la Creatividad (Diseños)</label>
-                      <button
-                        type="button"
-                        onClick={() => handleTranslate('copy')}
-                        disabled={isTranslatingCopy || !localPost.copyCreativity}
-                        className="text-[11px] font-bold text-app-accent hover:text-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-all bg-app-accent/5 hover:bg-app-accent/10 px-2 py-1 rounded-lg"
-                        title="Traducir el texto de la creatividad al idioma seleccionado"
-                      >
-                        {isTranslatingCopy ? 'Traduciendo...' : '🪄 Traducir'}
-                      </button>
-                    </div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Copy en la Creatividad (Diseños)</label>
                     <textarea
                       disabled={!canEditCopy}
                       value={localPost.copyCreativity}
@@ -1498,21 +1451,23 @@ export default function PostModal({
                       onUpdatePost={onUpdate}
                       localPost={localPost}
                     />
+                    {localPost.translationEnabled && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Copy en la Creatividad (Traducido)</label>
+                        <textarea
+                          disabled={!canEditCopy}
+                          value={localPost.copyCreativityTranslated || ''}
+                          onChange={e => setLocalPost({...localPost, copyCreativityTranslated: e.target.value})}
+                          onBlur={handleUpdate}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
+                          placeholder="Traducción manual del texto de la creatividad..."
+                        />
+                      </div>
+                    )}
                   </section>
 
                   <section>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-semibold text-gray-700">Post Caption (Texto de Publicación)</label>
-                      <button
-                        type="button"
-                        onClick={() => handleTranslate('caption')}
-                        disabled={isTranslatingCaption || !localPost.copyCaption}
-                        className="text-[11px] font-bold text-app-accent hover:text-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-all bg-app-accent/5 hover:bg-app-accent/10 px-2 py-1 rounded-lg"
-                        title="Traducir el pie de publicación al idioma seleccionado"
-                      >
-                        {isTranslatingCaption ? 'Traduciendo...' : '🪄 Traducir'}
-                      </button>
-                    </div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Post Caption (Texto de Publicación)</label>
                     <textarea
                       disabled={!canEditCopy}
                       value={localPost.copyCaption}
@@ -1529,6 +1484,19 @@ export default function PostModal({
                       onUpdatePost={onUpdate}
                       localPost={localPost}
                     />
+                    {localPost.translationEnabled && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Post Caption (Traducido)</label>
+                        <textarea
+                          disabled={!canEditCopy}
+                          value={localPost.copyCaptionTranslated || ''}
+                          onChange={e => setLocalPost({...localPost, copyCaptionTranslated: e.target.value})}
+                          onBlur={handleUpdate}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-36 text-sm"
+                          placeholder="Traducción manual del caption..."
+                        />
+                      </div>
+                    )}
                   </section>
                 </div>
 

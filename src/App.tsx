@@ -30,6 +30,7 @@ import InstagramFeed from './components/InstagramFeed';
 import LinkedInFeed from './components/LinkedInFeed';
 import TikTokFeed from './components/TikTokFeed';
 import NotificationsStream from './components/NotificationsStream';
+import PublishHubView from './components/PublishHubView';
 import SettingsView from './components/SettingsView';
 import UserGuideModal from './components/UserGuideModal';
 import { InstagramIcon, TikTokIcon, LinkedInIcon, PLATFORM_META } from './components/SocialIcons';
@@ -56,7 +57,8 @@ import {
   BookOpen,
   Video,
   Grid,
-  Info
+  Info,
+  Download
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
@@ -211,7 +213,7 @@ export default function App() {
   const [filterPlatform, setFilterPlatform] = useState<'instagram' | 'linkedin' | 'tiktok' | 'all'>('all');
   const [filterTerritory, setFilterTerritory] = useState<string>('all');
   const [filterAssignedToMe, setFilterAssignedToMe] = useState(false);
-  const [sidebarTab, setSidebarTab] = useState<'calendario' | 'instagram_feed' | 'linkedin_feed' | 'tiktok_feed' | 'notificaciones' | 'configuracion'>('calendario');
+  const [sidebarTab, setSidebarTab] = useState<'calendario' | 'instagram_feed' | 'linkedin_feed' | 'tiktok_feed' | 'publicacion' | 'notificaciones' | 'configuracion'>('calendario');
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
@@ -1092,6 +1094,8 @@ export default function App() {
     return true;
   });
 
+  const approvedPosts = filteredPosts.filter(post => post.phase === 'approved');
+
   const matchingSuggestions = searchQuery.trim()
     ? posts.filter(post => {
         if (!hasProjectPermission(post.projectId)) return false;
@@ -1230,9 +1234,12 @@ export default function App() {
                   { id: 'instagram_feed', label: 'Feed Instagram', icon: InstagramIcon, platform: 'instagram', iconColor: PLATFORM_META.instagram.color },
                   { id: 'linkedin_feed', label: 'Feed LinkedIn', icon: LinkedInIcon, platform: 'linkedin', iconColor: PLATFORM_META.linkedin.color },
                   { id: 'tiktok_feed', label: 'Feed TikTok', icon: TikTokIcon, platform: 'tiktok', iconColor: PLATFORM_META.tiktok.color },
+                  { id: 'publicacion', label: 'Listo para Publicar', icon: Download, agencyOnly: true },
                   { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
                   { id: 'configuracion', label: 'Configuración', icon: Settings }
-                ].filter(item => !item.platform || activePlatforms.includes(item.platform)).map((item) => (
+                ].filter(item => !item.platform || activePlatforms.includes(item.platform))
+                  .filter(item => !item.agencyOnly || userRole !== 'client')
+                  .map((item) => (
                   <button 
                     key={item.id}
                     onClick={() => setSidebarTab(item.id as any)}
@@ -1800,6 +1807,14 @@ export default function App() {
                   />
                 )}
 
+                {sidebarTab === 'publicacion' && (
+                  <PublishHubView
+                    posts={approvedPosts}
+                    onSelectPost={openPostModal}
+                    loading={postsLoading || projectsLoading}
+                  />
+                )}
+
                 {sidebarTab === 'notificaciones' && (
                   <NotificationsStream
                     userRole={userRole}
@@ -1846,9 +1861,12 @@ export default function App() {
               { id: 'instagram_feed', label: 'Instagram', icon: InstagramIcon, platform: 'instagram', iconColor: PLATFORM_META.instagram.color },
               { id: 'linkedin_feed', label: 'LinkedIn', icon: LinkedInIcon, platform: 'linkedin', iconColor: PLATFORM_META.linkedin.color },
               { id: 'tiktok_feed', label: 'TikTok', icon: TikTokIcon, platform: 'tiktok', iconColor: PLATFORM_META.tiktok.color },
+              { id: 'publicacion', label: 'Publicar', icon: Download, agencyOnly: true },
               { id: 'notificaciones', label: 'Alertas', icon: Bell },
               { id: 'configuracion', label: 'Config.', icon: Settings }
-            ].filter(item => !item.platform || activePlatforms.includes(item.platform)).map((item) => (
+            ].filter(item => !item.platform || activePlatforms.includes(item.platform))
+              .filter(item => !item.agencyOnly || userRole !== 'client')
+              .map((item) => (
               <button
                 key={item.id}
                 onClick={() => setSidebarTab(item.id as any)}

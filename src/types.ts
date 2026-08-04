@@ -48,6 +48,9 @@ export interface Post {
   references?: string[];
   copyCreativity?: string;
   copyCaption?: string;
+  translationEnabled?: boolean;
+  copyCreativityTranslated?: string;
+  copyCaptionTranslated?: string;
   currentDesignUrl?: string;
   reelCoverUrl?: string; // Instagram reel cover thumbnail (1080x1350), shown in the feed grid instead of the video
   carouselUrls?: string[]; // Slide image URLs for Carousel format
