@@ -1473,7 +1473,7 @@ export default function PostModal({
                       value={localPost.copyCaption}
                       onChange={e => setLocalPost({...localPost, copyCaption: e.target.value})}
                       onBlur={handleUpdate}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-36 text-sm"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-y h-64 text-sm"
                       placeholder="Escribe el caption definitivo..."
                     />
                     <SaveVersionButton
@@ -1492,7 +1492,7 @@ export default function PostModal({
                           value={localPost.copyCaptionTranslated || ''}
                           onChange={e => setLocalPost({...localPost, copyCaptionTranslated: e.target.value})}
                           onBlur={handleUpdate}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-36 text-sm"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-y h-64 text-sm"
                           placeholder="Traducción manual del caption..."
                         />
                       </div>

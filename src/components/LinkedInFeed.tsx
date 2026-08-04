@@ -174,7 +174,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
   return (
     <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
       {/* Controls panel */}
-      <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
+      <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
         <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
           <div>
             <h3 className="font-bold text-gray-800 text-sm">Feed LinkedIn</h3>

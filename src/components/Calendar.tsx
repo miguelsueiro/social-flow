@@ -205,8 +205,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                           </span>
                         )}
                       </div>
-                      <p className="font-bold truncate text-[11px] text-gray-900">{post.title || "Post sin título"}</p>
-                      <p className="line-clamp-1 opacity-75 text-[11px] leading-tight text-gray-500 mt-0.5">{post.idea}</p>
+                      <p className="font-bold truncate text-xs text-gray-900">{post.title || "Post sin título"}</p>
                     </motion.button>
                   );
                 })}

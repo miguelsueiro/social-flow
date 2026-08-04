@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Download, Copy, Image as ImageIcon, Layers, CheckCircle2, Languages, FileText } from 'lucide-react';
+import { Download, Copy, Image as ImageIcon, Layers, CheckCircle2, Languages, FileText, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import JSZip from 'jszip';
 import { jsPDF } from 'jspdf';
 import { toast } from 'react-hot-toast';
 import { isVideoUrl } from '../lib/utils';
-import { PlatformBadge } from './SocialIcons';
+import { PlatformBadge, PLATFORM_META } from './SocialIcons';
 
 interface PublishHubPost {
   id: string;
@@ -204,17 +204,23 @@ export default function PublishHubView({ posts, onSelectPost, loading = false }:
                       <Layers size={11} /> {post.carouselUrls?.length}
                     </span>
                   )}
-                  <span className="absolute top-2 left-2">
-                    <PlatformBadge platform={post.platform} size={14} />
-                  </span>
                 </button>
 
                 <div className="p-4 flex flex-col gap-3 flex-1">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span
+                      className="inline-flex items-center gap-1.5 text-xs font-extrabold px-2.5 py-1 rounded-full"
+                      style={{ backgroundColor: `${PLATFORM_META[post.platform].color}12`, color: PLATFORM_META[post.platform].color }}
+                    >
+                      <PlatformBadge platform={post.platform} size={16} showLabel />
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full">
+                      <CalendarDays size={13} className="text-gray-400" />
+                      {post.date ? format(post.date instanceof Date ? post.date : (post.date?.toDate ? post.date.toDate() : new Date(post.date)), "d MMM yyyy") : ''}
+                    </span>
+                  </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-800 line-clamp-1">{post.title || post.idea}</p>
-                    <p className="text-[11px] text-gray-400">
-                      {post.date ? format(post.date instanceof Date ? post.date : (post.date?.toDate ? post.date.toDate() : new Date(post.date)), "d MMM yyyy") : ''}
-                    </p>
                   </div>
 
                   <div className="flex flex-col gap-1.5 mt-auto">
