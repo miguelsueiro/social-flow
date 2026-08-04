@@ -48,6 +48,8 @@ export type Phase =
 
 interface PhaseInfo {
   label: string;
+  /** Compact label for tight spaces (phase timeline nodes). */
+  shortLabel: string;
   /** Compact badge treatment (PostModal header, search results, feed labels). */
   color: string;
   /** Fuller card treatment for Board/Calendar post cards. */
@@ -61,15 +63,20 @@ interface PhaseInfo {
 // each hardcode their own (different) phase→color mapping, so the same phase
 // rendered in a different color depending on which screen you were looking at.
 export const PHASES: Record<Phase, PhaseInfo> = {
-  idea_1: { label: 'Fase 1: Ideas Iniciales', color: 'bg-slate-100 text-slate-700', cardClass: 'bg-slate-50 border-slate-200 text-slate-700', dotColor: 'bg-slate-400', clientVisible: false },
-  idea_2: { label: 'Fase de Ideas Desarrolladas (Inactiva)', color: 'bg-sky-100 text-sky-700', cardClass: 'bg-sky-50 border-sky-200 text-sky-700', dotColor: 'bg-sky-400', clientVisible: false },
-  copy: { label: 'Fase 2: Copys & Captions', color: 'bg-violet-100 text-violet-700', cardClass: 'bg-violet-50 border-violet-200 text-violet-700', dotColor: 'bg-violet-400', clientVisible: true },
-  design: { label: 'Fase 3: Diseño', color: 'bg-amber-100 text-amber-700', cardClass: 'bg-amber-50 border-amber-200 text-amber-700', dotColor: 'bg-amber-400', clientVisible: true },
-  client_review: { label: 'Fase 4: Feedback Cliente', color: 'bg-rose-100 text-rose-700', cardClass: 'bg-rose-50 border-rose-200 text-rose-700', dotColor: 'bg-rose-400', clientVisible: true },
-  changes_requested: { label: 'Cambios Solicitados', color: 'bg-orange-100 text-orange-700', cardClass: 'bg-orange-50 border-orange-200 text-orange-700', dotColor: 'bg-orange-400', clientVisible: true },
-  approved: { label: 'Fase 5: Aprobado', color: 'bg-emerald-100 text-emerald-700', cardClass: 'bg-emerald-50 border-emerald-200 text-emerald-700', dotColor: 'bg-emerald-400', clientVisible: true },
-  published: { label: 'Publicado', color: 'bg-indigo-100 text-indigo-700', cardClass: 'bg-indigo-50 border-indigo-200 text-indigo-700', dotColor: 'bg-indigo-400', clientVisible: true }
+  idea_1: { label: 'Fase 1: Ideas Iniciales', shortLabel: 'Idea', color: 'bg-slate-100 text-slate-700', cardClass: 'bg-slate-50 border-slate-200 text-slate-700', dotColor: 'bg-slate-400', clientVisible: false },
+  idea_2: { label: 'Fase de Ideas Desarrolladas (Inactiva)', shortLabel: 'Ideas Dev.', color: 'bg-sky-100 text-sky-700', cardClass: 'bg-sky-50 border-sky-200 text-sky-700', dotColor: 'bg-sky-400', clientVisible: false },
+  copy: { label: 'Fase 2: Copys & Captions', shortLabel: 'Copy', color: 'bg-violet-100 text-violet-700', cardClass: 'bg-violet-50 border-violet-200 text-violet-700', dotColor: 'bg-violet-400', clientVisible: true },
+  design: { label: 'Fase 3: Diseño', shortLabel: 'Diseño', color: 'bg-amber-100 text-amber-700', cardClass: 'bg-amber-50 border-amber-200 text-amber-700', dotColor: 'bg-amber-400', clientVisible: true },
+  client_review: { label: 'Fase 4: Feedback Cliente', shortLabel: 'Revisión Cliente', color: 'bg-rose-100 text-rose-700', cardClass: 'bg-rose-50 border-rose-200 text-rose-700', dotColor: 'bg-rose-400', clientVisible: true },
+  changes_requested: { label: 'Cambios Solicitados', shortLabel: 'Cambios Solicitados', color: 'bg-orange-100 text-orange-700', cardClass: 'bg-orange-50 border-orange-200 text-orange-700', dotColor: 'bg-orange-400', clientVisible: true },
+  approved: { label: 'Fase 5: Aprobado', shortLabel: 'Aprobado', color: 'bg-emerald-100 text-emerald-700', cardClass: 'bg-emerald-50 border-emerald-200 text-emerald-700', dotColor: 'bg-emerald-400', clientVisible: true },
+  published: { label: 'Publicado', shortLabel: 'Publicado', color: 'bg-indigo-100 text-indigo-700', cardClass: 'bg-indigo-50 border-indigo-200 text-indigo-700', dotColor: 'bg-indigo-400', clientVisible: true }
 };
+
+// Linear backbone used by the phase timeline / prev-next controls. Deliberately
+// excludes 'idea_2' (inactive) and 'changes_requested' (a temporary detour back
+// to 'design', not a step of its own — see PostModal's handleResumeProduction).
+export const PHASE_TIMELINE_ORDER: Phase[] = ['idea_1', 'copy', 'design', 'client_review', 'approved', 'published'];
 
 export function compressImage(base64Str: string, maxWidth = 1920, maxHeight = 1920, quality = 0.88): Promise<string> {
   return new Promise((resolve) => {

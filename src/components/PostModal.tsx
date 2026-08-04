@@ -10,7 +10,6 @@ import {
   Clock,
   ExternalLink,
   ChevronRight,
-  ChevronLeft,
   Plus,
   Trash2,
   Layers,
@@ -22,10 +21,11 @@ import {
   Save,
   Copy
 } from 'lucide-react';
-import { cn, PHASES, Phase, Role, ROLES, compressImage, isVideoUrl } from '../lib/utils';
+import { cn, PHASES, PHASE_TIMELINE_ORDER, Phase, Role, ROLES, compressImage, isVideoUrl } from '../lib/utils';
 import { useModalA11y } from '../lib/useModalA11y';
 import { PlatformBadge } from './SocialIcons';
 import ConfirmInline from './ConfirmInline';
+import PhaseTimeline from './PhaseTimeline';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { db, auth } from '../lib/firebase';
@@ -619,10 +619,15 @@ export default function PostModal({
   const canEditCopy = ['admin', 'creative_director', 'copy'].includes(userRole);
   const canEditDesign = ['admin', 'art_director', 'designer'].includes(userRole);
   const isAgencyMember = userRole !== 'client';
-  const canAdvancePhase = isAgencyMember || (userRole === 'client' && localPost.phase === 'client_review');
-  const canGoBackPhase = isAgencyMember && localPost.phase !== 'idea_1';
   const isClientApprovalAction = userRole === 'client' && localPost.phase === 'client_review';
   const isAgencyResumeAction = isAgencyMember && localPost.phase === 'changes_requested';
+  // The timeline detours through 'design' while a post is 'changes_requested' — it's a
+  // temporary bounce-back, not a step of its own (see handleResumeProduction below).
+  const isChangesRequested = localPost.phase === 'changes_requested';
+  const timelineDisplayPhase: Phase = isChangesRequested ? 'design' : localPost.phase;
+  const timelineIndex = PHASE_TIMELINE_ORDER.indexOf(timelineDisplayPhase);
+  const canGoBackPhase = isAgencyMember && !isChangesRequested && timelineIndex > 0;
+  const canAdvancePhase = isAgencyMember && !isChangesRequested && timelineIndex !== -1 && timelineIndex < PHASE_TIMELINE_ORDER.length - 1;
 
   const handleApprove = () => {
     const updated = {
@@ -765,13 +770,12 @@ export default function PostModal({
   };
 
   const nextPhase = () => {
-    const phaseOrder: Phase[] = ['idea_1', 'copy', 'design', 'client_review', 'approved', 'published'];
-    let currentIndex = phaseOrder.indexOf(localPost.phase);
+    let currentIndex = PHASE_TIMELINE_ORDER.indexOf(localPost.phase);
     if (currentIndex === -1 && localPost.phase === 'idea_2') {
       currentIndex = 0;
     }
-    if (currentIndex !== -1 && currentIndex < phaseOrder.length - 1) {
-      const nextPh = phaseOrder[currentIndex + 1];
+    if (currentIndex !== -1 && currentIndex < PHASE_TIMELINE_ORDER.length - 1) {
+      const nextPh = PHASE_TIMELINE_ORDER[currentIndex + 1];
       const updated = { ...localPost, phase: nextPh };
       setLocalPost(updated);
       onUpdate(updated);
@@ -779,13 +783,12 @@ export default function PostModal({
   };
 
   const prevPhase = () => {
-    const phaseOrder: Phase[] = ['idea_1', 'copy', 'design', 'client_review', 'approved', 'published'];
-    let currentIndex = phaseOrder.indexOf(localPost.phase);
+    let currentIndex = PHASE_TIMELINE_ORDER.indexOf(localPost.phase);
     if (currentIndex === -1 && localPost.phase === 'idea_2') {
       currentIndex = 1;
     }
     if (currentIndex > 0) {
-      const prevPh = phaseOrder[currentIndex - 1];
+      const prevPh = PHASE_TIMELINE_ORDER[currentIndex - 1];
       const updated = { ...localPost, phase: prevPh };
       setLocalPost(updated);
       onUpdate(updated);
@@ -1048,6 +1051,104 @@ export default function PostModal({
               <X size={24} />
             </button>
           </div>
+        </div>
+
+        {/* Phase Timeline: always visible, independent of the active tab, so the
+            current phase and how to move it are never buried inside a specific tab. */}
+        <div className="px-4 sm:px-6 py-3 border-b border-gray-100 bg-white space-y-3">
+          <PhaseTimeline
+            displayPhase={timelineDisplayPhase}
+            isChangesRequested={isChangesRequested}
+            canGoBack={canGoBackPhase}
+            canGoNext={canAdvancePhase}
+            onPrev={prevPhase}
+            onNext={nextPhase}
+          />
+
+          {isClientApprovalAction && (
+            showApproveConfirm ? (
+              <ConfirmInline
+                message="¿Aprobar este post para publicación?"
+                confirmLabel="Sí, aprobar"
+                cancelLabel="Cancelar"
+                tone="success"
+                onConfirm={() => { handleApprove(); setShowApproveConfirm(false); }}
+                onCancel={() => setShowApproveConfirm(false)}
+              />
+            ) : showRequestChangesForm ? (
+              <div className="space-y-2">
+                <textarea
+                  autoFocus
+                  value={changesRequestReason}
+                  onChange={e => setChangesRequestReason(e.target.value)}
+                  placeholder="¿Qué hay que cambiar? Sé específico para que la agencia no tenga que preguntar."
+                  className="w-full bg-orange-50/50 border border-orange-200 rounded-md p-2.5 text-xs text-gray-800 outline-none focus:border-orange-400 resize-none h-20"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowRequestChangesForm(false); setChangesRequestReason(''); }}
+                    className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-xl font-semibold transition-all text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleRequestChanges}
+                    className="flex-1 bg-orange-600 text-white hover:bg-orange-700 px-3 py-2 rounded-xl font-semibold transition-all shadow-md text-xs"
+                  >
+                    Enviar solicitud
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowRequestChangesForm(true)}
+                  className="flex-1 bg-white border border-orange-300 text-orange-700 hover:bg-orange-50 px-3 py-2.5 rounded-xl font-semibold transition-all text-xs flex items-center justify-center gap-1.5"
+                >
+                  Solicitar Cambios
+                </button>
+                <button
+                  onClick={() => setShowApproveConfirm(true)}
+                  className="flex-[1.5] bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
+                >
+                  <CheckCircle size={16} />
+                  Aprobar Post
+                </button>
+              </div>
+            )
+          )}
+
+          {(isClient && localPost.phase === 'changes_requested') && (
+            <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-2.5 text-center">
+              <p className="text-xs text-orange-900 font-semibold">Has solicitado cambios en este post.</p>
+              <p className="text-[11px] text-orange-700 mt-0.5">La agencia lo está revisando y volverá a enviártelo cuando esté listo.</p>
+            </div>
+          )}
+
+          {isAgencyResumeAction && (
+            <div className="space-y-2">
+              <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-2.5">
+                <p className="text-[11px] font-bold text-orange-800 mb-1">
+                  Cambios solicitados por {localPost.changesRequestedBy || 'el cliente'}
+                  {localPost.changesRequestedAt && ` · ${format(new Date(localPost.changesRequestedAt), 'dd/MM HH:mm')}`}
+                </p>
+                <p className="text-xs text-orange-900 leading-relaxed">{localPost.changesRequestedReason}</p>
+              </div>
+              <button
+                onClick={handleResumeProduction}
+                className="w-full bg-app-accent text-white hover:bg-app-accent-hover px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
+              >
+                Reanudar en Diseño
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+
+          {localPost.phase === 'approved' && (
+            <p className="text-[11px] text-emerald-600 font-semibold text-center">
+              ✓ Post aprobado{localPost.approvedBy ? ` por ${localPost.approvedBy}` : ''}
+            </p>
+          )}
         </div>
 
         {/* Generic fields: apply to the post as a whole, independent of the active tab */}
@@ -1734,110 +1835,6 @@ export default function PostModal({
                         </div>
                       )}
                       
-                      <div className="p-4 bg-white rounded-xl border border-gray-200 space-y-3 shadow-sm">
-                         <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
-                           <span>Control de Proceso</span>
-                           <span className="text-app-accent font-medium">Fase actual: {PHASES[localPost.phase]?.label || localPost.phase}</span>
-                         </div>
-                         {isClientApprovalAction ? (
-                           showApproveConfirm ? (
-                             <ConfirmInline
-                               message="¿Aprobar este post para publicación?"
-                               confirmLabel="Sí, aprobar"
-                               cancelLabel="Cancelar"
-                               tone="success"
-                               onConfirm={() => { handleApprove(); setShowApproveConfirm(false); }}
-                               onCancel={() => setShowApproveConfirm(false)}
-                             />
-                           ) : showRequestChangesForm ? (
-                             <div className="space-y-2">
-                               <textarea
-                                 autoFocus
-                                 value={changesRequestReason}
-                                 onChange={e => setChangesRequestReason(e.target.value)}
-                                 placeholder="¿Qué hay que cambiar? Sé específico para que la agencia no tenga que preguntar."
-                                 className="w-full bg-orange-50/50 border border-orange-200 rounded-md p-2.5 text-xs text-gray-800 outline-none focus:border-orange-400 resize-none h-20"
-                               />
-                               <div className="flex gap-2">
-                                 <button
-                                   onClick={() => { setShowRequestChangesForm(false); setChangesRequestReason(''); }}
-                                   className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-xl font-semibold transition-all text-xs"
-                                 >
-                                   Cancelar
-                                 </button>
-                                 <button
-                                   onClick={handleRequestChanges}
-                                   className="flex-1 bg-orange-600 text-white hover:bg-orange-700 px-3 py-2 rounded-xl font-semibold transition-all shadow-md text-xs"
-                                 >
-                                   Enviar solicitud
-                                 </button>
-                               </div>
-                             </div>
-                           ) : (
-                             <div className="flex gap-2">
-                               <button
-                                 onClick={() => setShowRequestChangesForm(true)}
-                                 className="flex-1 bg-white border border-orange-300 text-orange-700 hover:bg-orange-50 px-3 py-2.5 rounded-xl font-semibold transition-all text-xs flex items-center justify-center gap-1.5"
-                               >
-                                 Solicitar Cambios
-                               </button>
-                               <button
-                                 onClick={() => setShowApproveConfirm(true)}
-                                 className="flex-[1.5] bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
-                               >
-                                 <CheckCircle size={16} />
-                                 Aprobar Post
-                               </button>
-                             </div>
-                           )
-                         ) : (isClient && localPost.phase === 'changes_requested') ? (
-                           <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-2.5 text-center">
-                             <p className="text-xs text-orange-900 font-semibold">Has solicitado cambios en este post.</p>
-                             <p className="text-[11px] text-orange-700 mt-0.5">La agencia lo está revisando y volverá a enviártelo cuando esté listo.</p>
-                           </div>
-                         ) : isAgencyResumeAction ? (
-                           <div className="space-y-2">
-                             <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-2.5">
-                               <p className="text-[11px] font-bold text-orange-800 mb-1">
-                                 Cambios solicitados por {localPost.changesRequestedBy || 'el cliente'}
-                                 {localPost.changesRequestedAt && ` · ${format(new Date(localPost.changesRequestedAt), 'dd/MM HH:mm')}`}
-                               </p>
-                               <p className="text-xs text-orange-900 leading-relaxed">{localPost.changesRequestedReason}</p>
-                             </div>
-                             <button
-                               onClick={handleResumeProduction}
-                               className="w-full bg-app-accent text-white hover:bg-app-accent-hover px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
-                             >
-                               Reanudar en Diseño
-                               <ChevronRight size={16} />
-                             </button>
-                           </div>
-                         ) : (
-                           <div className="flex gap-2">
-                             <button
-                                disabled={!canGoBackPhase}
-                                onClick={prevPhase}
-                                className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-2.5 rounded-xl font-semibold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs"
-                              >
-                               <ChevronLeft size={16} />
-                               Fase Anterior
-                             </button>
-                             <button
-                                disabled={!canAdvancePhase}
-                                onClick={nextPhase}
-                                className="flex-[1.5] bg-app-accent text-white hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2.5 rounded-xl font-semibold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs"
-                              >
-                               Siguiente Fase
-                               <ChevronRight size={16} />
-                             </button>
-                           </div>
-                         )}
-                         {localPost.phase === 'approved' && (
-                           <p className="text-[11px] text-emerald-600 font-semibold text-center">
-                             ✓ Post aprobado{localPost.approvedBy ? ` por ${localPost.approvedBy}` : ''}
-                           </p>
-                         )}
-                      </div>
                     </div>
                   </div>
 
