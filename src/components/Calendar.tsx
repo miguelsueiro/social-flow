@@ -12,19 +12,11 @@ import {
   subMonths 
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { cn, PHASES, Phase } from '../lib/utils';
+import { cn, PHASES } from '../lib/utils';
 import { motion } from 'motion/react';
-import { PlatformBadge, SocialPlatform } from './SocialIcons';
-
-interface Post {
-  id: string;
-  date: Date;
-  platform: SocialPlatform;
-  phase: Phase;
-  idea: string;
-  title?: string;
-  assigneeName?: string;
-}
+import { PlatformBadge } from './SocialIcons';
+import IconButton from './IconButton';
+import { Post } from '../types';
 
 interface CalendarProps {
   posts: Post[];
@@ -86,26 +78,14 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
           {format(currentMonth, 'MMMM yyyy')}
         </h2>
         <div className="flex items-center gap-2">
+          <IconButton icon={ChevronLeft} onClick={prevMonth} aria-label="Mes anterior" size="sm" className="border border-gray-200" />
           <button
-            onClick={prevMonth}
-            aria-label="Mes anterior"
-            className="p-2 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button 
             onClick={() => setCurrentMonth(new Date())}
             className="px-3 py-1 text-sm font-medium hover:bg-gray-50 rounded-lg border border-gray-200"
           >
             Hoy
           </button>
-          <button
-            onClick={nextMonth}
-            aria-label="Mes siguiente"
-            className="p-2 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
-          >
-            <ChevronRight size={20} />
-          </button>
+          <IconButton icon={ChevronRight} onClick={nextMonth} aria-label="Mes siguiente" size="sm" className="border border-gray-200" />
         </div>
       </div>
 
@@ -164,13 +144,16 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                 </span>
                 
                 {userRole !== 'client' && isCurrentMonth && (
-                  <button
+                  // Visible on keyboard focus as well as hover — the original
+                  // opacity-0/group-hover-only version was reachable by Tab but
+                  // stayed invisible the whole time you were on it (WCAG 2.4.7).
+                  <IconButton
+                    icon={Plus}
                     onClick={() => onAddPost(day)}
                     aria-label="Añadir publicación"
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded text-gray-400 transition-all"
-                  >
-                    <Plus size={16} />
-                  </button>
+                    size="sm"
+                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+                  />
                 )}
               </div>
 

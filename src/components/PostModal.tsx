@@ -20,32 +20,23 @@ import {
   Save,
   Copy
 } from 'lucide-react';
-import { cn, PHASE_TIMELINE_ORDER, Phase, Role, ROLES, compressImage, isVideoUrl } from '../lib/utils';
+import { cn, PHASE_TIMELINE_ORDER, Phase, Role, ROLES, compressImage, isVideoUrl, deriveAccentPalette, onActivateKey } from '../lib/utils';
+import { Post, VersionItem, InternalFeedback } from '../types';
 import { useModalA11y } from '../lib/useModalA11y';
 import { PlatformBadge } from './SocialIcons';
 import ConfirmInline from './ConfirmInline';
 import PhaseBar from './PhaseBar';
+import Toggle from './Toggle';
+import IconButton from './IconButton';
+import Avatar from './Avatar';
+import Media from './Media';
+import EmptyState from './EmptyState';
+import Field from './Field';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { db, auth } from '../lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
-
-interface InternalFeedback {
-  id: string;
-  authorName: string;
-  role: string;
-  text: string;
-  createdAt: string;
-}
-
-interface VersionItem {
-  id: string;
-  value: string;
-  createdAt: string;
-  authorName: string;
-  feedbacks: InternalFeedback[];
-}
 
 interface Comment {
   id: string;
@@ -68,39 +59,6 @@ interface FeedbackItem {
 }
 
 type VersionType = 'caption' | 'creativity' | 'design';
-
-interface Post {
-  id: string;
-  date: any;
-  platform: 'instagram' | 'linkedin' | 'tiktok';
-  phase: Phase;
-  idea: string;
-  references: string[];
-  copyCreativity: string;
-  copyCaption: string;
-  translationEnabled?: boolean;
-  copyCreativityTranslated?: string;
-  copyCaptionTranslated?: string;
-  currentDesignUrl: string;
-  reelCoverUrl?: string;
-  format?: 'estatico' | 'reel' | 'carrusel';
-  carouselUrls?: string[];
-  projectId?: string;
-  captionVersions?: VersionItem[];
-  creativityVersions?: VersionItem[];
-  designVersions?: VersionItem[];
-  videoUrl?: string;
-  title?: string;
-  language?: string;
-  territory?: string;
-  assigneeId?: string;
-  assigneeName?: string;
-  changesRequestedReason?: string;
-  changesRequestedAt?: string;
-  changesRequestedBy?: string;
-  approvedBy?: string;
-  approvedAt?: string;
-}
 
 interface PostModalProps {
   post: Post | null;
@@ -188,7 +146,7 @@ function SaveVersionButton({ type, currentValue, versions = [], isAgencyMember, 
     >
       💾 Guardar Versión
       {versions.length > 0 && (
-        <span className="text-[11px] text-slate-400 font-semibold">({versions.length} guardada{versions.length !== 1 ? 's' : ''})</span>
+        <span className="text-caption text-ink-muted">({versions.length} guardada{versions.length !== 1 ? 's' : ''})</span>
       )}
     </button>
   );
@@ -296,7 +254,7 @@ function HistoryEntryCard({
               />
             ))}
           </div>
-          <span className="text-[11px] text-slate-400 font-semibold">
+          <span className="text-caption text-ink-muted">
             {isCarousel ? `📊 Carrusel (${urls.length} diapositivas)` : '🖼️ Diseño'}
           </span>
         </div>
@@ -313,7 +271,7 @@ function HistoryEntryCard({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className={cn("text-[11px] font-black px-2 py-0.5 rounded-md", meta.badgeClass)}>{meta.label}</span>
             <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">v{versionNumber}</span>
-            <span className="text-[11px] font-bold text-slate-500">
+            <span className="text-caption text-ink-muted">
               {version.authorName} • {format(new Date(version.createdAt), 'dd/MM HH:mm')}
             </span>
           </div>
@@ -346,13 +304,13 @@ function HistoryEntryCard({
         {isAgencyMember && (
           <div className="space-y-1.5 pl-2 border-l-2 border-slate-200">
             {version.feedbacks?.length > 0 && (
-              <span className="text-[11px] font-bold text-slate-500 block mb-1">Comentarios internos:</span>
+              <span className="text-caption text-ink-muted block mb-1">Comentarios internos:</span>
             )}
             {version.feedbacks?.map((fb) => (
               <div key={fb.id} className="text-[11px] leading-relaxed bg-slate-50/50 p-2 rounded-lg border border-slate-100/50">
                 <div className="flex items-baseline gap-1">
                   <span className="font-extrabold text-slate-800">{fb.authorName}</span>
-                  <span className="text-[11px] text-slate-400 font-bold">({format(new Date(fb.createdAt), 'dd/MM HH:mm')})</span>
+                  <span className="text-caption text-ink-muted">({format(new Date(fb.createdAt), 'dd/MM HH:mm')})</span>
                 </div>
                 <p className="text-slate-600 mt-0.5 font-medium">{fb.text}</p>
               </div>
@@ -361,7 +319,7 @@ function HistoryEntryCard({
             <div className="flex gap-1.5 mt-2 relative">
               {mentionQuery !== null && filteredMentionUsers.length > 0 && (
                 <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-36 overflow-y-auto divide-y divide-slate-100">
-                  <div className="p-1.5 bg-slate-50 text-[11px] font-semibold text-slate-500">Mencionar usuario:</div>
+                  <div className="p-1.5 bg-slate-50 text-caption text-ink-muted">Mencionar usuario:</div>
                   {filteredMentionUsers.map(user => (
                     <button
                       key={user.id}
@@ -369,12 +327,10 @@ function HistoryEntryCard({
                       onClick={() => selectMentionUser(user)}
                       className="w-full text-left p-2 hover:bg-slate-50 transition-colors flex items-center gap-2"
                     >
-                      <div className="w-5 h-5 rounded-full bg-app-accent-subtle flex items-center justify-center font-bold text-app-accent text-[11px]">
-                        {user.name[0]}
-                      </div>
+                      <Avatar name={user.name} size="xs" />
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-bold text-gray-800 truncate">{user.name}</p>
-                        <p className="text-[11px] text-gray-400 truncate">@{getMentionHandle(user)} • {user.role}</p>
+                        <p className="text-caption text-ink-muted truncate">@{getMentionHandle(user)} • {user.role}</p>
                       </div>
                     </button>
                   ))}
@@ -382,6 +338,7 @@ function HistoryEntryCard({
               )}
               <input
                 type="text"
+                aria-label="Feedback o nota interna sobre esta versión"
                 placeholder="Escribir feedback o nota interna..."
                 value={feedbackText}
                 onChange={(e) => handleInputChange(e.target.value)}
@@ -485,9 +442,12 @@ export default function PostModal({
     }
   };
 
-  const displayDate = localPost?.date instanceof Date 
-    ? localPost.date 
-    : (localPost?.date?.toDate ? localPost.date.toDate() : (localPost?.date ? new Date(localPost.date) : new Date()));
+  // localPost.date is typed as Date, but Firestore data can arrive as an
+  // untyped Timestamp (has .toDate()) or an ISO string before it's normalized.
+  const rawDate = localPost?.date as any;
+  const displayDate = rawDate instanceof Date
+    ? rawDate
+    : (rawDate?.toDate ? rawDate.toDate() : (rawDate ? new Date(rawDate) : new Date()));
 
   // User Mentions autocomplete state
   interface User {
@@ -615,9 +575,9 @@ export default function PostModal({
   if (!localPost) return null;
 
   const isClient = userRole === 'client';
-  const canEditIdea = ['admin', 'creative_director'].includes(userRole);
-  const canEditCopy = ['admin', 'creative_director', 'copy'].includes(userRole);
-  const canEditDesign = ['admin', 'art_director', 'designer'].includes(userRole);
+  const canEditIdea = ['admin', 'creative_director', 'account_manager', 'community_manager'].includes(userRole);
+  const canEditCopy = ['admin', 'creative_director', 'copy', 'account_manager', 'community_manager'].includes(userRole);
+  const canEditDesign = ['admin', 'art_director', 'designer', 'account_manager', 'community_manager'].includes(userRole);
   const isAgencyMember = userRole !== 'client';
   const isClientApprovalAction = userRole === 'client' && localPost.phase === 'client_review';
   const isAgencyResumeAction = isAgencyMember && localPost.phase === 'changes_requested';
@@ -678,6 +638,16 @@ export default function PostModal({
   const filteredHistoryEntries = historyFilter === 'all'
     ? historyEntries
     : historyEntries.filter(e => e.type === historyFilter);
+
+  // La Idea and Historial expose internal drafts, versions and rationale that
+  // the client is never meant to see — only agency roles get these two tabs.
+  const postTabs = [
+    ...(userRole !== 'client' ? [{ id: 'idea', label: 'La Idea', icon: Lightbulb }] : []),
+    { id: 'production', label: 'Producción', icon: CheckCircle },
+    ...(userRole !== 'client' ? [{ id: 'comments', label: 'Comentarios', icon: MessageSquare, count: comments.length }] : []),
+    { id: 'feedback', label: 'Feedback (Cliente)', icon: MessageSquare, count: feedbacks.length },
+    ...(userRole !== 'client' ? [{ id: 'history', label: 'Historial', icon: HistoryIcon, count: historyEntries.length }] : [])
+  ];
 
   const getCurrentValueForType = (type: VersionType): string => {
     if (type === 'caption') return localPost.copyCaption;
@@ -1010,9 +980,14 @@ export default function PostModal({
             />
           </div>
           {projectInfo && (
+            // The project's raw color has no guaranteed contrast against white text
+            // (a light project color could read as low as ~1.5:1) — deriveAccentPalette's
+            // primary tone is the same fix already applied to the dynamic --app-accent
+            // in App.tsx, reused here since this badge has the identical shape: white
+            // text painted directly on an arbitrary per-project color.
             <span
               className="hidden sm:inline px-2.5 py-0.5 text-white rounded-full text-[11px] font-bold shrink-0"
-              style={{ backgroundColor: projectInfo.color || '#4F46E5' }}
+              style={{ backgroundColor: deriveAccentPalette(projectInfo.color || '#4F46E5').primary }}
             >
               {projectInfo.name}
             </span>
@@ -1054,13 +1029,7 @@ export default function PostModal({
                 </button>
               )
             )}
-            <button
-              onClick={handleCloseModal}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
-              aria-label="Cerrar"
-            >
-              <X size={24} />
-            </button>
+            <IconButton icon={X} onClick={handleCloseModal} aria-label="Cerrar" />
           </div>
         </div>
 
@@ -1090,6 +1059,7 @@ export default function PostModal({
               <div className="space-y-2">
                 <textarea
                   autoFocus
+                  aria-label="Motivo de los cambios solicitados"
                   value={changesRequestReason}
                   onChange={e => setChangesRequestReason(e.target.value)}
                   placeholder="¿Qué hay que cambiar? Sé específico para que la agencia no tenga que preguntar."
@@ -1182,7 +1152,7 @@ export default function PostModal({
                 {detailsSummary}
               </span>
             )}
-            <span className="ml-auto text-[11px] font-bold text-gray-400 group-hover:text-app-accent transition-colors shrink-0">
+            <span className="ml-auto text-caption text-ink-muted group-hover:text-app-accent transition-colors shrink-0">
               {showDetails ? 'Ocultar' : 'Editar'}
             </span>
           </button>
@@ -1238,7 +1208,7 @@ export default function PostModal({
                 <option value="carrusel">Carrusel (Múltiples Diapositivas)</option>
               </select>
               {localPost.format === 'reel' && (
-                <p className="text-[11px] text-gray-400 mt-1">
+                <p className="text-caption text-ink-muted mt-1">
                   {localPost.platform === 'linkedin'
                     ? 'Tamaño recomendado: 1920x1080 (horizontal).'
                     : 'Tamaño recomendado: 1080x1920 (vertical).'}
@@ -1324,19 +1294,29 @@ export default function PostModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 px-4 pt-1.5 bg-gray-50/60 gap-1 shrink-0 overflow-x-auto scrollbar-hide">
-          {[
-            // La Idea and Historial expose internal drafts, versions and rationale that
-            // the client is never meant to see — only agency roles get these two tabs.
-            ...(userRole !== 'client' ? [{ id: 'idea', label: 'La Idea', icon: Lightbulb }] : []),
-            { id: 'production', label: 'Producción', icon: CheckCircle },
-            ...(userRole !== 'client' ? [{ id: 'comments', label: 'Comentarios', icon: MessageSquare, count: comments.length }] : []),
-            { id: 'feedback', label: 'Feedback (Cliente)', icon: MessageSquare, count: feedbacks.length },
-            ...(userRole !== 'client' ? [{ id: 'history', label: 'Historial', icon: HistoryIcon, count: historyEntries.length }] : [])
-          ].map(tab => (
+        <div role="tablist" aria-label="Secciones del post" className="flex border-b border-gray-200 px-4 pt-1.5 bg-gray-50/60 gap-1 shrink-0 overflow-x-auto scrollbar-hide">
+          {postTabs.map((tab, i) => (
             <button
               key={tab.id}
+              id={`tab-${tab.id}`}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls={`tabpanel-${tab.id}`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
               onClick={() => setActiveTab(tab.id as any)}
+              onKeyDown={(e) => {
+                // Roving tabindex + arrow-key movement, per the WAI-ARIA tabs
+                // pattern — Tab only stops at the active tab; Left/Right move
+                // and activate the adjacent one, wrapping at the ends.
+                if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+                e.preventDefault();
+                const nextIndex = e.key === 'ArrowRight'
+                  ? (i + 1) % postTabs.length
+                  : (i - 1 + postTabs.length) % postTabs.length;
+                const nextTab = postTabs[nextIndex];
+                setActiveTab(nextTab.id as any);
+                document.getElementById(`tab-${nextTab.id}`)?.focus();
+              }}
               className={cn(
                 "py-2.5 px-4 border-b-[3px] transition-all flex items-center gap-2 text-sm rounded-t-lg whitespace-nowrap shrink-0",
                 activeTab === tab.id
@@ -1356,7 +1336,13 @@ export default function PostModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-white">
+        <div
+          role="tabpanel"
+          id={`tabpanel-${activeTab}`}
+          aria-labelledby={`tab-${activeTab}`}
+          tabIndex={0}
+          className="flex-1 overflow-y-auto p-4 sm:p-6 bg-white"
+        >
           <AnimatePresence mode="wait">
             {activeTab === 'idea' && (
               <motion.div
@@ -1367,15 +1353,16 @@ export default function PostModal({
                 className="space-y-6 max-w-3xl"
               >
                 <section>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">La Idea</label>
-                  <textarea
-                    disabled={!canEditIdea}
-                    value={localPost.idea}
-                    onChange={e => setLocalPost({...localPost, idea: e.target.value})}
-                    onBlur={handleUpdate}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-40 text-sm"
-                    placeholder="Describe la idea central del post..."
-                  />
+                  <Field label="La Idea" id="post-idea" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-gray-700 [&>label]:mb-2">
+                    <textarea
+                      disabled={!canEditIdea}
+                      value={localPost.idea}
+                      onChange={e => setLocalPost({...localPost, idea: e.target.value})}
+                      onBlur={handleUpdate}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-40 text-sm"
+                      placeholder="Describe la idea central del post..."
+                    />
+                  </Field>
                 </section>
 
                 {/* Drag and Drop References Section */}
@@ -1397,7 +1384,10 @@ export default function PostModal({
                       {localPost.references?.map((ref, i) => (
                         <div
                           key={i}
+                          role="button"
+                          tabIndex={0}
                           onClick={() => setZoomedImageUrl(ref)}
+                          onKeyDown={onActivateKey(() => setZoomedImageUrl(ref))}
                           className="group relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 shadow-sm cursor-zoom-in transition-transform hover:scale-105"
                         >
                            <img
@@ -1421,6 +1411,10 @@ export default function PostModal({
                                <ExternalLink size={8} />
                              </a>
                            )}
+                           {/* Not <IconButton> — its 36px floor would cover most of this
+                               64px thumbnail. p-1.5 -m-0.5 grows the tap target without
+                               enlarging the visible chip; group-focus-within/focus-visible
+                               keep it reachable by keyboard, not just hover. */}
                            {!isClient && (
                              <button
                                type="button"
@@ -1432,7 +1426,7 @@ export default function PostModal({
                                  setLocalPost(updated);
                                  onUpdate(updated);
                                }}
-                               className="absolute top-1 right-1 bg-white/95 hover:bg-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                               className="absolute top-1 right-1 bg-white/95 hover:bg-white p-1.5 -m-0.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity z-10"
                                aria-label="Quitar referencia"
                              >
                                <X size={10} className="text-red-500" />
@@ -1466,9 +1460,7 @@ export default function PostModal({
                     </div>
 
                     {(!localPost.references || localPost.references.length === 0) && (
-                      <div className="text-center py-2 text-xs text-gray-400">
-                        Arrastra tus imágenes de referencia aquí o haz clic en Subir
-                      </div>
+                      <EmptyState title="Arrastra tus imágenes de referencia aquí o haz clic en Subir" size="sm" className="py-2" />
                     )}
 
                     {/* Direct URL Reference input */}
@@ -1476,6 +1468,7 @@ export default function PostModal({
                       <div className="mt-2 pt-2 border-t border-gray-100/40 flex gap-2">
                         <input
                           type="url"
+                          aria-label="URL de referencia externa"
                           placeholder="Pegar enlace de referencia externa..."
                           id="ref-url-input"
                           onKeyDown={(e) => {
@@ -1529,42 +1522,32 @@ export default function PostModal({
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
                   <div>
                     <p className="text-sm font-semibold text-gray-700">Traducción</p>
-                    <p className="text-[11px] text-gray-400">Activa campos aparte para el copy y el caption traducidos manualmente.</p>
+                    <p className="text-caption text-ink-muted">Activa campos aparte para el copy y el caption traducidos manualmente.</p>
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={!!localPost.translationEnabled}
-                    aria-label="Traducción"
+                  <Toggle
+                    checked={!!localPost.translationEnabled}
                     disabled={!canEditCopy}
-                    onClick={() => {
-                      const updated = { ...localPost, translationEnabled: !localPost.translationEnabled };
+                    label="Traducción"
+                    onChange={(checked) => {
+                      const updated = { ...localPost, translationEnabled: checked };
                       setLocalPost(updated);
                       onUpdate(updated);
                     }}
-                    className={cn(
-                      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-                      localPost.translationEnabled ? "bg-app-accent" : "bg-gray-200"
-                    )}
-                  >
-                    <span className={cn(
-                      "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                      localPost.translationEnabled ? "translate-x-6" : "translate-x-1"
-                    )} />
-                  </button>
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <section>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Copy en la Creatividad (Diseños)</label>
-                    <textarea
-                      disabled={!canEditCopy}
-                      value={localPost.copyCreativity}
-                      onChange={e => setLocalPost({...localPost, copyCreativity: e.target.value})}
-                      onBlur={handleUpdate}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
-                      placeholder="Texto que aparecerá dentro del diseño..."
-                    />
+                    <Field label="Copy en la Creatividad (Diseños)" id="post-copy-creativity" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-gray-700 [&>label]:mb-2">
+                      <textarea
+                        disabled={!canEditCopy}
+                        value={localPost.copyCreativity}
+                        onChange={e => setLocalPost({...localPost, copyCreativity: e.target.value})}
+                        onBlur={handleUpdate}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
+                        placeholder="Texto que aparecerá dentro del diseño..."
+                      />
+                    </Field>
                     <SaveVersionButton
                       type="creativity"
                       currentValue={localPost.copyCreativity}
@@ -1574,8 +1557,7 @@ export default function PostModal({
                       localPost={localPost}
                     />
                     {localPost.translationEnabled && (
-                      <div className="mt-4">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Copy en la Creatividad (Traducido)</label>
+                      <Field label="Copy en la Creatividad (Traducido)" id="post-copy-creativity-translated" className="mt-4 [&>label]:text-sm [&>label]:font-semibold [&>label]:text-gray-700 [&>label]:mb-2">
                         <textarea
                           disabled={!canEditCopy}
                           value={localPost.copyCreativityTranslated || ''}
@@ -1584,20 +1566,21 @@ export default function PostModal({
                           className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
                           placeholder="Traducción manual del texto de la creatividad..."
                         />
-                      </div>
+                      </Field>
                     )}
                   </section>
 
                   <section>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Post Caption (Texto de Publicación)</label>
-                    <textarea
-                      disabled={!canEditCopy}
-                      value={localPost.copyCaption}
-                      onChange={e => setLocalPost({...localPost, copyCaption: e.target.value})}
-                      onBlur={handleUpdate}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-y h-64 text-sm"
-                      placeholder="Escribe el caption definitivo..."
-                    />
+                    <Field label="Post Caption (Texto de Publicación)" id="post-copy-caption" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-gray-700 [&>label]:mb-2">
+                      <textarea
+                        disabled={!canEditCopy}
+                        value={localPost.copyCaption}
+                        onChange={e => setLocalPost({...localPost, copyCaption: e.target.value})}
+                        onBlur={handleUpdate}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-y h-64 text-sm"
+                        placeholder="Escribe el caption definitivo..."
+                      />
+                    </Field>
                     <SaveVersionButton
                       type="caption"
                       currentValue={localPost.copyCaption}
@@ -1607,8 +1590,7 @@ export default function PostModal({
                       localPost={localPost}
                     />
                     {localPost.translationEnabled && (
-                      <div className="mt-4">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Post Caption (Traducido)</label>
+                      <Field label="Post Caption (Traducido)" id="post-copy-caption-translated" className="mt-4 [&>label]:text-sm [&>label]:font-semibold [&>label]:text-gray-700 [&>label]:mb-2">
                         <textarea
                           disabled={!canEditCopy}
                           value={localPost.copyCaptionTranslated || ''}
@@ -1617,7 +1599,7 @@ export default function PostModal({
                           className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-y h-64 text-sm"
                           placeholder="Traducción manual del caption..."
                         />
-                      </div>
+                      </Field>
                     )}
                   </section>
                 </div>
@@ -1664,26 +1646,29 @@ export default function PostModal({
                           {localPost.carouselUrls && localPost.carouselUrls.length > 0 ? (
                             <div className="grid grid-cols-3 gap-2">
                               {localPost.carouselUrls.map((url, idx) => (
-                                <div 
-                                  key={idx} 
+                                <div
+                                  key={idx}
+                                  role="button"
+                                  tabIndex={0}
                                   draggable={canEditDesign}
                                   onDragStart={(e) => handleSlideDragStart(e, idx)}
                                   onDragOver={(e) => handleSlideDragOver(e, idx)}
                                   onDrop={(e) => handleSlideDrop(e, idx)}
                                   onDragEnd={handleSlideDragEnd}
                                   onClick={() => setZoomedImageUrl(url)}
+                                  onKeyDown={onActivateKey(() => setZoomedImageUrl(url))}
                                   className={cn(
                                     "group relative aspect-square bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm cursor-zoom-in hover:scale-105 transition-all duration-200",
                                     draggingSlideIdx === idx ? "opacity-30 border-app-accent border-2 scale-95" : "cursor-grab active:cursor-grabbing",
                                     canEditDesign ? "hover:border-app-accent/50" : ""
                                   )}
                                 >
-                                  <img src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover select-none pointer-events-none" />
+                                  <Media src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover select-none pointer-events-none" />
                                   <div className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[11px] font-bold text-white select-none">
                                     {idx + 1}
                                   </div>
                                   {canEditDesign && (
-                                    <button 
+                                    <button
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -1693,7 +1678,7 @@ export default function PostModal({
                                         setLocalPost(updated);
                                         onUpdate(updated);
                                       }}
-                                      className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white p-0.5 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                                      className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white p-1.5 -m-0.5 rounded shadow-sm opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity"
                                       aria-label="Quitar diapositiva"
                                     >
                                       <X size={10} />
@@ -1703,31 +1688,33 @@ export default function PostModal({
                               ))}
                             </div>
                           ) : (
-                            <div className="text-center py-8 bg-white rounded-lg border border-dashed border-gray-200">
-                              <p className="text-xs text-gray-400 font-medium">Sin diapositivas creadas todavía</p>
-                            </div>
+                            <EmptyState title="Sin diapositivas creadas todavía" size="sm" className="py-8 bg-white rounded-lg border border-dashed border-gray-200" />
                           )}
                         </div>
                       ) : (
-                        <div 
+                        // role/tabIndex only when clicking actually does something — a video
+                        // renders its own focusable, keyboard-operable <video controls>, so
+                        // making this wrapper a second tab stop with no action of its own
+                        // (the onClick above is a no-op for videos) would just be a confusing
+                        // extra stop.
+                        <div
                           onClick={() => localPost.currentDesignUrl && !isVideoUrl(localPost.currentDesignUrl) && setZoomedImageUrl(localPost.currentDesignUrl)}
+                          role={localPost.currentDesignUrl && !isVideoUrl(localPost.currentDesignUrl) ? 'button' : undefined}
+                          tabIndex={localPost.currentDesignUrl && !isVideoUrl(localPost.currentDesignUrl) ? 0 : undefined}
+                          onKeyDown={localPost.currentDesignUrl && !isVideoUrl(localPost.currentDesignUrl) ? onActivateKey(() => setZoomedImageUrl(localPost.currentDesignUrl)) : undefined}
                           className={cn(
                             "aspect-video bg-white rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shadow-inner group",
                             localPost.currentDesignUrl ? (isVideoUrl(localPost.currentDesignUrl) ? "" : "cursor-zoom-in") : ""
                           )}
                         >
                           {localPost.currentDesignUrl ? (
-                            isVideoUrl(localPost.currentDesignUrl) ? (
-                              <video 
-                                src={localPost.currentDesignUrl} 
-                                className="w-full h-full object-contain" 
-                                controls
-                                muted
-                                playsInline
-                              />
-                            ) : (
-                              <img src={localPost.currentDesignUrl} alt="Design" className="w-full h-full object-contain hover:scale-102 transition-transform duration-300" />
-                            )
+                            <Media
+                              src={localPost.currentDesignUrl}
+                              alt="Design"
+                              className="w-full h-full object-contain"
+                              imgClassName="hover:scale-102 transition-transform duration-300"
+                              videoProps={{ controls: true }}
+                            />
                           ) : (
                             <div className="text-center px-4">
                               <ImageIcon className="mx-auto text-gray-200 mb-2 animate-pulse" size={48} />
@@ -1769,12 +1756,13 @@ export default function PostModal({
 
                           {localPost.format !== 'carrusel' && (
                             <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-1.5 text-left">
-                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
+                              <label htmlFor="post-design-url" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
                                 O pegar URL del archivo (Imagen/Video)
                               </label>
                               <div className="flex gap-1.5">
-                                <input 
+                                <input
                                   type="text"
+                                  id="post-design-url"
                                   placeholder="https://ejemplo.com/archivo.mp4 o link de Drive..."
                                   value={localPost.currentDesignUrl || ''}
                                   onChange={(e) => {
@@ -1799,7 +1787,7 @@ export default function PostModal({
                                   </button>
                                 )}
                               </div>
-                              <p className="text-[11px] text-gray-400">
+                              <p className="text-caption text-ink-muted">
                                 Recomendado para videos de más de 700KB para evitar el límite de base de datos de 1MB de Firestore.
                               </p>
                             </div>
@@ -1810,7 +1798,7 @@ export default function PostModal({
                               <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
                                 Portada del Reel (1080x1350)
                               </label>
-                              <p className="text-[11px] text-gray-400">
+                              <p className="text-caption text-ink-muted">
                                 Instagram muestra esta imagen como miniatura en la parrilla del feed en vez del vídeo.
                               </p>
                               {localPost.reelCoverUrl && (
@@ -1887,22 +1875,16 @@ export default function PostModal({
               >
                 <div className="flex-1 space-y-4 overflow-y-auto pr-2 mb-4 scrollbar-hide">
                   {comments.length === 0 && (
-                    <div className="text-center py-20 text-gray-400">
-                      <MessageSquare className="mx-auto mb-2 opacity-20" size={48} />
-                      <p className="font-medium text-sm">Sin comentarios aún</p>
-                      <p className="text-xs">Inicia el feedback aquí</p>
-                    </div>
+                    <EmptyState icon={MessageSquare} title="Sin comentarios aún" description="Inicia el feedback aquí" size="lg" />
                   )}
                   {comments.map((comment) => (
                     <div key={comment.id} className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-app-accent/10 flex items-center justify-center text-app-accent font-bold text-xs shrink-0">
-                        {comment.authorName[0]}
-                      </div>
+                      <Avatar name={comment.authorName} size="sm" />
                       <div className="flex-1">
                         <div className="flex items-baseline gap-2 mb-1">
                           <span className="text-sm font-bold text-gray-900">{comment.authorName}</span>
-                          <span className="text-[11px] font-semibold text-gray-400">{comment.roleAtTime}</span>
-                          <span className="text-[11px] text-gray-400">{format(comment.createdAt, 'HH:mm dd/MM')}</span>
+                          <span className="text-caption text-ink-muted">{comment.roleAtTime}</span>
+                          <span className="text-caption text-ink-muted">{format(comment.createdAt, 'HH:mm dd/MM')}</span>
                         </div>
                         <div className="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-xs sm:text-sm text-gray-700">
                           {comment.text}
@@ -1917,7 +1899,7 @@ export default function PostModal({
                     {/* Autocomplete Suggestion Dropdown */}
                     {activeMentionInput === 'comment' && filteredMentionUsers.length > 0 && (
                       <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto divide-y divide-gray-100">
-                        <div className="p-2 bg-gray-50 text-[11px] font-bold text-gray-400">
+                        <div className="p-2 bg-gray-50 text-caption text-ink-muted">
                           Mencionar usuario del proyecto:
                         </div>
                         {filteredMentionUsers.map(user => (
@@ -1927,12 +1909,10 @@ export default function PostModal({
                             onClick={() => selectMentionUser(user)}
                             className="w-full text-left p-2.5 hover:bg-gray-50 transition-colors flex items-center gap-2.5"
                           >
-                            <div className="w-6 h-6 rounded-full bg-app-accent/10 flex items-center justify-center font-bold text-app-accent text-xs">
-                              {user.name[0]}
-                            </div>
+                            <Avatar name={user.name} size="xs" />
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-gray-800 truncate">{user.name}</p>
-                              <p className="text-[11px] text-gray-400 font-medium truncate">@{getMentionHandle(user)} • {user.role}</p>
+                              <p className="text-caption text-ink-muted truncate">@{getMentionHandle(user)} • {user.role}</p>
                             </div>
                           </button>
                         ))}
@@ -1940,21 +1920,22 @@ export default function PostModal({
                     )}
 
                     <input
+                      aria-label="Nuevo comentario"
                       value={commentText}
                       onChange={e => handleInputChange(e.target.value, 'comment')}
                       onKeyDown={e => e.key === 'Enter' && commentText && (onAddComment(commentText), setCommentText(''), setActiveMentionInput(null))}
                       className="w-full bg-gray-50 border border-gray-200 rounded-md py-4 pl-4 pr-12 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent"
                       placeholder="Escribe un comentario o feedback..."
                     />
-                    <button
+                    <IconButton
+                      icon={Send}
+                      variant="primary"
                       onClick={() => commentText && (onAddComment(commentText), setCommentText(''), setActiveMentionInput(null))}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-app-accent text-white rounded-xl hover:bg-app-accent-hover transition-all shadow-sm"
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
                       aria-label="Enviar comentario"
-                    >
-                      <Send size={18} />
-                    </button>
+                    />
                   </div>
-                  <p className="mt-2 text-[11px] text-gray-400 italic">Los clientes solo podrán ver comentarios públicos marcados para fase 5.</p>
+                  <p className="mt-2 text-caption text-ink-muted italic">Los clientes solo podrán ver comentarios públicos marcados para fase 5.</p>
                 </div>
               </motion.div>
             )}
@@ -1969,33 +1950,24 @@ export default function PostModal({
               >
                 <div className="flex-1 space-y-4 overflow-y-auto pr-2 mb-4 scrollbar-hide">
                   {feedbacks.length === 0 && (
-                    <div className="text-center py-20 text-gray-400">
-                      <MessageSquare className="mx-auto mb-2 opacity-20" size={48} />
-                      <p className="font-medium text-sm">Sin feedback del cliente aún</p>
-                      <p className="text-xs">Los comentarios del cliente se registran aquí para su seguimiento</p>
-                    </div>
+                    <EmptyState icon={MessageSquare} title="Sin feedback del cliente aún" description="Los comentarios del cliente se registran aquí para su seguimiento" size="lg" />
                   )}
                   {feedbacks.map((f) => (
                     <div key={f.id} className={cn("flex gap-3 p-3 rounded-2xl border transition-all relative group", f.done ? "bg-gray-50/50 border-gray-100 opacity-60" : "bg-white border-gray-100 shadow-sm")}>
-                      <button 
+                      <IconButton
+                        icon={f.done ? CheckSquare : Square}
                         onClick={() => onToggleFeedbackDone(f.id, f.done)}
-                        className="p-1 rounded-lg text-gray-400 hover:text-app-accent transition-colors shrink-0 self-start"
+                        className={cn("self-start", f.done ? "text-emerald-600 hover:text-emerald-700" : "text-gray-400 hover:text-gray-600")}
                         title={f.done ? "Marcar como pendiente" : "Marcar como hecho"}
                         aria-label={f.done ? "Marcar como pendiente" : "Marcar como hecho"}
-                      >
-                        {f.done ? (
-                          <CheckSquare className="text-emerald-600" size={20} />
-                        ) : (
-                          <Square size={20} className="text-gray-300 hover:text-gray-500" />
-                        )}
-                      </button>
+                      />
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <div className="flex items-baseline gap-2 flex-wrap">
                             <span className="text-sm font-bold text-gray-900">{f.authorName}</span>
                             <span className="text-[11px] bg-app-accent-subtle text-app-accent font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">{f.roleAtTime}</span>
-                            <span className="text-[11px] text-gray-400">
+                            <span className="text-caption text-ink-muted">
                               {f.createdAt instanceof Date ? format(f.createdAt, 'HH:mm dd/MM') : 'Ahora'}
                             </span>
                           </div>
@@ -2017,31 +1989,28 @@ export default function PostModal({
                                 onCancel={() => setConfirmingDeleteFeedbackId(null)}
                               />
                             ) : (
-                              <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                                 {isAuthor && (
-                                  <button
-                                    type="button"
+                                  <IconButton
+                                    icon={Edit2}
+                                    size="sm"
                                     onClick={() => {
                                       setEditingFeedbackId(f.id);
                                       setEditingFeedbackText(f.text);
                                     }}
-                                    className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                                     title="Editar feedback"
                                     aria-label="Editar feedback"
-                                  >
-                                    <Edit2 size={13} />
-                                  </button>
+                                  />
                                 )}
                                 {canDelete && (
-                                  <button
-                                    type="button"
+                                  <IconButton
+                                    icon={Trash2}
+                                    size="sm"
+                                    variant="danger"
                                     onClick={() => setConfirmingDeleteFeedbackId(f.id)}
-                                    className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                                     title="Eliminar feedback"
                                     aria-label="Eliminar feedback"
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
+                                  />
                                 )}
                               </div>
                             );
@@ -2051,6 +2020,7 @@ export default function PostModal({
                         {editingFeedbackId === f.id ? (
                           <div className="mt-1 space-y-2">
                             <textarea
+                              aria-label="Editar texto del feedback"
                               value={editingFeedbackText}
                               onChange={(e) => setEditingFeedbackText(e.target.value)}
                               className="w-full bg-white border border-gray-200 rounded-md p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent resize-y"
@@ -2100,7 +2070,7 @@ export default function PostModal({
                     {/* Autocomplete Suggestion Dropdown */}
                     {activeMentionInput === 'feedback' && filteredMentionUsers.length > 0 && (
                       <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto divide-y divide-gray-100">
-                        <div className="p-2 bg-gray-50 text-[11px] font-bold text-gray-400">
+                        <div className="p-2 bg-gray-50 text-caption text-ink-muted">
                           Mencionar usuario del proyecto:
                         </div>
                         {filteredMentionUsers.map(user => (
@@ -2110,12 +2080,10 @@ export default function PostModal({
                             onClick={() => selectMentionUser(user)}
                             className="w-full text-left p-2.5 hover:bg-gray-50 transition-colors flex items-center gap-2.5"
                           >
-                            <div className="w-6 h-6 rounded-full bg-app-accent/10 flex items-center justify-center font-bold text-app-accent text-xs">
-                              {user.name[0]}
-                            </div>
+                            <Avatar name={user.name} size="xs" />
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-gray-800 truncate">{user.name}</p>
-                              <p className="text-[11px] text-gray-400 font-medium truncate">@{getMentionHandle(user)} • {user.role}</p>
+                              <p className="text-caption text-ink-muted truncate">@{getMentionHandle(user)} • {user.role}</p>
                             </div>
                           </button>
                         ))}
@@ -2123,21 +2091,22 @@ export default function PostModal({
                     )}
 
                     <input
+                      aria-label="Nueva solicitud de feedback al cliente"
                       value={feedbackText}
                       onChange={e => handleInputChange(e.target.value, 'feedback')}
                       onKeyDown={e => e.key === 'Enter' && feedbackText && (onAddFeedback(feedbackText), setFeedbackText(''), setActiveMentionInput(null))}
                       className="w-full bg-gray-50 border border-gray-200 rounded-md py-4 pl-4 pr-12 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent"
                       placeholder="Escribe una solicitud de feedback para el cliente..."
                     />
-                    <button
+                    <IconButton
+                      icon={Send}
+                      variant="primary"
                       onClick={() => feedbackText && (onAddFeedback(feedbackText), setFeedbackText(''), setActiveMentionInput(null))}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-app-accent text-white rounded-xl hover:bg-app-accent-hover transition-all shadow-sm"
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
                       aria-label="Enviar solicitud de feedback"
-                    >
-                      <Send size={18} />
-                    </button>
+                    />
                   </div>
-                  <p className="mt-2 text-[11px] text-gray-400">Los elementos de feedback tienen checkboxes interactivos para marcar tareas como resueltas.</p>
+                  <p className="mt-2 text-caption text-ink-muted">Los elementos de feedback tienen checkboxes interactivos para marcar tareas como resueltas.</p>
                 </div>
               </motion.div>
             )}
@@ -2151,11 +2120,7 @@ export default function PostModal({
                 className="space-y-4"
               >
                 {historyEntries.length === 0 ? (
-                  <div className="text-center py-20 text-gray-400">
-                    <HistoryIcon className="mx-auto mb-2 opacity-20" size={48} />
-                    <p className="font-medium text-sm">No hay versiones guardadas</p>
-                    <p className="text-xs text-gray-400 mt-1">Usa "💾 Guardar Versión" junto al copy, caption o diseño en la tab Producción.</p>
-                  </div>
+                  <EmptyState icon={HistoryIcon} title="No hay versiones guardadas" description='Usa "💾 Guardar Versión" junto al copy, caption o diseño en la tab Producción.' size="lg" />
                 ) : (
                   <>
                     <div className="flex flex-wrap gap-1.5">
@@ -2218,32 +2183,26 @@ export default function PostModal({
               setZoomedImageUrl(null);
             }}
           >
-            <button
-              className="absolute top-4 right-4 text-white hover:text-gray-300 p-2"
+            {/* variant="overlay" gives this a real chip — it previously floated as a
+                bare icon on the backdrop with no background at all, the one spot in
+                the app's on-media controls that didn't already have one. */}
+            <IconButton
+              icon={X}
+              variant="overlay"
+              className="absolute top-4 right-4"
               onClick={(e) => {
                 e.stopPropagation();
                 setZoomedImageUrl(null);
               }}
               aria-label="Cerrar imagen ampliada"
-            >
-              <X size={32} />
-            </button>
-            {isVideoUrl(zoomedImageUrl) ? (
-              <video 
-                src={zoomedImageUrl} 
-                controls
-                autoPlay
-                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <img 
-                src={zoomedImageUrl} 
-                alt="Ampliado" 
-                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              />
-            )}
+            />
+            <Media
+              src={zoomedImageUrl}
+              alt="Ampliado"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              videoProps={{ controls: true, autoPlay: true, onClick: (e) => e.stopPropagation() }}
+              imgProps={{ onClick: (e) => e.stopPropagation() }}
+            />
           </div>
         )}
       </AnimatePresence>

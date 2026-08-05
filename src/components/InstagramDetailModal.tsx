@@ -15,10 +15,14 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
-import { cn, PHASES, Phase, isVideoUrl } from '../lib/utils';
+import { cn, PHASES, Phase, isVideoUrl, onActivateKey } from '../lib/utils';
 import { Post, Comment } from '../types';
 import { useModalA11y } from '../lib/useModalA11y';
 import SocialCaption from './SocialCaption';
+import IconButton from './IconButton';
+import Avatar from './Avatar';
+import Media from './Media';
+import EmptyState from './EmptyState';
 
 interface InstagramDetailModalProps {
   post: Post;
@@ -148,11 +152,14 @@ export default function InstagramDetailModal({
                   onClick={() => setIsPlaying(!isPlaying)}
                 />
               ) : (
-                <img 
-                  src={post.currentDesignUrl} 
-                  alt="Reel design" 
+                <img
+                  src={post.currentDesignUrl}
+                  alt="Reel design"
+                  role="button"
+                  tabIndex={0}
                   className="absolute inset-0 w-full h-full object-cover opacity-80 cursor-zoom-in"
                   onClick={() => setZoomedImageUrl(post.currentDesignUrl)}
+                  onKeyDown={onActivateKey(() => setZoomedImageUrl(post.currentDesignUrl))}
                 />
               )
             ) : (
@@ -165,13 +172,13 @@ export default function InstagramDetailModal({
             {/* Top info */}
             <div className="relative z-10 flex justify-between items-center text-xs">
               <span className="bg-black/30 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 font-medium">Reels</span>
-              <button
+              <IconButton
+                icon={isMuted ? VolumeX : Volume2}
+                variant="overlay"
+                size="sm"
                 onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
-                className="p-1.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10 text-white"
                 aria-label={isMuted ? "Activar sonido" : "Silenciar"}
-              >
-                {isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
-              </button>
+              />
             </div>
 
             {/* Simulated Reel loop bar */}
@@ -202,13 +209,13 @@ export default function InstagramDetailModal({
 
             {/* Center play trigger overlay */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/10">
-              <button
+              <IconButton
+                icon={Play}
+                variant="overlay"
                 onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}
-                className="p-3 bg-black/50 backdrop-blur-md text-white rounded-full border border-white/20"
                 aria-label={isPlaying ? "Pausar" : "Reproducir"}
-              >
-                {isPlaying ? <Play size={20} className="fill-current text-white translate-x-[1px]" /> : <Play size={20} />}
-              </button>
+                className={isPlaying ? '[&>svg]:fill-current [&>svg]:translate-x-[1px]' : undefined}
+              />
             </div>
           </div>
         </div>
@@ -228,23 +235,14 @@ export default function InstagramDetailModal({
               className="w-full h-full flex items-center justify-center"
             >
               {activeSlides[currentSlide] ? (
-                isVideoUrl(activeSlides[currentSlide]) ? (
-                  <video 
-                    src={activeSlides[currentSlide]} 
-                    className="w-full h-full object-cover"
-                    controls
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <img 
-                    src={activeSlides[currentSlide]} 
-                    alt={`Slide ${currentSlide + 1}`} 
-                    className="w-full h-full object-cover cursor-zoom-in"
-                    referrerPolicy="no-referrer"
-                    onClick={() => setZoomedImageUrl(activeSlides[currentSlide])}
-                  />
-                )
+                <Media
+                  src={activeSlides[currentSlide]}
+                  alt={`Slide ${currentSlide + 1}`}
+                  className="w-full h-full object-cover"
+                  imgClassName="cursor-zoom-in"
+                  videoProps={{ controls: true }}
+                  imgProps={{ referrerPolicy: 'no-referrer', onClick: () => setZoomedImageUrl(activeSlides[currentSlide]) }}
+                />
               ) : (
                 <div className={cn("w-full h-full bg-gradient-to-tr flex flex-col justify-between p-6 text-white", mediaGradient)}>
                   <span className="text-xs font-semibold bg-black/20 px-2 py-0.5 rounded-full self-start">Slide {currentSlide + 1}</span>
@@ -261,20 +259,8 @@ export default function InstagramDetailModal({
           {/* Carousel arrows */}
           {activeSlides.length > 1 && (
             <>
-              <button
-                onClick={handlePrevSlide}
-                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white text-gray-800 rounded-full shadow-md z-10 transition-all border border-gray-100"
-                aria-label="Imagen anterior"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                onClick={handleNextSlide}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-white/80 hover:bg-white text-gray-800 rounded-full shadow-md z-10 transition-all border border-gray-100"
-                aria-label="Imagen siguiente"
-              >
-                <ChevronRight size={16} />
-              </button>
+              <IconButton icon={ChevronLeft} variant="light" onClick={handlePrevSlide} className="absolute left-3 top-1/2 -translate-y-1/2 z-10" aria-label="Imagen anterior" />
+              <IconButton icon={ChevronRight} variant="light" onClick={handleNextSlide} className="absolute right-3 top-1/2 -translate-y-1/2 z-10" aria-label="Imagen siguiente" />
             </>
           )}
 
@@ -302,23 +288,14 @@ export default function InstagramDetailModal({
     return (
       <div className="w-full h-full bg-gray-50 flex items-center justify-center overflow-hidden">
         {post.currentDesignUrl ? (
-          isVideoUrl(post.currentDesignUrl) ? (
-            <video 
-              src={post.currentDesignUrl} 
-              className="w-full h-full object-cover"
-              controls
-              muted
-              playsInline
-            />
-          ) : (
-            <img 
-              src={post.currentDesignUrl} 
-              alt={post.idea} 
-              className="w-full h-full object-cover cursor-zoom-in"
-              referrerPolicy="no-referrer"
-              onClick={() => setZoomedImageUrl(post.currentDesignUrl)}
-            />
-          )
+          <Media
+            src={post.currentDesignUrl}
+            alt={post.idea}
+            className="w-full h-full object-cover"
+            imgClassName="cursor-zoom-in"
+            videoProps={{ controls: true }}
+            imgProps={{ referrerPolicy: 'no-referrer', onClick: () => setZoomedImageUrl(post.currentDesignUrl) }}
+          />
         ) : (
           <div className={cn("w-full h-full bg-gradient-to-tr flex flex-col justify-between p-6 text-white", mediaGradient)}>
             <div className="flex justify-between items-start">
@@ -359,13 +336,7 @@ export default function InstagramDetailModal({
       >
 
         {/* Close Button on Top Right Corner */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-800 bg-white/80 hover:bg-white rounded-full z-50 transition-colors shadow-sm"
-          aria-label="Cerrar"
-        >
-          <X size={20} />
-        </button>
+        <IconButton icon={X} variant="light" onClick={onClose} className="absolute top-4 right-4 z-50" aria-label="Cerrar" />
 
         {/* Left Column: Media Container */}
         <div className="flex-1 bg-black flex items-center justify-center min-h-[300px] md:min-h-[500px] aspect-[4/5] relative select-none">
@@ -375,7 +346,7 @@ export default function InstagramDetailModal({
         {/* Right Column: Details & Comments Area */}
         <div className="w-full md:w-[380px] flex flex-col border-l border-gray-100 bg-white">
           {/* Header */}
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
                 <div className="w-full h-full bg-white rounded-full p-[1px]">
@@ -387,7 +358,7 @@ export default function InstagramDetailModal({
                   <span className="text-xs font-semibold text-gray-900">socialflow_agency</span>
                   <span className="w-3 h-3 bg-blue-500 rounded-full text-white flex items-center justify-center text-[11px] font-bold">✓</span>
                 </div>
-                <p className="text-[11px] text-gray-400 font-medium capitalize">{PHASES[post.phase].label}</p>
+                <p className="text-caption text-ink-muted capitalize">{PHASES[post.phase].label}</p>
               </div>
             </div>
             
@@ -403,14 +374,16 @@ export default function InstagramDetailModal({
                   Editar
                 </button>
               )}
-              <button className="text-gray-400 hover:text-gray-600" aria-label="Más opciones">
+              {/* p-2 -m-2: grows the tap target without a visible chip — these action-bar
+                  icons deliberately mimic real Instagram, which has no button background here. */}
+              <button className="text-gray-400 hover:text-gray-600 p-2 -m-2" aria-label="Más opciones">
                 <MoreHorizontal size={18} />
               </button>
             </div>
           </div>
 
           {/* Comments & Caption scrollable list */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs scrollbar-hide max-h-[220px] md:max-h-none">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs scrollbar-hide max-h-[220px] md:max-h-none">
             {/* The Post Caption acts as the first comment */}
             <div className="flex gap-3 text-left">
               <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 text-[11px] shrink-0">S</div>
@@ -422,7 +395,7 @@ export default function InstagramDetailModal({
                   highlightClass="font-semibold text-blue-600"
                   className="text-gray-800 leading-relaxed whitespace-pre-wrap"
                 />
-                <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-2 font-medium">
+                <div className="text-caption text-ink-muted mt-1 flex items-center gap-2">
                   <span>1 h</span>
                   {post.copyCreativity && <span className="text-app-accent font-semibold">Copy de diseño adjunto</span>}
                 </div>
@@ -432,33 +405,31 @@ export default function InstagramDetailModal({
             {/* User comments list — internal agency discussion, never shown to clients */}
             {userRole !== 'client' && comments.map((comment) => (
               <div key={comment.id} className="flex gap-3 text-left">
-                <div className="w-7 h-7 rounded-full bg-app-accent-subtle flex items-center justify-center font-bold text-app-accent text-[11px] shrink-0">
-                  {comment.authorName[0]}
-                </div>
+                <Avatar name={comment.authorName} size="sm" />
                 <div className="flex-1">
                   <span className="font-bold text-gray-900 mr-1.5">{comment.authorName}</span>
                   <span className="text-gray-700 leading-relaxed">{comment.text}</span>
-                  <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-2 font-medium">
+                  <div className="text-caption text-ink-muted mt-1 flex items-center gap-2">
                     <span>{format(comment.createdAt, 'HH:mm dd/MM')}</span>
-                    <span className="capitalize text-[11px] font-semibold text-gray-500">{comment.roleAtTime}</span>
+                    <span className="capitalize text-caption text-ink-muted">{comment.roleAtTime}</span>
                   </div>
                 </div>
               </div>
             ))}
 
             {userRole !== 'client' && comments.length === 0 && (
-              <div className="text-center py-6 text-gray-400">
-                <p className="font-medium">Sin comentarios adicionales</p>
-                <p className="text-[11px]">Escribe abajo para dejar feedback</p>
-              </div>
+              <EmptyState title="Sin comentarios adicionales" description="Escribe abajo para dejar feedback" size="sm" />
             )}
           </div>
 
           {/* Action Engagement Bar */}
           <div className="p-3 border-t border-gray-100 space-y-2 bg-gray-50/50">
             <div className="flex items-center justify-between">
+              {/* p-2 -m-2 on each: grows the tap target without a visible chip, same
+                  reasoning as the "Más opciones" button above — these mimic Instagram's
+                  real action bar, which renders bare icons with no button background. */}
               <div className="flex items-center gap-3 text-gray-700">
-                <button onClick={toggleLike} className="hover:scale-110 transition-transform" aria-label={isLiked ? "Quitar me gusta" : "Me gusta"}>
+                <button onClick={toggleLike} className="hover:scale-110 transition-transform p-2 -m-2" aria-label={isLiked ? "Quitar me gusta" : "Me gusta"}>
                   <Heart size={20} className={cn(isLiked ? "fill-red-500 text-red-500" : "text-gray-700")} />
                 </button>
                 <button
@@ -467,16 +438,16 @@ export default function InstagramDetailModal({
                     onClose();
                     onOpenEdit(userRole !== 'client' ? 'comments' : 'feedback');
                   }}
-                  className="hover:scale-110 transition-transform"
+                  className="hover:scale-110 transition-transform p-2 -m-2"
                   aria-label="Comentar"
                 >
                   <MessageCircle size={20} />
                 </button>
-                <button className="hover:scale-110 transition-transform" aria-label="Compartir">
+                <button className="hover:scale-110 transition-transform p-2 -m-2" aria-label="Compartir">
                   <Share2 size={18} />
                 </button>
               </div>
-              <button className="text-gray-700 hover:scale-110 transition-transform" aria-label="Guardar">
+              <button className="text-gray-700 hover:scale-110 transition-transform p-2 -m-2" aria-label="Guardar">
                 <Bookmark size={18} />
               </button>
             </div>
@@ -485,7 +456,7 @@ export default function InstagramDetailModal({
               {likesCount} Me gusta
             </div>
             
-            <div className="text-[11px] text-gray-500 font-semibold capitalize text-left">
+            <div className="text-caption text-ink-muted capitalize text-left">
               Fase: {PHASES[post.phase].label.split(': ')[1] || PHASES[post.phase].label}
             </div>
           </div>
@@ -496,6 +467,7 @@ export default function InstagramDetailModal({
             <form onSubmit={handleSubmitComment} className="p-3 border-t border-gray-100 bg-white flex items-center relative">
               <input
                 type="text"
+                aria-label="Añadir comentario"
                 placeholder="Añade un comentario..."
                 value={commentText}
                 onChange={e => setCommentText(e.target.value)}
@@ -510,7 +482,7 @@ export default function InstagramDetailModal({
               </button>
             </form>
           ) : (
-            <div className="p-3 border-t border-gray-100 bg-gray-50/50 text-center text-[11px] text-gray-400 font-medium">
+            <div className="p-3 border-t border-gray-100 bg-gray-50/50 text-center text-caption text-ink-muted">
               Para dar feedback sobre este post, ábrelo desde el calendario o el tablero.
             </div>
           )}
@@ -526,32 +498,23 @@ export default function InstagramDetailModal({
               setZoomedImageUrl(null);
             }}
           >
-            <button
-              className="absolute top-4 right-4 text-white hover:text-gray-300 p-2 z-[110]"
+            <IconButton
+              icon={X}
+              variant="overlay"
+              className="absolute top-4 right-4 z-[110]"
               onClick={(e) => {
                 e.stopPropagation();
                 setZoomedImageUrl(null);
               }}
               aria-label="Cerrar imagen ampliada"
-            >
-              <X size={32} />
-            </button>
-            {isVideoUrl(zoomedImageUrl) ? (
-              <video 
-                src={zoomedImageUrl} 
-                controls
-                autoPlay
-                className="max-w-full max-h-full object-contain rounded shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <img 
-                src={zoomedImageUrl} 
-                alt="Zoomed Design" 
-                className="max-w-full max-h-full object-contain rounded shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              />
-            )}
+            />
+            <Media
+              src={zoomedImageUrl}
+              alt="Zoomed Design"
+              className="max-w-full max-h-full object-contain rounded shadow-2xl"
+              videoProps={{ controls: true, autoPlay: true, onClick: (e) => e.stopPropagation() }}
+              imgProps={{ onClick: (e) => e.stopPropagation() }}
+            />
           </div>
         )}
       </AnimatePresence>

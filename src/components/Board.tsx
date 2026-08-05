@@ -1,21 +1,12 @@
 import React from 'react';
-import { PHASES, Phase, cn, isVideoUrl } from '../lib/utils';
+import { PHASES, Phase, cn } from '../lib/utils';
 import { motion } from 'motion/react';
 import { Clock, MessageSquare, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { PlatformBadge, SocialPlatform } from './SocialIcons';
-
-interface Post {
-  id: string;
-  date: Date;
-  platform: SocialPlatform;
-  phase: Phase;
-  idea: string;
-  title?: string;
-  currentDesignUrl?: string;
-  carouselUrls?: string[];
-  assigneeName?: string;
-}
+import { PlatformBadge } from './SocialIcons';
+import Avatar from './Avatar';
+import Media from './Media';
+import { Post } from '../types';
 
 interface BoardProps {
   posts: Post[];
@@ -111,7 +102,8 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
               ) : (
               <>
               {phasePosts.map((post) => (
-                <motion.div
+                <motion.button
+                  type="button"
                   layoutId={post.id}
                   key={post.id}
                   draggable={userRole !== 'client'}
@@ -119,7 +111,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                   onDragEnd={handleDragEnd}
                   onClick={() => onSelectPost(post)}
                   className={cn(
-                    "p-3 rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer group",
+                    "w-full text-left p-3 rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer group",
                     userRole !== 'client' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
                     PHASES[post.phase].cardClass
                   )}
@@ -129,37 +121,19 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                     {/* Miniature Design Thumbnail Preview */}
                     <div className="w-14 h-14 rounded-lg bg-gray-200/80 border border-gray-300/30 overflow-hidden shrink-0 flex items-center justify-center relative shadow-sm">
                       {post.currentDesignUrl ? (
-                        isVideoUrl(post.currentDesignUrl) ? (
-                          <video 
-                            src={post.currentDesignUrl} 
-                            className="w-full h-full object-cover animate-fade-in" 
-                            muted
-                            playsInline
-                          />
-                        ) : (
-                          <img 
-                            src={post.currentDesignUrl} 
-                            className="w-full h-full object-cover animate-fade-in" 
-                            alt="preview"
-                            referrerPolicy="no-referrer"
-                          />
-                        )
+                        <Media
+                          src={post.currentDesignUrl}
+                          alt="preview"
+                          className="w-full h-full object-cover animate-fade-in"
+                          imgProps={{ referrerPolicy: 'no-referrer' }}
+                        />
                       ) : post.carouselUrls && post.carouselUrls.length > 0 ? (
-                        isVideoUrl(post.carouselUrls[0]) ? (
-                          <video 
-                            src={post.carouselUrls[0]} 
-                            className="w-full h-full object-cover animate-fade-in" 
-                            muted
-                            playsInline
-                          />
-                        ) : (
-                          <img 
-                            src={post.carouselUrls[0]} 
-                            className="w-full h-full object-cover animate-fade-in" 
-                            alt="preview"
-                            referrerPolicy="no-referrer"
-                          />
-                        )
+                        <Media
+                          src={post.carouselUrls[0]}
+                          alt="preview"
+                          className="w-full h-full object-cover animate-fade-in"
+                          imgProps={{ referrerPolicy: 'no-referrer' }}
+                        />
                       ) : (
                         <span className="text-base opacity-75">🎨</span>
                       )}
@@ -171,13 +145,13 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                         <div className="flex items-center gap-1.5 min-w-0">
                           <PlatformBadge platform={post.platform} size={12} showLabel className="text-[11px] font-extrabold text-gray-500 uppercase truncate tracking-wider" />
                         </div>
-                        <span className="text-[11px] font-semibold text-gray-400 shrink-0">{format(post.date, 'dd MMM')}</span>
+                        <span className="text-caption text-ink-muted shrink-0">{format(post.date, 'dd MMM')}</span>
                       </div>
                       
                       <h4 className="text-xs sm:text-sm font-extrabold text-gray-900 line-clamp-1 leading-tight mb-0.5">
                         {post.title || "Post sin título"}
                       </h4>
-                      <p className="text-[11px] text-gray-500 line-clamp-2 leading-snug">
+                      <p className="text-caption text-ink-muted line-clamp-2 leading-snug">
                         {post.idea}
                       </p>
                     </div>
@@ -185,12 +159,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
 
                   <div className="flex items-center justify-between pt-2 border-t border-gray-200/40">
                     {post.assigneeName ? (
-                      <div
-                        className="w-5 h-5 rounded-full bg-app-accent/10 text-app-accent flex items-center justify-center text-[11px] font-bold shrink-0"
-                        title={post.assigneeName}
-                      >
-                        {post.assigneeName[0].toUpperCase()}
-                      </div>
+                      <Avatar name={post.assigneeName} size="xs" title={post.assigneeName} />
                     ) : (
                       <span className="text-[11px] text-gray-300 font-semibold">Sin asignar</span>
                     )}
@@ -204,7 +173,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </motion.button>
               ))}
               {phasePosts.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-gray-300 py-10">

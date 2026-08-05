@@ -21,7 +21,8 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db, signIn, logOut } from './lib/firebase';
-import { cn, Role, ROLES, Phase, PHASES } from './lib/utils';
+import { cn, Role, ROLES, Phase, PHASES, deriveAccentPalette } from './lib/utils';
+import { Post } from './types';
 import NewProjectModal, { NewProjectData } from './components/NewProjectModal';
 import Calendar from './components/Calendar';
 import Board from './components/Board';
@@ -31,6 +32,9 @@ import LinkedInFeed from './components/LinkedInFeed';
 import TikTokFeed from './components/TikTokFeed';
 import NotificationsStream from './components/NotificationsStream';
 import PublishHubView from './components/PublishHubView';
+import IconButton from './components/IconButton';
+import PhaseBadge from './components/PhaseBadge';
+import Avatar from './components/Avatar';
 import SettingsView from './components/SettingsView';
 import UserGuideModal from './components/UserGuideModal';
 import { InstagramIcon, TikTokIcon, LinkedInIcon, PLATFORM_META } from './components/SocialIcons';
@@ -123,18 +127,18 @@ function slugify(text: string): string {
     .replace(/\-\-+/g, '-');
 }
 
-// Simple helper to calculate a slightly darker color for hover effects
-function darkenColor(hex: string, percent: number): string {
-  try {
-    let num = parseInt(hex.replace("#",""), 16),
-    amt = Math.round(2.55 * percent),
-    R = (num >> 16) + amt,
-    G = (num >> 8 & 0x00FF) + amt,
-    B = (num & 0x0000FF) + amt;
-    return "#" + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
-  } catch (e) {
-    return hex;
-  }
+// Phase changes were the one silent transition in the notifications stream —
+// comments, mentions and feedback all wrote an activity entry, but agency→client
+// handoffs (e.g. sending to review) and client→agency handoffs (approving,
+// requesting changes) didn't. One phrase per meaningful transition reads more
+// naturally in the shared activity feed than a generic "changed the phase to X".
+function getPhaseChangeAction(oldPhase: Phase | undefined, newPhase: Phase): string {
+  if (newPhase === 'client_review') return 'envió a revisión del cliente';
+  if (newPhase === 'approved') return 'aprobó';
+  if (newPhase === 'changes_requested') return 'solicitó cambios en';
+  if (newPhase === 'published') return 'marcó como publicado';
+  if (oldPhase === 'changes_requested' && newPhase === 'design') return 'reanudó la producción de';
+  return `cambió la fase a "${PHASES[newPhase].shortLabel}" en`;
 }
 
 const defaultFallbackProjects = [
@@ -143,7 +147,13 @@ const defaultFallbackProjects = [
   { id: 'alpha', name: 'Alpha Fitness Club', clientName: 'GymFlow Corp', color: '#EF4444', createdAt: new Date() }
 ];
 
-const defaultFallbackPosts = [
+// Matches the real Post schema (src/types.ts) — a prior version used a legacy
+// shape (channel/type/status/slides, and an invalid phase: 'planning') left
+// over from before that schema was consolidated in Fase 8c. Every field the
+// Calendar/Board/feed views actually read (platform, format, carouselUrls,
+// phase) needs to be present and valid, or this fallback renders broken when
+// Firestore is unreachable and the app falls back to it.
+const defaultFallbackPosts: Post[] = [
   {
     id: 'post-1',
     projectId: 'ecoglow',
@@ -151,13 +161,11 @@ const defaultFallbackPosts = [
     idea: 'Lanzamiento de la nueva crema hidratante ecológica con ingredientes 100% naturales.',
     date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
     phase: 'published',
+    platform: 'instagram',
+    format: 'estatico',
     copyCaption: '¡Descubre la revolución del cuidado de la piel! 🌱 Presentamos nuestra nueva crema hidratante con extractos botánicos 100% orgánicos. Hidratación profunda y respetuosa con el planeta. #EcoBeauty #OrganicSkinCare #GreenLife',
     copyCreativity: 'Imagen minimalista de la crema rodeada de aloe vera y gotas de agua fresca.',
     currentDesignUrl: 'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=800&auto=format&fit=crop',
-    channel: 'instagram',
-    type: 'feed',
-    status: 'completed',
-    feedbackCount: 0
   },
   {
     id: 'post-2',
@@ -166,18 +174,15 @@ const defaultFallbackPosts = [
     idea: 'Carrusel de 3 pasos para una rutina de noche ecológica perfecta.',
     date: new Date(Date.now() + 24 * 60 * 60 * 1000), // tomorrow
     phase: 'client_review',
+    platform: 'instagram',
+    format: 'carrusel',
     copyCaption: 'La rutina de noche que tu piel y el planeta merecen. 🌙✨ Sigue estos 3 sencillos pasos para despertar con una piel radiante. #EcoFriendly #NourishYourSkin #BeautySleep',
     copyCreativity: 'Carrusel con fondo pastel verde. Slide 1: Limpieza. Slide 2: Tonificación. Slide 3: Hidratación con nuestro sérum de noche.',
-    currentDesignUrl: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&auto=format&fit=crop',
-    channel: 'instagram',
-    type: 'carousel',
-    slides: [
+    carouselUrls: [
       'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&auto=format&fit=crop',
       'https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?w=800&auto=format&fit=crop',
       'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&auto=format&fit=crop'
     ],
-    status: 'pending',
-    feedbackCount: 2
   },
   {
     id: 'post-3',
@@ -185,14 +190,12 @@ const defaultFallbackPosts = [
     title: 'Nebula AI Integration',
     idea: 'Anuncio de la integración de inteligencia artificial para la automatización de flujos de trabajo.',
     date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // in 2 days
-    phase: 'planning',
+    phase: 'design',
+    platform: 'linkedin',
+    format: 'estatico',
     copyCaption: 'La productividad del futuro ya está aquí. 🚀 Presentamos Nebula AI: automatiza tareas repetitivas y concéntrate en lo que de verdad importa. #SaaS #AI #ProductivityBoost',
     copyCreativity: 'Gráfico limpio mostrando un flujo de trabajo que se simplifica con un nodo de destellos brillantes.',
     currentDesignUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop',
-    channel: 'linkedin',
-    type: 'feed',
-    status: 'pending',
-    feedbackCount: 1
   }
 ];
 
@@ -214,12 +217,12 @@ export default function App() {
   const [filterTerritory, setFilterTerritory] = useState<string>('all');
   const [filterAssignedToMe, setFilterAssignedToMe] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<'calendario' | 'instagram_feed' | 'linkedin_feed' | 'tiktok_feed' | 'publicacion' | 'notificaciones' | 'configuracion'>('calendario');
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [activeProjectId, setActiveProjectId] = useState<string>('dashboard');
-  const [selectedPost, setSelectedPost] = useState<any | null>(null);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [selectedPostInitialTab, setSelectedPostInitialTab] = useState<'comments' | 'feedback' | undefined>(undefined);
   // Feeds' "Comentar" buttons call this so the modal opens straight on the
   // right conversation thread — Comentarios for the agency, Feedback
@@ -490,13 +493,23 @@ export default function App() {
     }
   }, [projects, activeProjectId]);
 
-  // Set the dynamic accent colors on documentElement based on the active project
+  // Set the dynamic accent colors on documentElement based on the active project.
+  // The project's raw brand color is never used directly as a surface color —
+  // see deriveAccentPalette's module comment in lib/utils.ts for why (some
+  // seeds give as little as 1.5:1 white-on-accent contrast). All three CSS
+  // vars are re-derived from the same seed so they stay in hue lockstep —
+  // previously only --app-accent and --app-accent-hover updated per project,
+  // leaving --app-accent-subtle a fixed indigo tint regardless of the active
+  // project's color.
   useEffect(() => {
     const activeProj = projects.find(p => p.id === activeProjectId);
-    const color = activeProj?.color || '#4F46E5'; // Fallback to the app accent
-    document.documentElement.style.setProperty('--app-accent', color);
-    const hoverColor = darkenColor(color, -10);
-    document.documentElement.style.setProperty('--app-accent-hover', hoverColor);
+    const seed = activeProj?.color || '#4F46E5'; // Fallback to the brand indigo
+    const { primary, hover, subtle, ring } = deriveAccentPalette(seed);
+    const root = document.documentElement.style;
+    root.setProperty('--app-accent', primary);
+    root.setProperty('--app-accent-hover', hover);
+    root.setProperty('--app-accent-subtle', subtle);
+    root.setProperty('--app-accent-ring', ring);
   }, [activeProjectId, projects]);
 
   // Dynamically switch sidebarTab if current active project doesn't support the active platform feed
@@ -546,7 +559,7 @@ export default function App() {
         id: doc.id,
         ...doc.data(),
         date: (doc.data().date as Timestamp).toDate()
-      }));
+      } as Post));
       // Sort in-memory to ensure proper chronological order without requiring composite indices
       postsData.sort((a, b) => a.date.getTime() - b.date.getTime());
       setPosts(postsData);
@@ -615,7 +628,7 @@ export default function App() {
     try {
     if (isOfflineMode) {
       const assignedProjectId = activeProjectId === 'all' ? (projects[0]?.id || '') : activeProjectId;
-      const newPost = {
+      const newPost: Post = {
         id: `local-post-${Date.now()}`,
         date: date,
         platform: 'instagram',
@@ -626,10 +639,7 @@ export default function App() {
         copyCreativity: '',
         copyCaption: '',
         currentDesignUrl: '',
-        createdBy: currentUser?.uid || 'local-user',
         projectId: assignedProjectId,
-        updatedAt: new Date(),
-        feedbackCount: 0
       };
       setPosts(prev => [...prev, newPost]);
       setSelectedPost(newPost);
@@ -653,7 +663,19 @@ export default function App() {
         updatedAt: serverTimestamp()
       };
       const docRef = await addDoc(collection(db, 'posts'), newPostData);
-      setSelectedPost({ ...newPostData, id: docRef.id, date });
+      setSelectedPost({
+        id: docRef.id,
+        date,
+        platform: 'instagram',
+        phase: 'idea_1',
+        title: 'Nuevo Post',
+        idea: 'Nueva idea de post...',
+        references: [],
+        copyCreativity: '',
+        copyCaption: '',
+        currentDesignUrl: '',
+        projectId: assignedProjectId,
+      });
       toast.success('Post creado');
     } catch (err) {
       toast.error('Error al crear el post');
@@ -664,7 +686,7 @@ export default function App() {
     }
   };
 
-  const handleUpdatePost = async (updates: any) => {
+  const handleUpdatePost = async (updates: Partial<Post>) => {
     if (!selectedPost) return;
     if (isOfflineMode) {
       setPosts(prev => prev.map(p => p.id === selectedPost.id ? { ...p, ...updates } : p));
@@ -693,6 +715,24 @@ export default function App() {
 
       await updateDoc(postRef, payload);
       setSelectedPost(prev => ({ ...prev, ...updates }));
+
+      if (cleanUpdates.phase && cleanUpdates.phase !== selectedPost.phase && currentUser) {
+        try {
+          await addDoc(collection(db, 'notifications'), {
+            user: currentUser.displayName || 'Usuario',
+            action: getPhaseChangeAction(selectedPost.phase, cleanUpdates.phase),
+            target: selectedPost.idea,
+            projectId: selectedPost.projectId || '',
+            createdAt: serverTimestamp(),
+            type: 'status',
+            avatar: currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.displayName || 'Usuario')}`
+          });
+        } catch (notifErr) {
+          // Best-effort — the phase update itself already succeeded, so a
+          // failed activity-log write shouldn't surface as an error to the user.
+          console.warn('Error al registrar la notificación de cambio de fase:', notifErr);
+        }
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (/longer than|maximum size|exceeds/i.test(message)) {
@@ -732,6 +772,23 @@ export default function App() {
         setSelectedPost(prev => prev ? ({ ...prev, ...updates }) : null);
       }
       toast.success('Fase de post actualizada');
+
+      const previousPost = posts.find(p => p.id === postId);
+      if (updates.phase && previousPost && updates.phase !== previousPost.phase && currentUser) {
+        try {
+          await addDoc(collection(db, 'notifications'), {
+            user: currentUser.displayName || 'Usuario',
+            action: getPhaseChangeAction(previousPost.phase, updates.phase),
+            target: previousPost.idea,
+            projectId: previousPost.projectId || '',
+            createdAt: serverTimestamp(),
+            type: 'status',
+            avatar: currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.displayName || 'Usuario')}`
+          });
+        } catch (notifErr) {
+          console.warn('Error al registrar la notificación de cambio de fase:', notifErr);
+        }
+      }
     } catch (err) {
       toast.error('Error al actualizar');
       handleFirestoreError(err, OperationType.UPDATE, `posts/${postId}`);
@@ -1153,7 +1210,7 @@ export default function App() {
                 Continuar con Google
              </button>
           </div>
-          <p className="text-[11px] text-gray-400 font-medium tracking-wide">
+          <p className="text-caption text-ink-muted tracking-wide">
             © 2026 SocialFlow Agency Tool
           </p>
         </motion.div>
@@ -1209,7 +1266,7 @@ export default function App() {
           </a>
         </div>
       )}
-      <div className="min-h-screen bg-[#F8FAFC] flex flex-1">
+      <div className="min-h-screen bg-gray-50 flex flex-1">
         <Toaster position="bottom-right" />
       
       {/* Sidebar - Desktop Only with Fixed Height (h-screen, sticky, non-scrollable) */}
@@ -1240,13 +1297,14 @@ export default function App() {
                 ].filter(item => !item.platform || activePlatforms.includes(item.platform))
                   .filter(item => !item.agencyOnly || userRole !== 'client')
                   .map((item) => (
-                  <button 
+                  <button
                     key={item.id}
                     onClick={() => setSidebarTab(item.id as any)}
+                    aria-current={sidebarTab === item.id ? 'page' : undefined}
                     className={cn(
                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group",
-                       sidebarTab === item.id 
-                         ? "bg-app-accent/10 text-app-accent" 
+                       sidebarTab === item.id
+                         ? "bg-app-accent/10 text-app-accent"
                          : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
                     )}
                   >
@@ -1267,7 +1325,7 @@ export default function App() {
             {/* Project Label Display (Now at the bottom, above user) */}
             <div className="relative bg-slate-50 border border-slate-100/80 p-3.5 rounded-2xl shrink-0">
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-[11px] font-semibold text-slate-500">Proyecto seleccionado</label>
+                <label className="block text-caption text-ink-muted">Proyecto seleccionado</label>
                 
                 {/* Information Icon Tooltip */}
                 <div className="relative group leading-none flex items-center justify-center">
@@ -1302,23 +1360,12 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-3">
-              <img 
-                 src={currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.displayName}`} 
-                 className="w-10 h-10 rounded-full border-2 border-white shadow-sm" 
-                 alt="avatar" 
-              />
+              <Avatar name={currentUser.displayName || 'Usuario'} src={currentUser.photoURL || undefined} className="border-2 border-white shadow-sm" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-gray-900 truncate">{currentUser.displayName}</p>
                 <p className="text-[11px] font-semibold text-app-accent truncate">{ROLES[userRole]}</p>
               </div>
-              <button 
-                onClick={logOut}
-                className="p-2 hover:bg-red-50 text-red-500 rounded-xl transition-all shrink-0"
-                title="Cerrar Sesión"
-                aria-label="Cerrar Sesión"
-              >
-                <LogOut size={18} />
-              </button>
+              <IconButton icon={LogOut} onClick={logOut} variant="danger" aria-label="Cerrar Sesión" title="Cerrar Sesión" className="shrink-0" />
             </div>
           </div>
         </aside>
@@ -1331,7 +1378,8 @@ export default function App() {
           <header className="h-20 bg-white border-b border-gray-100 px-6 flex items-center justify-between shrink-0">
             <div ref={searchContainerRef} className="relative w-full max-w-md">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input 
+              <input
+                aria-label="Buscar posts, ideas, copys o plataformas"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -1347,17 +1395,17 @@ export default function App() {
                 className="w-full bg-gray-50 border border-transparent rounded-md py-2.5 pl-12 pr-10 text-sm focus:bg-white focus:border-app-accent/20 focus:ring-4 focus:ring-app-accent/5 transition-all outline-none"
               />
               {searchQuery && (
-                <button 
+                <IconButton
+                  icon={X}
+                  size="sm"
                   onClick={() => {
                     setSearchQuery('');
                     setShowSuggestions(false);
                   }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-xs"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 bg-transparent hover:bg-gray-200"
                   title="Limpiar búsqueda"
                   aria-label="Limpiar búsqueda"
-                >
-                  ✕
-                </button>
+                />
               )}
 
               <AnimatePresence>
@@ -1408,11 +1456,7 @@ export default function App() {
                                   )}
                                 </div>
                                 {/* Right side: Phase Badge */}
-                                {phaseInfo && (
-                                  <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0", phaseInfo.color)}>
-                                    {phaseInfo.label.split(': ').pop()}
-                                  </span>
-                                )}
+                                {phaseInfo && <PhaseBadge phase={post.phase as Phase} className="shrink-0" />}
                               </div>
                               
                               {/* Idea / content description */}
@@ -1422,7 +1466,7 @@ export default function App() {
 
                               {/* Caption preview if available */}
                               {post.copyCaption && (
-                                <p className="text-[11px] text-slate-400 line-clamp-1 italic">
+                                <p className="text-caption text-ink-muted line-clamp-1 italic">
                                   "{post.copyCaption}"
                                 </p>
                               )}
@@ -1433,7 +1477,7 @@ export default function App() {
                         <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
                           <span>🔍</span>
                           <p className="font-bold text-slate-400">No se encontraron posts</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Prueba a buscar otra palabra clave, idea o plataforma.</p>
+                          <p className="text-caption text-ink-muted">Prueba a buscar otra palabra clave, idea o plataforma.</p>
                         </div>
                       )}
                     </div>
@@ -1445,21 +1489,20 @@ export default function App() {
             <div className="flex items-center gap-4">
               {/* Topbar Client/Project Label */}
               <div className="flex items-center gap-2 bg-gray-100/70 border border-gray-200/50 px-3.5 py-2 rounded-xl">
-                <span className="text-[11px] font-bold text-gray-400 hidden sm:inline">Proyecto:</span>
+                <span className="text-caption text-ink-muted hidden sm:inline">Proyecto:</span>
                 <span className="text-xs font-bold text-gray-700">
                   {activeProjectId === 'dashboard' ? 'Panel de Control' : activeProjectId === 'all' ? 'Todos los Proyectos' : (projects.find(p => p.id === activeProjectId)?.name || 'Cargando...')}
                 </span>
               </div>
 
 
-              <button 
+              <IconButton
+                icon={BookOpen}
                 onClick={() => setShowGuideModal(true)}
-                className="p-2.5 bg-app-accent-subtle text-app-accent hover:bg-app-accent/20 rounded-xl transition-all flex items-center justify-center shrink-0"
+                className="bg-app-accent-subtle text-app-accent hover:bg-app-accent/20 hover:text-app-accent shrink-0"
                 title="Abrir Guía de Uso"
                 aria-label="Abrir Guía de Uso"
-              >
-                <BookOpen size={18} />
-              </button>
+              />
               {userRole !== 'client' && activeProjectId !== 'dashboard' && (
                  <button 
                   onClick={() => handleCreatePost(new Date())}
@@ -1571,13 +1614,14 @@ export default function App() {
                       const publicados = projPosts.filter(p => p.phase === 'published').length;
 
                       return (
-                        <div 
+                        <button
+                          type="button"
                           key={proj.id}
                           onClick={() => {
                             selectProject(proj.id);
                             setSidebarTab('calendario');
                           }}
-                          className="bg-white rounded-[2.25rem] border border-slate-100/80 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 cursor-pointer flex flex-col justify-between overflow-hidden group animate-fade-in relative animate-fade-in"
+                          className="bg-white rounded-[2.25rem] border border-slate-100/80 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 cursor-pointer flex flex-col justify-between overflow-hidden group animate-fade-in relative animate-fade-in text-left"
                         >
                           <div className="p-7 flex-1 flex flex-col justify-between space-y-6">
                             {/* Card Header */}
@@ -1618,16 +1662,18 @@ export default function App() {
                               </div>
                             </div>
 
-                            {/* Access Button */}
-                            <button
-                              type="button"
+                            {/* Was a nested <button> that duplicated the card's own onClick (no
+                                separate action, always bubbled to the same handler) — now that
+                                the card itself is a real <button>, this has to be a <span> or
+                                the card would contain an invalid nested button. */}
+                            <span
                               className="w-full bg-slate-50 group-hover:bg-app-accent group-hover:text-white text-slate-700 font-extrabold text-xs py-3 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 border border-slate-100"
                             >
                               Entrar al Proyecto
                               <span className="text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-transform">→</span>
-                            </button>
+                            </span>
                           </div>
-                        </div>
+                        </button>
                       );
                     })
                   )}
@@ -1650,7 +1696,7 @@ export default function App() {
                         <stat.icon size={20} />
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold text-gray-400 leading-none mb-1">{stat.label}</p>
+                        <p className="text-caption text-ink-muted leading-none mb-1">{stat.label}</p>
                         <p className="text-xl font-black text-gray-900">{stat.value}</p>
                       </div>
                     </div>
@@ -1870,10 +1916,11 @@ export default function App() {
               <button
                 key={item.id}
                 onClick={() => setSidebarTab(item.id as any)}
+                aria-current={sidebarTab === item.id ? 'page' : undefined}
                 className={cn(
                   "flex flex-col items-center justify-center flex-1 h-full py-1 text-[11px] font-extrabold transition-all",
-                  sidebarTab === item.id 
-                    ? "text-app-accent font-black" 
+                  sidebarTab === item.id
+                    ? "text-app-accent font-black"
                     : "text-gray-400 hover:text-gray-500"
                 )}
               >

@@ -16,6 +16,8 @@ import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestor
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Role } from '../lib/utils';
+import Avatar from './Avatar';
+import EmptyState from './EmptyState';
 
 interface NotificationItem {
   id: string;
@@ -36,6 +38,7 @@ interface NotificationsStreamProps {
 export default function NotificationsStream({ userRole, userProjectId, permittedProjects }: NotificationsStreamProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [announcement, setAnnouncement] = useState('');
 
   useEffect(() => {
     // Scope to what this user is actually allowed to see: a client only their own
@@ -71,6 +74,19 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
 
     return () => unsub();
   }, [userRole, userProjectId, permittedProjects]);
+
+  // Drives the visually-hidden aria-live region below — the "En Vivo" badge in
+  // the header promises real-time updates, but new items arriving via
+  // onSnapshot were silent to screen readers (nothing here used aria-live).
+  // Keyed off the newest item's id specifically, not `notifications` as a
+  // whole, so this fires once per genuinely new notification rather than on
+  // every snapshot (e.g. a `done` toggle elsewhere touching an unrelated doc).
+  const latestId = notifications[0]?.id;
+  useEffect(() => {
+    if (!latestId) return;
+    const latest = notifications[0];
+    setAnnouncement(`${latest.user} ${latest.action}${latest.target ? `: ${latest.target}` : ''}`);
+  }, [latestId]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -112,6 +128,7 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
 
   return (
     <div className="flex-1 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col max-w-4xl mx-auto w-full">
+      <div aria-live="polite" className="sr-only">{announcement}</div>
       <div className="p-6 border-b border-gray-50 flex items-center justify-between">
         <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
           <Bell size={18} className="text-app-accent animate-pulse" />
@@ -124,15 +141,16 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
 
       <div className="flex-1 overflow-y-auto divide-y divide-gray-100 p-4 space-y-2">
         {loading ? (
-          <div className="flex justify-center items-center py-20">
+          <div className="flex justify-center items-center py-20" role="status" aria-label="Cargando notificaciones">
             <div className="w-8 h-8 bg-app-accent/20 rounded-xl animate-pulse"></div>
           </div>
         ) : notifications.length === 0 ? (
-          <div className="text-center py-24 text-gray-400">
-            <Bell size={48} className="mx-auto mb-3 opacity-20" />
-            <p className="font-bold text-sm">No hay actividad reciente</p>
-            <p className="text-xs">Las alertas automáticas y menciones aparecerán aquí en vivo.</p>
-          </div>
+          <EmptyState
+            icon={Bell}
+            title="No hay actividad reciente"
+            description="Las alertas automáticas y menciones aparecerán aquí en vivo."
+            size="lg"
+          />
         ) : (
           notifications.map((notif, i) => (
             <motion.div
@@ -144,11 +162,7 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
             >
               {/* User Avatar with Type overlay */}
               <div className="relative shrink-0">
-                <img 
-                  src={notif.avatar} 
-                  alt={notif.user} 
-                  className="w-10 h-10 rounded-full border border-gray-100 object-cover shadow-sm"
-                />
+                <Avatar name={notif.user} src={notif.avatar} className="shadow-sm" />
                 <div className={`absolute -bottom-1 -right-1 p-1 rounded-full border-2 border-white shadow-sm ${getBg(notif.type)}`}>
                   {getIcon(notif.type)}
                 </div>
@@ -158,7 +172,7 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold text-gray-900">{notif.user}</span>
-                  <span className="text-[11px] font-bold text-gray-400 flex items-center gap-1 shrink-0">
+                  <span className="text-caption text-ink-muted flex items-center gap-1 shrink-0">
                     <Clock size={10} />
                     {formatNotificationTime(notif.createdAt)}
                   </span>

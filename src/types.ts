@@ -29,12 +29,23 @@ export interface FeedbackItem {
   doneBy?: string;
 }
 
-export interface PostVersion {
-  createdAt: Date;
-  copyCaption: string;
-  copyCreativity: string;
-  designUrl: string;
+export interface InternalFeedback {
+  id: string;
   authorName: string;
+  role: string;
+  text: string;
+  createdAt: string;
+}
+
+// A single field-level version-history entry (one caption, one creativity brief,
+// or one design URL at a point in time), with its own feedback thread — not a
+// combined per-field snapshot, since each field advances independently.
+export interface VersionItem {
+  id: string;
+  value: string;
+  createdAt: string;
+  authorName: string;
+  feedbacks: InternalFeedback[];
 }
 
 export interface Post {
@@ -43,7 +54,9 @@ export interface Post {
   platform: 'instagram' | 'linkedin' | 'tiktok';
   phase: Phase;
   idea: string;
-  format: PostFormat;
+  // Chosen by the user during Production, not at creation — a brand-new post
+  // has no format yet (see App.tsx handleCreatePost).
+  format?: PostFormat;
   projectId: string; // Associated project ID
   references?: string[];
   copyCreativity?: string;
@@ -57,4 +70,15 @@ export interface Post {
   videoUrl?: string; // Video simulation for Reels format
   title?: string;
   language?: string;
+  captionVersions?: VersionItem[];
+  creativityVersions?: VersionItem[];
+  designVersions?: VersionItem[];
+  territory?: string;
+  assigneeId?: string;
+  assigneeName?: string;
+  changesRequestedReason?: string;
+  changesRequestedAt?: string;
+  changesRequestedBy?: string;
+  approvedBy?: string;
+  approvedAt?: string;
 }

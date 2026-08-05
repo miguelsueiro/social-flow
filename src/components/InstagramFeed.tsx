@@ -11,26 +11,16 @@ import {
   Edit2,
   Upload
 } from 'lucide-react';
-import { cn, PHASES, Phase, isVideoUrl } from '../lib/utils';
+import { cn, getVisibleFeedPosts } from '../lib/utils';
+import { Post } from '../types';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import InstagramDetailModal from './InstagramDetailModal';
+import Toggle from './Toggle';
+import Media from './Media';
+import EmptyState from './EmptyState';
+import Field from './Field';
 import { toast } from 'react-hot-toast';
-
-interface Post {
-  id: string;
-  date: Date;
-  platform: 'instagram' | 'tiktok';
-  phase: Phase;
-  idea: string;
-  format?: 'estatico' | 'reel' | 'carrusel';
-  carouselUrls?: string[];
-  references?: string[];
-  copyCreativity?: string;
-  copyCaption?: string;
-  currentDesignUrl?: string;
-  reelCoverUrl?: string;
-}
 
 interface InstagramFeedProps {
   posts: Post[];
@@ -123,24 +113,8 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
   // Apply optional phase filter (clients may only see approved/published)
   // and only show posts that actually have a creativity uploaded — an
   // empty gradient placeholder isn't a real preview of anything.
-  const visiblePosts = instagramPosts.filter(p => {
-    const hasCreativity = p.format === 'carrusel'
-      ? (p.carouselUrls && p.carouselUrls.some(Boolean))
-      : !!p.currentDesignUrl;
-    if (!hasCreativity) return false;
+  const visiblePosts = getVisibleFeedPosts(instagramPosts, userRole, filterPhase);
 
-    const isVisibleForRole = userRole !== 'client' || PHASES[p.phase].clientVisible;
-    if (!isVisibleForRole) return false;
-
-    if (filterPhase === 'approved_only') {
-      return p.phase === 'approved' || p.phase === 'published';
-    }
-    return true;
-  });
-
-  // Most recent first — matches how every real feed grid reads, top-left to
-  // bottom-right. The posts array itself is sorted oldest-first for the
-  // calendar, so this view needs its own reverse.
   const feedPosts = visiblePosts
     .filter(p => {
       if (activeTab === 'posts') return true;
@@ -163,17 +137,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
       grayscale && post.phase === 'published' && "grayscale"
     );
 
-    if (isVideoUrl(mediaUrl)) {
-      return <video src={mediaUrl} className={mediaClass} muted playsInline />;
-    }
-    return (
-      <img
-        src={mediaUrl}
-        alt={post.idea}
-        className={mediaClass}
-        referrerPolicy="no-referrer"
-      />
-    );
+    return <Media src={mediaUrl} alt={post.idea} className={mediaClass} imgProps={{ referrerPolicy: 'no-referrer' }} />;
   };
 
   const postsCount = instagramPosts.length;
@@ -236,24 +200,24 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
   const renderGridContent = () => {
     if (feedPosts.length === 0) {
       return (
-        <div className="text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-          <Camera size={40} className="text-gray-300 mx-auto mb-3" />
-          <p className="text-sm font-bold text-gray-600">No hay posts para esta vista</p>
-          <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
-            Crea nuevos posts con plataforma "instagram" en el calendario para verlos en esta parrilla.
-          </p>
-        </div>
+        <EmptyState
+          icon={Camera}
+          title="No hay posts para esta vista"
+          description='Crea nuevos posts con plataforma "instagram" en el calendario para verlos en esta parrilla.'
+          bordered
+        />
       );
     }
 
     return (
       <div className="grid grid-cols-3 gap-[0.5px] md:gap-0.5 bg-gray-200/60">
         {feedPosts.map((post) => (
-          <motion.div
+          <motion.button
+            type="button"
             layoutId={`feed-${post.id}`}
             key={post.id}
             onClick={() => setSelectedIgPost(post)}
-            className="relative aspect-[4/5] bg-gray-100 overflow-hidden group cursor-pointer border border-transparent shadow-none transition-all rounded-none"
+            className="relative aspect-[4/5] bg-gray-100 overflow-hidden group cursor-pointer border border-transparent shadow-none transition-all rounded-none block"
             whileHover={{ scale: 0.99 }}
           >
             {getPostMedia(post, grayscalePublished)}
@@ -266,7 +230,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                 Ver publicación
               </span>
             </div>
-          </motion.div>
+          </motion.button>
         ))}
       </div>
     );
@@ -294,41 +258,13 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
           {/* Toggle Mobile Frame */}
           <div className="flex items-center justify-between text-xs">
             <span className="font-bold text-gray-600">Simulador de Móvil</span>
-            <button
-              role="switch"
-              aria-checked={showDeviceFrame}
-              aria-label="Simulador de móvil"
-              onClick={() => setShowDeviceFrame(!showDeviceFrame)}
-              className={cn(
-                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                showDeviceFrame ? "bg-app-accent" : "bg-gray-200"
-              )}
-            >
-              <span className={cn(
-                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                showDeviceFrame ? "translate-x-6" : "translate-x-1"
-              )} />
-            </button>
+            <Toggle checked={showDeviceFrame} onChange={setShowDeviceFrame} label="Simulador de móvil" />
           </div>
 
           {/* Toggle B&W for published posts */}
           <div className="flex items-center justify-between text-xs">
             <span className="font-bold text-gray-600">Publicados en B/N</span>
-            <button
-              role="switch"
-              aria-checked={grayscalePublished}
-              aria-label="Poner en blanco y negro los posts publicados"
-              onClick={() => setGrayscalePublished(!grayscalePublished)}
-              className={cn(
-                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                grayscalePublished ? "bg-app-accent" : "bg-gray-200"
-              )}
-            >
-              <span className={cn(
-                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                grayscalePublished ? "translate-x-6" : "translate-x-1"
-              )} />
-            </button>
+            <Toggle checked={grayscalePublished} onChange={setGrayscalePublished} label="Poner en blanco y negro los posts publicados" />
           </div>
 
           {/* Filter Phases */}
@@ -385,27 +321,25 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                 transition={{ duration: 0.2 }}
                 className="space-y-3 text-xs overflow-hidden pt-2 border-t border-gray-100"
               >
-                <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase block mb-1">Nombre de Usuario</label>
-                  <input 
-                    type="text" 
+                <Field label="Nombre de Usuario" id="ig-profile-username" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase">
+                  <input
+                    type="text"
                     value={profileUsername}
                     onChange={e => handleUsernameChange(e.target.value)}
                     placeholder="usuario_marca"
                     className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-xs"
                   />
-                </div>
+                </Field>
 
-                <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase block mb-1">Biografía / Descripción</label>
-                  <textarea 
+                <Field label="Biografía / Descripción" id="ig-profile-bio" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase">
+                  <textarea
                     rows={3}
                     value={profileBio}
                     onChange={e => handleBioChange(e.target.value)}
                     placeholder="Escribe la descripción de la marca..."
                     className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 font-semibold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-xs resize-none"
                   />
-                </div>
+                </Field>
 
                 <div>
                   <label className="text-[11px] font-bold text-gray-400 uppercase block mb-1">Foto de Perfil</label>
@@ -465,7 +399,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
             {/* Simulated Phone Screen */}
             <div className="bg-white rounded-[2.5rem] overflow-hidden border border-gray-950/20 pt-4 pb-2 min-h-[640px] flex flex-col">
               {/* Phone Status bar */}
-              <div className="flex justify-between items-center px-6 text-[11px] font-bold text-gray-500 select-none">
+              <div className="flex justify-between items-center px-6 text-caption text-ink-muted select-none">
                 <span>09:41</span>
                 <div className="flex items-center gap-1">
                   <span>5G</span>

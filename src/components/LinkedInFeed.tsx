@@ -16,25 +16,16 @@ import {
   Laptop,
   Smartphone
 } from 'lucide-react';
-import { cn, PHASES, Phase, isVideoUrl } from '../lib/utils';
+import { cn, deriveAccentPalette, getVisibleFeedPosts } from '../lib/utils';
+import { Post } from '../types';
+import Toggle from './Toggle';
+import PhaseBadge from './PhaseBadge';
+import IconButton from './IconButton';
+import Media from './Media';
+import EmptyState from './EmptyState';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import SocialCaption from './SocialCaption';
-
-interface Post {
-  id: string;
-  date: Date;
-  platform: 'instagram' | 'linkedin' | 'tiktok';
-  phase: Phase;
-  idea: string;
-  format?: 'estatico' | 'reel' | 'carrusel';
-  carouselUrls?: string[];
-  references?: string[];
-  copyCreativity?: string;
-  copyCaption?: string;
-  currentDesignUrl?: string;
-  projectId?: string;
-}
 
 interface LinkedInFeedProps {
   posts: Post[];
@@ -56,22 +47,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
   // Filter based on roles and selection — most recent first, like a real feed.
   // Only posts with a creativity actually uploaded show up here; an empty
   // placeholder isn't a real preview of anything.
-  const visiblePosts = linkedInPosts
-    .filter(p => {
-      const hasCreativity = p.format === 'carrusel'
-        ? (p.carouselUrls && p.carouselUrls.some(Boolean))
-        : !!p.currentDesignUrl;
-      if (!hasCreativity) return false;
-
-      const isVisibleForRole = userRole !== 'client' || PHASES[p.phase].clientVisible;
-      if (!isVisibleForRole) return false;
-
-      if (filterPhase === 'approved_only') {
-        return p.phase === 'approved' || p.phase === 'published';
-      }
-      return true;
-    })
-    .sort((a, b) => b.date.getTime() - a.date.getTime());
+  const visiblePosts = getVisibleFeedPosts(linkedInPosts, userRole, filterPhase);
 
   const toggleLike = (postId: string) => {
     setLikedPosts(prev => ({ ...prev, [postId]: !prev[postId] }));
@@ -100,38 +76,18 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
       const activeIdx = activeCarouselSlides[post.id] || 0;
       return (
         <div className="relative bg-slate-50 border-y border-gray-100 overflow-hidden group">
-          {isVideoUrl(post.carouselUrls[activeIdx]) ? (
-            <video
-              src={post.carouselUrls[activeIdx]}
-              className={cn("w-full h-auto block max-h-[500px] mx-auto bg-black", isGray && "grayscale")}
-              controls
-              muted
-              playsInline
-            />
-          ) : (
-            <img
-              src={post.carouselUrls[activeIdx]}
-              alt={`Slide ${activeIdx + 1}`}
-              className={cn("w-full h-auto block", isGray && "grayscale")}
-              referrerPolicy="no-referrer"
-            />
-          )}
+          <Media
+            src={post.carouselUrls[activeIdx]}
+            alt={`Slide ${activeIdx + 1}`}
+            className={cn("w-full h-auto block", isGray && "grayscale")}
+            videoClassName="max-h-[500px] mx-auto bg-black"
+            videoProps={{ controls: true }}
+            imgProps={{ referrerPolicy: 'no-referrer' }}
+          />
           {post.carouselUrls.length > 1 && (
             <>
-              <button
-                onClick={(e) => handleCarouselPrev(post.id, post.carouselUrls!.length, e)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors"
-                aria-label="Diapositiva anterior"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                onClick={(e) => handleCarouselNext(post.id, post.carouselUrls!.length, e)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors"
-                aria-label="Diapositiva siguiente"
-              >
-                <ChevronRight size={16} />
-              </button>
+              <IconButton icon={ChevronLeft} variant="overlay" size="sm" onClick={(e) => handleCarouselPrev(post.id, post.carouselUrls!.length, e)} className="absolute left-2 top-1/2 -translate-y-1/2" aria-label="Diapositiva anterior" />
+              <IconButton icon={ChevronRight} variant="overlay" size="sm" onClick={(e) => handleCarouselNext(post.id, post.carouselUrls!.length, e)} className="absolute right-2 top-1/2 -translate-y-1/2" aria-label="Diapositiva siguiente" />
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 px-2 py-0.5 rounded text-[11px] font-bold text-white tracking-widest">
                 {activeIdx + 1} / {post.carouselUrls.length}
               </div>
@@ -146,22 +102,14 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
     const isReel = post.format === 'reel';
     return (
       <div className="relative bg-slate-50 border-y border-gray-100 overflow-hidden">
-        {isVideoUrl(post.currentDesignUrl!) ? (
-          <video
-            src={post.currentDesignUrl}
-            className={cn("w-full h-auto block max-h-[500px] mx-auto bg-black", isGray && "grayscale")}
-            controls
-            muted
-            playsInline
-          />
-        ) : (
-          <img
-            src={post.currentDesignUrl}
-            alt={post.idea}
-            className={cn("w-full h-auto block", isGray && "grayscale")}
-            referrerPolicy="no-referrer"
-          />
-        )}
+        <Media
+          src={post.currentDesignUrl}
+          alt={post.idea}
+          className={cn("w-full h-auto block", isGray && "grayscale")}
+          videoClassName="max-h-[500px] mx-auto bg-black"
+          videoProps={{ controls: true }}
+          imgProps={{ referrerPolicy: 'no-referrer' }}
+        />
         {isReel && (
           <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[11px] font-bold">
             🎥 Reel Horizontal (1920x1080)
@@ -183,21 +131,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
 
           <div className="flex items-center justify-between text-xs">
             <span className="font-bold text-gray-600">Publicados en B/N</span>
-            <button
-              role="switch"
-              aria-checked={grayscalePublished}
-              aria-label="Poner en blanco y negro los posts publicados"
-              onClick={() => setGrayscalePublished(!grayscalePublished)}
-              className={cn(
-                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                grayscalePublished ? "bg-app-accent" : "bg-gray-200"
-              )}
-            >
-              <span className={cn(
-                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                grayscalePublished ? "translate-x-6" : "translate-x-1"
-              )} />
-            </button>
+            <Toggle checked={grayscalePublished} onChange={setGrayscalePublished} label="Poner en blanco y negro los posts publicados" />
           </div>
 
           <div className="space-y-2">
@@ -259,13 +193,13 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
       {/* Live Stream Simulator */}
       <div className="flex-1 flex justify-center items-start overflow-y-auto pr-2 pb-12">
         {visiblePosts.length === 0 ? (
-          <div className="w-full max-w-xl text-center py-20 bg-white border border-gray-100 rounded-2xl shadow-sm">
-            <Globe size={48} className="text-gray-300 mx-auto mb-3" />
-            <h4 className="font-bold text-gray-800 text-sm">No hay posts de LinkedIn</h4>
-            <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
-              Configura posts con plataforma "LinkedIn" en el calendario para visualizarlos aquí en tiempo real.
-            </p>
-          </div>
+          <EmptyState
+            icon={Globe}
+            title="No hay posts de LinkedIn"
+            description='Configura posts con plataforma "LinkedIn" en el calendario para visualizarlos aquí en tiempo real.'
+            bordered
+            className="w-full max-w-xl"
+          />
         ) : (
           <div className={cn(
             "w-full transition-all duration-300",
@@ -284,9 +218,15 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                     {/* User Profile Info */}
                     <div className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div 
+                        {/* deriveAccentPalette: the project's raw color has no guaranteed
+                            contrast against the white initial painted on top of it — same
+                            fix as the dynamic --app-accent and PostModal's project badge.
+                            Fallback color corrected to LinkedIn's current brand blue
+                            (#0A66C2, matching SocialIcons.tsx) — #0077B5 is LinkedIn's blue
+                            from before their 2019 rebrand. */}
+                        <div
                           className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-sm shrink-0"
-                          style={{ backgroundColor: project?.color || '#0077B5' }}
+                          style={{ backgroundColor: deriveAccentPalette(project?.color || '#0A66C2').primary }}
                         >
                           {project?.name?.[0] || 'L'}
                         </div>
@@ -295,22 +235,24 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                             <h4 className="font-bold text-gray-900 text-xs sm:text-sm">
                               {project?.name || 'Cliente Corporativo'}
                             </h4>
-                            <span className="text-[11px] bg-app-accent-subtle text-app-accent px-1.5 py-0.5 rounded-full font-bold">
-                              {PHASES[post.phase].label.split(':')[1] || PHASES[post.phase].label}
-                            </span>
+                            {/* Was always accent-tinted regardless of phase — PhaseBadge
+                                restores the categorical color PHASES defines per phase
+                                (design=amber, approved=emerald, etc), same as every other
+                                phase badge in the app already shows. */}
+                            <PhaseBadge phase={post.phase} />
                           </div>
-                          <p className="text-[11px] text-gray-400 font-medium leading-none mt-0.5">
+                          <p className="text-caption text-ink-muted leading-none mt-0.5">
                             {project?.clientName ? `Socio en ${project.clientName}` : 'Planificación de LinkedIn'} • 1h • <Globe size={10} className="inline ml-0.5" />
                           </p>
                         </div>
                       </div>
-                      <button
+                      <IconButton
+                        icon={MoreHorizontal}
+                        size="sm"
                         onClick={() => onSelectPost(post)}
-                        className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+                        className="rounded-full"
                         aria-label="Más opciones"
-                      >
-                        <MoreHorizontal size={18} />
-                      </button>
+                      />
                     </div>
 
                     {/* Post Text Description */}
@@ -324,9 +266,9 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                     </div>
 
                     {/* Post Media Rendering */}
-                    <div className="cursor-pointer" onClick={() => onSelectPost(post)}>
+                    <button type="button" className="w-full block cursor-pointer" onClick={() => onSelectPost(post)}>
                       {getPostMedia(post, grayscalePublished)}
-                    </div>
+                    </button>
 
                     {/* Engagement Buttons */}
                     <div className="grid grid-cols-4 px-2 py-1 text-gray-500 font-semibold text-xs sm:text-sm">

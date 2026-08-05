@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useModalA11y } from '../lib/useModalA11y';
 import Button from './Button';
+import IconButton from './IconButton';
 import { 
   X, 
   Sparkles, 
@@ -215,7 +216,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-400 font-semibold mt-4 hidden md:block">
+          <div className="text-caption text-ink-muted mt-4 hidden md:block">
             Paso {currentStep + 1} de {steps.length}
           </div>
         </div>
@@ -237,14 +238,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
                 </h3>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400"
-              title="Cerrar guía"
-              aria-label="Cerrar guía"
-            >
-              <X size={20} />
-            </button>
+            <IconButton icon={X} onClick={onClose} aria-label="Cerrar guía" title="Cerrar guía" />
           </div>
 
           {/* Content Body */}
@@ -290,18 +284,20 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
 
           {/* Action buttons */}
           <div className="flex items-center justify-between pt-4 border-t border-slate-100 shrink-0">
-            <button
+            {/* Disabled (dimmed), not hidden, at the first step — the original
+                used opacity-0 to hide it while keeping its layout space, which
+                left a fully invisible-but-still-in-the-DOM control (a WCAG
+                2.4.7-adjacent trap for keyboard/AT users landing on "nothing").
+                Button's own disabled treatment keeps the same layout stability
+                while staying perceivable. */}
+            <Button
+              variant="secondary"
               onClick={handlePrev}
               disabled={currentStep === 0}
-              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-extrabold rounded-xl transition-all ${
-                currentStep === 0 
-                  ? 'opacity-0 cursor-default' 
-                  : 'text-slate-500 hover:bg-slate-50 border border-slate-200'
-              }`}
             >
               <ChevronLeft size={16} />
               Atrás
-            </button>
+            </Button>
 
             <div className="flex gap-2">
               <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-slate-600">

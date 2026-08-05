@@ -38,8 +38,13 @@
      softer, larger one from the previous pass (rounded-2xl and rounded-3xl
      used to go up to 18-26px). Everything from rounded-lg upward converges
      on the same 12px "card" radius, since the app's existing markup uses
-     rounded-lg/xl/2xl/3xl fairly interchangeably for cards and panels. */
-  --radius-sm: 6px;
+     rounded-lg/xl/2xl/3xl fairly interchangeably for cards and panels.
+     Reduced to two effective steps (8px / 12px) — sm now equals md instead
+     of introducing a barely-used third value, and the bare `rounded`
+     (previously Tailwind's unstyled 4px default) is pulled up to align
+     with the 8px step instead of sitting below it unstyled. */
+  --radius: 8px;
+  --radius-sm: 8px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 12px;
@@ -52,8 +57,12 @@
   --font-weight-extrabold: 700;
   --font-weight-black: 700;
 
-  /* Two shadow families: sm and md read as a resting card, barely visible;
-     lg, xl and 2xl read as elevated, soft, wide blur, low opacity. */
+  /* Shadow scale: xs/sm/md read as a resting or barely-elevated card;
+     lg, xl and 2xl read as elevated, soft, wide blur, low opacity. xs uses
+     the same Zinc-based tint as the rest of the scale (Tailwind's default
+     --shadow-xs is pure-black-based and reads as a different, colder
+     shadow next to the other four). */
+  --shadow-xs: 0 1px 1px 0 rgba(24, 24, 27, 0.03);
   --shadow-sm: 0 1px 2px 0 rgba(24, 24, 27, 0.04), 0 1px 3px 0 rgba(24, 24, 27, 0.06);
   --shadow-md: 0 2px 4px 0 rgba(24, 24, 27, 0.04), 0 4px 12px 0 rgba(24, 24, 27, 0.08);
   --shadow-lg: 0 8px 16px -4px rgba(24, 24, 27, 0.10), 0 20px 40px -12px rgba(24, 24, 27, 0.14);
@@ -66,6 +75,63 @@
   --color-app-accent: var(--app-accent);
   --color-app-accent-hover: var(--app-accent-hover);
   --color-app-accent-subtle: var(--app-accent-subtle);
+
+  /* --- Semantic ink/outline roles ---
+     A second, named layer on top of the raw Zinc scale (MD3 calls this
+     "role tokens" over "reference tokens"): call sites should reach for
+     *what the color means* (muted label, disabled text, control border)
+     rather than picking a gray-N step by eye, which is how the same role
+     ended up with 7 different treatments across the app. Every value below
+     is chosen to clear its WCAG target on white — ink-muted in particular
+     is Zinc-500 rather than the Zinc-400 most of the app's labels used,
+     which is the one-step fix that takes ~165 label/metadata sites from
+     failing 4.5:1 to passing it. ink-disabled is deliberately below AA:
+     WCAG 1.4.3 exempts disabled content, and it exists to be visually
+     distinct from ink-muted, not to be read as body text. */
+  --color-ink: #18181b;           /* 17.72:1 on white — headings, primary text */
+  --color-ink-secondary: #52525b; /* 7.73:1 — body copy */
+  --color-ink-muted: #71717a;     /* 4.83:1 — labels, metadata, placeholders */
+  --color-ink-disabled: #a1a1aa;  /* 2.56:1 — disabled content only, exempt from AA */
+  --color-outline: #92929c;       /* 3.08:1 — input/control borders (WCAG 1.4.11) */
+  --color-divider: #e4e4e7;       /* decorative separators, not read as content */
+
+  /* --- Typography roles ---
+     Named sizes instead of picking a raw text-xs/sm/[11px] per call site —
+     the audit found 9 raw sizes in use, 80% of all text packed into an
+     11-12px band with no naming to tell them apart. Each role bundles
+     size + line-height + weight (Tailwind v4 reads the paired
+     --text-*--line-height / --text-*--font-weight vars automatically), so
+     e.g. `text-label` alone gives the full treatment. Additive only: the
+     existing text-xs/sm/base/... utilities are untouched, so nothing
+     currently on screen moves yet — these become available for the
+     component migration phases. */
+  --text-display: 1.875rem;
+  --text-display--line-height: 2.25rem;
+  --text-display--font-weight: 700;
+
+  --text-title-lg: 1.25rem;
+  --text-title-lg--line-height: 1.75rem;
+  --text-title-lg--font-weight: 700;
+
+  --text-title-md: 1rem;
+  --text-title-md--line-height: 1.5rem;
+  --text-title-md--font-weight: 600;
+
+  --text-title-sm: 0.875rem;
+  --text-title-sm--line-height: 1.25rem;
+  --text-title-sm--font-weight: 600;
+
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.375rem;
+  --text-body--font-weight: 400;
+
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1rem;
+  --text-label--font-weight: 600;
+
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--font-weight: 500;
 }
 
 @layer base {
@@ -141,12 +207,34 @@
     padding: 0.5rem 1rem;
     border: none;
     background-image: none;
-    transition: all 0.2s ease;
+    /* Only the properties actually used by button state changes — the
+       broad "all" this used to carry included opacity and transform,
+       which is exactly what the global *,*::before,*::after rule above
+       deliberately excludes to avoid fighting Framer Motion's own
+       opacity/transform animations on these same elements. */
+    transition-property: background-color, border-color, color, box-shadow;
+    transition-duration: 0.2s;
+    transition-timing-function: ease;
     cursor: pointer;
   }
   button:disabled,
   .btn:disabled {
     cursor: not-allowed;
+  }
+
+  /* Visible keyboard focus for every interactive element without one of
+     its own. Previously none of the app's ~140 buttons defined any focus
+     style, leaving the indicator entirely up to each browser's default
+     (or, in Chrome/Safari's UA stylesheet for <button>, effectively none
+     via :focus-visible). :focus-visible (not :focus) so this only shows
+     for keyboard/programmatic focus, never on a mouse click. */
+  button:focus-visible,
+  .btn:focus-visible,
+  a:focus-visible,
+  [role="switch"]:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--color-app-accent);
+    outline-offset: 2px;
   }
 
   /* Toggle switches (role="switch") are fixed-size (h-6 w-11) with an
@@ -170,6 +258,7 @@
   input[type="date"],
   input[type="url"],
   input[type="tel"],
+  input[type="color"],
   select,
   textarea {
     /* No width here on purpose: every field that needs full width already
@@ -177,7 +266,7 @@
        inline selects (e.g. the calendar's phase/platform/territory filter
        row) to fill their flex row and wrap onto separate lines. */
     padding: 0.5rem 0.75rem;
-    border: 1px solid var(--color-gray-300);
+    border: 1px solid var(--color-outline);
     border-radius: var(--radius-md);
     background-color: white;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -191,6 +280,7 @@
   input[type="date"]:focus,
   input[type="url"]:focus,
   input[type="tel"]:focus,
+  input[type="color"]:focus,
   select:focus,
   textarea:focus {
     border-color: var(--color-app-accent);
@@ -198,11 +288,15 @@
   }
 }
 
+/* Pre-JS fallback for the dynamic accent — same tonal derivation
+   App.tsx's deriveAccentPalette() applies to a project's brand color,
+   pre-computed here for the brand indigo #4F46E5 so there's no flash of
+   mismatched color before the effect that sets these vars per-project runs. */
 :root {
-  --app-accent: #4f46e5;
-  --app-accent-hover: #4338ca;
-  --app-accent-subtle: #eef2ff;
-  --app-accent-ring: rgb(79 70 229 / 0.15);
+  --app-accent: #4c44e3;
+  --app-accent-hover: #2b31cc;
+  --app-accent-subtle: #ece4ff;
+  --app-accent-ring: rgba(76, 68, 227, 0.15);
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -213,7 +307,11 @@
   scrollbar-width: none;
 }
 
-/* Custom subtle scrollbar styling for the whole app */
+/* Custom subtle scrollbar styling for the whole app. Uses the theme's Zinc
+   variables rather than hand-picked hex — the previous values (#cbd5e1 /
+   #94a3b8) were Tailwind's original Slate-300/400, left over from before
+   the palette was consolidated onto Zinc, so every scrollbar in the app
+   carried a faint cool tint the rest of the (now-neutral) UI doesn't have. */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -222,17 +320,23 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--color-gray-300);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--color-gray-400);
 }
 
-/* Avoid uppercase text styling globally as per user request */
+/* Avoid uppercase text styling globally as per user request. Also resets
+   letter-spacing: ~85% of the elements carrying this class pair it with
+   tracking-wider/tracking-widest, which was designed for real upper-case
+   text — with text-transform neutralized above, those elements were
+   rendering lowercase copy with uppercase-width letter-spacing, a classic
+   typographic mismatch that reads as "stretched" rather than styled. */
 .uppercase,
 [class*="uppercase"] {
   text-transform: none !important;
+  letter-spacing: normal !important;
 }
 
 /* animate-fade-in was used across the app (App.tsx, Board.tsx, PostModal.tsx,
@@ -246,8 +350,22 @@
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }
+
+/* prefers-reduced-motion previously only covered animate-fade-in. The other
+   three animation utilities in use across the app (pulse on loading
+   skeletons, bounce on notification/empty-state icons, spin on the TikTok
+   mockup's vinyl disc) run indefinitely and were left uncovered — WCAG
+   2.2.2 (Pause, Stop, Hide) applies to any motion that loops longer than
+   5s with no way to pause it. Framer Motion's own transitions (motion/react,
+   used in 11 components) are a separate mechanism and aren't reached by
+   CSS media queries — covering those needs a <MotionConfig> at the app
+   root, tracked as later, behavior-adjacent work rather than a pure
+   design-system change. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in {
+  .animate-fade-in,
+  .animate-pulse,
+  .animate-bounce,
+  .animate-spin {
     animation: none;
   }
 }

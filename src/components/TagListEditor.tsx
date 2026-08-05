@@ -6,10 +6,14 @@ interface TagListEditorProps {
   onChange: (tags: string[]) => void;
   placeholder?: string;
   size?: 'sm' | 'md';
+  /** Accessible name for the add-tag input — both call sites use this for
+   *  project territories, but a generic default keeps the component honest
+   *  about being reusable for any freeform tag list. */
+  label?: string;
 }
 
 /** Freeform list of short text tags (e.g. per-project territories/themes) — not a fixed enum like platforms, so it's an add/remove text editor rather than a toggle group. */
-export default function TagListEditor({ tags, onChange, placeholder = 'Añadir...', size = 'md' }: TagListEditorProps) {
+export default function TagListEditor({ tags, onChange, placeholder = 'Añadir...', size = 'md', label = 'Añadir etiqueta' }: TagListEditorProps) {
   const [draft, setDraft] = useState('');
 
   const addTag = () => {
@@ -47,11 +51,14 @@ export default function TagListEditor({ tags, onChange, placeholder = 'Añadir..
               className={`inline-flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-full font-bold text-slate-600 ${chipSize}`}
             >
               {tag}
+              {/* Deliberately not <IconButton> — its 36px floor would dwarf this
+                  chip (~19px tall). p-1 nearly doubles the tap target (10→18px)
+                  without visibly changing the chip's compact proportions. */}
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
                 aria-label={`Quitar ${tag}`}
-                className="text-slate-400 hover:text-red-600 transition-colors"
+                className="p-1 -m-1 text-slate-400 hover:text-red-600 transition-colors"
               >
                 <X size={10} />
               </button>
@@ -62,6 +69,7 @@ export default function TagListEditor({ tags, onChange, placeholder = 'Añadir..
       <div className="flex gap-1.5">
         <input
           type="text"
+          aria-label={label}
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}

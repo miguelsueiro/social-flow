@@ -26,6 +26,12 @@ import ConfirmInline from './ConfirmInline';
 import NewProjectModal, { NewProjectData } from './NewProjectModal';
 import TagListEditor from './TagListEditor';
 import Button from './Button';
+import Toggle from './Toggle';
+import IconButton from './IconButton';
+import Field from './Field';
+import Modal from './Modal';
+import Avatar from './Avatar';
+import EmptyState from './EmptyState';
 import { toast } from 'react-hot-toast';
 import { db, auth } from '../lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -386,7 +392,7 @@ export default function SettingsView({
                 </div>
                 <div>
                   <p className="text-xs font-black text-gray-900 leading-snug">{label}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5 truncate">Permisos de {key === 'client' ? 'revisión' : 'edición'}</p>
+                  <p className="text-caption text-ink-muted mt-0.5 truncate">Permisos de {key === 'client' ? 'revisión' : 'edición'}</p>
                 </div>
               </button>
             );
@@ -420,7 +426,7 @@ export default function SettingsView({
               </div>
               <div>
                 <p className="text-xs font-black text-gray-900">Todos los Proyectos</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">Vea la parrilla global consolidada</p>
+                <p className="text-caption text-ink-muted mt-0.5">Vea la parrilla global consolidada</p>
               </div>
             </button>
           )}
@@ -447,7 +453,7 @@ export default function SettingsView({
               </div>
               <div>
                 <p className="text-xs font-black text-gray-900 line-clamp-1">{proj.name}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-1">Cliente: {proj.clientName}</p>
+                <p className="text-caption text-ink-muted mt-0.5 line-clamp-1">Cliente: {proj.clientName}</p>
               </div>
               {activeProjectId === proj.id && (
                 <div className="absolute top-3 right-3 text-white rounded-full p-0.5" style={{ backgroundColor: proj.color }}>
@@ -481,6 +487,7 @@ export default function SettingsView({
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
               <input
+                aria-label="Buscar usuarios por nombre o correo"
                 placeholder="Buscar usuarios por nombre o correo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -510,16 +517,11 @@ export default function SettingsView({
                     return (
                       <div key={usr.id} className="py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-50/50 pb-4">
                         <div className="flex-1 flex items-center gap-3">
-                          <img 
-                            src={usr.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(usr.name || '')}`} 
-                            alt={usr.name} 
-                            className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-100"
-                          />
+                          <Avatar name={usr.name || ''} src={usr.avatar} />
                           
                           {isEditing ? (
                             <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                              <div>
-                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Nombre</label>
+                              <Field label="Nombre" id={`edit-user-name-${usr.id}`} className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase [&>label]:tracking-wider">
                                 <input
                                   type="text"
                                   value={editUserName}
@@ -527,9 +529,8 @@ export default function SettingsView({
                                   className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
                                   placeholder="Nombre completo"
                                 />
-                              </div>
-                              <div>
-                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Correo</label>
+                              </Field>
+                              <Field label="Correo" id={`edit-user-email-${usr.id}`} className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase [&>label]:tracking-wider">
                                 <input
                                   type="email"
                                   value={editUserEmail}
@@ -537,9 +538,8 @@ export default function SettingsView({
                                   className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
                                   placeholder="correo@ejemplo.com"
                                 />
-                              </div>
-                              <div>
-                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Estado</label>
+                              </Field>
+                              <Field label="Estado" id={`edit-user-status-${usr.id}`} className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase [&>label]:tracking-wider">
                                 <select
                                   value={editUserStatus}
                                   onChange={(e) => setEditUserStatus(e.target.value)}
@@ -548,7 +548,7 @@ export default function SettingsView({
                                   <option value="active">Activo</option>
                                   <option value="pending">Pendiente</option>
                                 </select>
-                              </div>
+                              </Field>
                             </div>
                           ) : (
                             <div>
@@ -560,7 +560,7 @@ export default function SettingsView({
                                   <span className="bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-full text-[11px] uppercase tracking-wider">Activo</span>
                                 )}
                               </div>
-                              <p className="text-[11px] text-gray-400">{usr.email}</p>
+                              <p className="text-caption text-ink-muted">{usr.email}</p>
                             </div>
                           )}
                         </div>
@@ -592,6 +592,7 @@ export default function SettingsView({
                                   </span>
                                 ) : (
                                   <select
+                                    aria-label={`Rol de ${usr.name}`}
                                     value={usr.role || 'client'}
                                     onChange={(e) => handleRoleChangeInDb(usr.id, e.target.value as Role)}
                                     className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all cursor-pointer"
@@ -641,17 +642,9 @@ export default function SettingsView({
                               </div>
 
                               {/* Action buttons (Edit & Delete) */}
-                              <div className="flex items-center gap-1 pl-2 border-l border-gray-100 h-8 self-end">
-                                <button
-                                  type="button"
-                                  onClick={() => startEditingUser(usr)}
-                                  className="p-1.5 hover:bg-gray-100 text-gray-500 hover:text-gray-800 rounded-lg transition-colors"
-                                  title="Editar usuario"
-                                  aria-label="Editar usuario"
-                                >
-                                  <Edit2 size={14} />
-                                </button>
-                                
+                              <div className="flex items-center gap-1 pl-2 border-l border-gray-100 h-9 self-end">
+                                <IconButton icon={Edit2} size="sm" onClick={() => startEditingUser(usr)} aria-label="Editar usuario" title="Editar usuario" />
+
                                 {userToDelete === usr.id ? (
                                   <div className="ml-1">
                                     <ConfirmInline
@@ -664,15 +657,7 @@ export default function SettingsView({
                                     />
                                   </div>
                                 ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => setUserToDelete(usr.id)}
-                                    className="p-1.5 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-lg transition-colors"
-                                    title="Eliminar usuario"
-                                    aria-label="Eliminar usuario"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
+                                  <IconButton icon={Trash2} size="sm" variant="danger" onClick={() => setUserToDelete(usr.id)} aria-label="Eliminar usuario" title="Eliminar usuario" />
                                 )}
                               </div>
                             </>
@@ -734,8 +719,9 @@ export default function SettingsView({
                       <tr key={proj.id} className="hover:bg-gray-50/40">
                         <td className="px-4 py-4">
                           {isEditing ? (
-                            <input 
-                              type="color" 
+                            <input
+                              type="color"
+                              aria-label={`Color de marca de ${editName || proj.name}`}
                               value={editColor}
                               onChange={e => setEditColor(e.target.value)}
                               className="w-8 h-8 rounded border p-0.5 cursor-pointer bg-white"
@@ -746,8 +732,9 @@ export default function SettingsView({
                         </td>
                         <td className="px-4 py-4 font-bold text-gray-900">
                           {isEditing ? (
-                            <input 
+                            <input
                               type="text"
+                              aria-label="Nombre del proyecto"
                               value={editName}
                               onChange={e => setEditName(e.target.value)}
                               className="bg-white border border-gray-200 rounded px-3 py-2 text-xs w-full font-bold"
@@ -758,8 +745,9 @@ export default function SettingsView({
                         </td>
                         <td className="px-4 py-4 text-gray-500 font-medium">
                           {isEditing ? (
-                            <input 
+                            <input
                               type="text"
+                              aria-label="Cliente legal del proyecto"
                               value={editClient}
                               onChange={e => setEditClient(e.target.value)}
                               className="bg-white border border-gray-200 rounded px-3 py-2 text-xs w-full"
@@ -772,16 +760,19 @@ export default function SettingsView({
                           {isEditing ? (
                             <div className="flex gap-2 flex-wrap items-center">
                               {[
-                                { id: 'instagram', icon: InstagramIcon, color: 'text-[#E1306C] border-[#E1306C]/30 bg-[#E1306C]/5' },
-                                { id: 'linkedin', icon: LinkedInIcon, color: 'text-[#0A66C2] border-[#0A66C2]/30 bg-[#0A66C2]/5' },
-                                { id: 'tiktok', icon: TikTokIcon, color: 'text-zinc-900 border-zinc-900/30 bg-zinc-900/5' }
+                                { id: 'instagram', label: 'Instagram', icon: InstagramIcon, color: 'text-[#E1306C] border-[#E1306C]/30 bg-[#E1306C]/5' },
+                                { id: 'linkedin', label: 'LinkedIn', icon: LinkedInIcon, color: 'text-[#0A66C2] border-[#0A66C2]/30 bg-[#0A66C2]/5' },
+                                { id: 'tiktok', label: 'TikTok', icon: TikTokIcon, color: 'text-zinc-900 border-zinc-900/30 bg-zinc-900/5' }
                               ].map(platform => {
                                 const isActive = editPlatforms.includes(platform.id);
-                                const Icon = platform.icon;
                                 return (
-                                  <button
+                                  <IconButton
                                     key={platform.id}
-                                    type="button"
+                                    icon={platform.icon}
+                                    size="sm"
+                                    aria-pressed={isActive}
+                                    aria-label={`${platform.label}${isActive ? ' (activo, quitar)' : ' (inactivo, activar)'}`}
+                                    title={platform.label}
                                     onClick={() => {
                                       if (isActive) {
                                         if (editPlatforms.length > 1) {
@@ -793,13 +784,11 @@ export default function SettingsView({
                                         setEditPlatforms([...editPlatforms, platform.id]);
                                       }
                                     }}
-                                    className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
-                                      isActive ? platform.color : 'bg-gray-50 border-gray-200 text-gray-400 opacity-60'
-                                    }`}
-                                    title={platform.id}
-                                  >
-                                    <Icon size={14} />
-                                  </button>
+                                    className={cn(
+                                      'rounded-xl border',
+                                      isActive ? platform.color : 'bg-gray-50 border-gray-200 text-gray-400 opacity-60 hover:bg-gray-50 hover:text-gray-400'
+                                    )}
+                                  />
                                 );
                               })}
                             </div>
@@ -826,6 +815,7 @@ export default function SettingsView({
                               tags={editTerritories}
                               onChange={setEditTerritories}
                               placeholder="Añadir tema..."
+                              label="Añadir territorio"
                               size="sm"
                             />
                           ) : (
@@ -847,7 +837,7 @@ export default function SettingsView({
                             <div className="flex justify-end gap-1.5">
                               <button
                                 onClick={() => setEditingProjId(null)}
-                                className="text-[11px] font-bold text-gray-400 hover:text-gray-600 px-2 py-1"
+                                className="text-caption text-ink-muted hover:text-gray-600 px-2 py-1"
                               >
                                 Cancelar
                               </button>
@@ -866,13 +856,7 @@ export default function SettingsView({
                               >
                                 Modificar
                               </button>
-                              <button
-                                onClick={() => handleDeleteProject(proj.id)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded"
-                                aria-label="Eliminar proyecto"
-                              >
-                                <Trash2 size={13} />
-                              </button>
+                              <IconButton icon={Trash2} size="sm" variant="danger" onClick={() => handleDeleteProject(proj.id)} aria-label="Eliminar proyecto" />
                             </div>
                           )}
                         </td>
@@ -886,7 +870,13 @@ export default function SettingsView({
         </div>
       )}
 
-      {/* 3. Original agency/workspace settings */}
+      {/* 3. Original agency/workspace settings — agency name, timezone and
+          notification toggles are internal operational config, not something
+          a client account has any use for or Firestore permission to save
+          (firestore.rules only grants isAgencyRole() write access on
+          settings/agency, so a client submitting this got a raw
+          permission-denied toast instead of never seeing the form at all). */}
+      {userRole !== 'client' && (
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-4 sm:p-6 border-b border-gray-50">
           <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
@@ -905,20 +895,18 @@ export default function SettingsView({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nombre de la Agencia</label>
-                <input 
-                  type="text" 
+              <Field label="Nombre de la Agencia" id="agency-name" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase [&>label]:tracking-wider">
+                <input
+                  type="text"
                   value={agencyName}
                   onChange={(e) => setAgencyName(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-200 rounded-md py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all"
                   required
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Zona Horaria Predeterminada</label>
-                <select 
+              <Field label="Zona Horaria Predeterminada" id="agency-timezone" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase [&>label]:tracking-wider">
+                <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-200 rounded-md py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all"
@@ -928,7 +916,7 @@ export default function SettingsView({
                   <option value="America/Mexico_City">Mexico City (CST) - America/Mexico_City</option>
                   <option value="America/Bogota">Bogotá (EST) - America/Bogota</option>
                 </select>
-              </div>
+              </Field>
             </div>
           </div>
 
@@ -945,52 +933,25 @@ export default function SettingsView({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-gray-800">Alertas por Correo</p>
-                  <p className="text-[11px] text-gray-400">Recibe resúmenes diarios con los comentarios y cambios de estado.</p>
+                  <p className="text-caption text-ink-muted">Recibe resúmenes diarios con los comentarios y cambios de estado.</p>
                 </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={notifyEmail}
-                  aria-label="Alertas por correo"
-                  onClick={() => setNotifyEmail(!notifyEmail)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifyEmail ? 'bg-app-accent' : 'bg-gray-200'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notifyEmail ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
+                <Toggle checked={notifyEmail} onChange={setNotifyEmail} label="Alertas por correo" />
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-gray-800">Notificaciones en Slack</p>
-                  <p className="text-[11px] text-gray-400">Notifica automáticamente al canal #social-media cuando haya un nuevo post.</p>
+                  <p className="text-caption text-ink-muted">Notifica automáticamente al canal #social-media cuando haya un nuevo post.</p>
                 </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={notifySlack}
-                  aria-label="Notificaciones en Slack"
-                  onClick={() => setNotifySlack(!notifySlack)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifySlack ? 'bg-app-accent' : 'bg-gray-200'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notifySlack ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
+                <Toggle checked={notifySlack} onChange={setNotifySlack} label="Notificaciones en Slack" />
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-gray-800">Flujo Aprobación de Cliente</p>
-                  <p className="text-[11px] text-gray-400">Recibe una alerta inmediata cuando el cliente apruebe un post final.</p>
+                  <p className="text-caption text-ink-muted">Recibe una alerta inmediata cuando el cliente apruebe un post final.</p>
                 </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={notifyClientApprove}
-                  aria-label="Flujo de aprobación de cliente"
-                  onClick={() => setNotifyClientApprove(!notifyClientApprove)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifyClientApprove ? 'bg-app-accent' : 'bg-gray-200'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notifyClientApprove ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
+                <Toggle checked={notifyClientApprove} onChange={setNotifyClientApprove} label="Flujo de aprobación de cliente" />
               </div>
             </div>
           </div>
@@ -1003,52 +964,34 @@ export default function SettingsView({
           </div>
         </form>
       </div>
+      )}
 
-      {/* Custom Confirmation Modal */}
+      {/* Confirmation Modal — previously a hand-built overlay with no
+          role="dialog", no focus trap and no Escape handling (unlike the
+          Project Access modal right below it, which already had all three).
+          <Modal> wires that in by construction. */}
       {projectToDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-3xl p-4 sm:p-6 max-w-md w-full shadow-xl border border-gray-100"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
-                <AlertTriangle size={24} />
-              </div>
-              <button
-                onClick={() => setProjectToDelete(null)}
-                className="p-1.5 hover:bg-gray-100 rounded-xl transition-all text-gray-400 hover:text-gray-600"
-                aria-label="Cerrar"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <h4 className="text-base font-extrabold text-gray-900 mb-2">
-              ¿Eliminar proyecto definitivamente?
-            </h4>
-            <p className="text-xs text-gray-500 leading-relaxed mb-6">
-              Esta acción es irreversible. Se eliminará el proyecto seleccionado y todas las publicaciones asociadas podrían quedar huérfanas o sin clasificar.
-            </p>
-
+        <Modal
+          onClose={() => setProjectToDelete(null)}
+          title="¿Eliminar proyecto definitivamente?"
+          icon={AlertTriangle}
+          tone="danger"
+          size="sm"
+          footer={
             <div className="flex gap-3">
-              <button
-                onClick={() => setProjectToDelete(null)}
-                className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all"
-              >
+              <Button variant="secondary" onClick={() => setProjectToDelete(null)} className="flex-1">
                 Cancelar
-              </button>
-              <button
-                onClick={confirmDeleteProject}
-                className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-red-600/10"
-              >
+              </Button>
+              <Button variant="danger" onClick={confirmDeleteProject} className="flex-1">
                 Sí, eliminar
-              </button>
+              </Button>
             </div>
-          </motion.div>
-        </div>
+          }
+        >
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Esta acción es irreversible. Se eliminará el proyecto seleccionado y todas las publicaciones asociadas podrían quedar huérfanas o sin clasificar.
+          </p>
+        </Modal>
       )}
 
       {/* Project Access Modal — batches every checkbox toggle into local
@@ -1070,13 +1013,7 @@ export default function SettingsView({
                 <h4 className="text-base font-extrabold text-gray-900">Acceso a proyectos</h4>
                 <p className="text-xs text-gray-500 mt-0.5">{projectAccessUser.name} · {projectAccessUser.email}</p>
               </div>
-              <button
-                onClick={closeProjectAccessModal}
-                className="p-1.5 hover:bg-gray-100 rounded-xl transition-all text-gray-400 hover:text-gray-600 shrink-0"
-                aria-label="Cerrar"
-              >
-                <X size={18} />
-              </button>
+              <IconButton icon={X} onClick={closeProjectAccessModal} aria-label="Cerrar" className="shrink-0" />
             </div>
 
             <p className="text-xs text-gray-400 leading-relaxed mt-3 mb-3">
@@ -1088,6 +1025,7 @@ export default function SettingsView({
                 <Search size={13} className="absolute left-3 text-gray-400" />
                 <input
                   type="text"
+                  aria-label="Buscar proyecto"
                   placeholder="Buscar proyecto..."
                   value={projectAccessSearch}
                   onChange={(e) => setProjectAccessSearch(e.target.value)}
@@ -1119,7 +1057,7 @@ export default function SettingsView({
                         <div className="w-2.5 h-2.5 rounded-full border border-white shrink-0" style={{ backgroundColor: proj.color }} />
                         <div className="min-w-0">
                           <p className="truncate font-bold text-gray-800">{proj.name}</p>
-                          <p className="text-[11px] text-gray-400 font-normal truncate">Cliente: {proj.clientName}</p>
+                          <p className="text-caption text-ink-muted truncate">Cliente: {proj.clientName}</p>
                         </div>
                       </div>
                       <div className={cn(
@@ -1132,7 +1070,7 @@ export default function SettingsView({
                   );
                 })}
               {projects.filter(p => !projectAccessSearch || p.name.toLowerCase().includes(projectAccessSearch.toLowerCase())).length === 0 && (
-                <p className="text-center text-xs text-gray-400 py-3">No se encontraron proyectos</p>
+                <EmptyState title="No se encontraron proyectos" size="sm" className="py-3" />
               )}
             </div>
 
@@ -1160,60 +1098,45 @@ export default function SettingsView({
       )}
 
       {/* Invite User Modal */}
+      {/* Previously a hand-built overlay with no role="dialog", no focus trap
+          and no Escape handling. The submit button has to stay inside the
+          <form> for native submission, so it's part of Modal's children
+          rather than its separate `footer` slot — that slot renders outside
+          the form element. */}
       {showInviteModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl p-4 sm:p-6 max-w-md w-full shadow-2xl border border-gray-100"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-app-accent/10 text-app-accent rounded-2xl">
-                <UserPlus size={24} />
-              </div>
-              <button
-                onClick={() => setShowInviteModal(false)}
-                className="p-1.5 hover:bg-gray-100 rounded-xl transition-all text-gray-400 hover:text-gray-600"
-                aria-label="Cerrar"
-              >
-                <X size={18} />
-              </button>
-            </div>
+        <Modal
+          onClose={() => setShowInviteModal(false)}
+          title="Invitar colaborador o cliente"
+          icon={UserPlus}
+        >
+          <p className="text-xs text-gray-500 leading-relaxed mb-6">
+            Se crea una invitación pendiente. Debes compartir tú mismo el enlace de la app con esta persona — todavía no enviamos el correo automáticamente.
+          </p>
 
-            <h4 className="text-base font-extrabold text-gray-900 mb-1">
-              Invitar colaborador o cliente
-            </h4>
-            <p className="text-xs text-gray-500 leading-relaxed mb-6">
-              Se crea una invitación pendiente. Debes compartir tú mismo el enlace de la app con esta persona — todavía no enviamos el correo automáticamente.
-            </p>
-
-            <form onSubmit={handleInvite} className="space-y-4">
-              <div>
-                <label className="text-[11px] font-bold text-gray-400 block mb-1">Nombre completo</label>
-                <input 
-                  type="text" 
+          <form onSubmit={handleInvite} className="space-y-4">
+              <Field label="Nombre completo" id="invite-name">
+                <input
+                  type="text"
                   value={inviteName}
                   onChange={(e) => setInviteName(e.target.value)}
                   placeholder="Ej. Ana Belén"
                   className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-gray-800"
                   required
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="text-[11px] font-bold text-gray-400 block mb-1">Correo electrónico</label>
-                <input 
-                  type="email" 
+              <Field label="Correo electrónico" id="invite-email">
+                <input
+                  type="email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="Ej. ana.client@basetis.com"
                   className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-gray-800"
                   required
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="text-[11px] font-bold text-gray-400 block mb-1">Rol en SocialFlow</label>
+              <Field label="Rol en SocialFlow" id="invite-role">
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as Role)}
@@ -1223,11 +1146,10 @@ export default function SettingsView({
                     <option key={key} value={key}>{ROLES[key]}</option>
                   ))}
                 </select>
-              </div>
+              </Field>
 
               {inviteRole === 'client' && (
-                <div>
-                  <label className="text-[11px] font-bold text-gray-400 block mb-1">Proyecto del cliente</label>
+                <Field label="Proyecto del cliente" id="invite-project">
                   <select
                     value={inviteProjectId}
                     onChange={(e) => setInviteProjectId(e.target.value)}
@@ -1239,7 +1161,7 @@ export default function SettingsView({
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
-                </div>
+                </Field>
               )}
 
               <div className="flex gap-3 pt-4">
@@ -1256,8 +1178,7 @@ export default function SettingsView({
                 </Button>
               </div>
             </form>
-          </motion.div>
-        </div>
+        </Modal>
       )}
     </div>
   );

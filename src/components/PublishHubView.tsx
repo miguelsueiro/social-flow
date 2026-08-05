@@ -6,6 +6,7 @@ import { jsPDF } from 'jspdf';
 import { toast } from 'react-hot-toast';
 import { isVideoUrl } from '../lib/utils';
 import { PlatformBadge, PLATFORM_META } from './SocialIcons';
+import EmptyState from './EmptyState';
 
 interface PublishHubPost {
   id: string;
@@ -168,10 +169,7 @@ export default function PublishHubView({ posts, onSelectPost, loading = false }:
       </div>
 
       {visiblePosts.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
-          <CheckCircle2 className="mx-auto text-gray-200 mb-3" size={40} />
-          <p className="text-sm font-medium text-gray-400">No hay posts aprobados pendientes de publicar todavía.</p>
-        </div>
+        <EmptyState icon={CheckCircle2} title="No hay posts aprobados pendientes de publicar todavía." bordered />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {visiblePosts.map(post => {
@@ -188,6 +186,7 @@ export default function PublishHubView({ posts, onSelectPost, loading = false }:
                 <button
                   type="button"
                   onClick={() => onSelectPost(post)}
+                  aria-label={`Abrir ${post.title || post.idea}`}
                   className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden relative group"
                 >
                   {thumbUrl ? (

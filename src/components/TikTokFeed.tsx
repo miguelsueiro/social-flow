@@ -13,24 +13,13 @@ import {
   Play,
   Volume2
 } from 'lucide-react';
-import { cn, PHASES, Phase, isVideoUrl } from '../lib/utils';
+import { cn, PHASES, deriveAccentPalette, onActivateKey, getVisibleFeedPosts } from '../lib/utils';
+import { Post } from '../types';
 import SocialCaption from './SocialCaption';
-
-interface Post {
-  id: string;
-  date: Date;
-  platform: 'instagram' | 'linkedin' | 'tiktok';
-  phase: Phase;
-  idea: string;
-  format?: 'estatico' | 'reel' | 'carrusel';
-  carouselUrls?: string[];
-  references?: string[];
-  copyCreativity?: string;
-  copyCaption?: string;
-  currentDesignUrl?: string;
-  projectId?: string;
-  title?: string;
-}
+import Toggle from './Toggle';
+import IconButton from './IconButton';
+import Media from './Media';
+import EmptyState from './EmptyState';
 
 interface TikTokFeedProps {
   posts: Post[];
@@ -53,19 +42,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
   // Filter based on roles and selection — most recent first, like a real feed.
   // Only posts with a creativity actually uploaded show up here; an empty
   // placeholder isn't a real preview of anything.
-  const visiblePosts = tiktokPosts
-    .filter(p => {
-      if (!p.currentDesignUrl) return false;
-
-      const isVisibleForRole = userRole !== 'client' || PHASES[p.phase].clientVisible;
-      if (!isVisibleForRole) return false;
-
-      if (filterPhase === 'approved_only') {
-        return p.phase === 'approved' || p.phase === 'published';
-      }
-      return true;
-    })
-    .sort((a, b) => b.date.getTime() - a.date.getTime());
+  const visiblePosts = getVisibleFeedPosts(tiktokPosts, userRole, filterPhase);
 
   const activePost = visiblePosts[currentPostIndex] || null;
 
@@ -107,37 +84,30 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
     const isLiked = likedPosts[activePost.id];
     const isSaved = savedPosts[activePost.id];
 
+    // role="button", not a real <button> — this wraps the like/comment/save/share
+    // action rail below, each a real <button> of its own, so the outer element
+    // can't be a <button> itself (invalid: buttons can't nest buttons).
     return (
-      <div 
+      <div
         onClick={() => onSelectPost(activePost)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={onActivateKey(() => onSelectPost(activePost))}
         className="relative w-full h-full bg-black rounded-[2.5rem] overflow-hidden select-none cursor-pointer flex flex-col justify-between group"
       >
         {/* Visual Content (Creativity) — every post reaching this view already
             has a creativity uploaded (filtered in visiblePosts). */}
         <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-zinc-950">
-          {isVideoUrl(activePost.currentDesignUrl!) ? (
-            <video
-              src={activePost.currentDesignUrl}
-              className={cn(
-                "w-full h-full object-cover opacity-90 filter brightness-95",
-                grayscalePublished && activePost.phase === 'published' && "grayscale"
-              )}
-              autoPlay
-              loop
-              muted
-              playsInline
-            />
-          ) : (
-            <img
-              src={activePost.currentDesignUrl}
-              alt={activePost.idea}
-              className={cn(
-                "w-full h-full object-cover opacity-90 filter brightness-95",
-                grayscalePublished && activePost.phase === 'published' && "grayscale"
-              )}
-              referrerPolicy="no-referrer"
-            />
-          )}
+          <Media
+            src={activePost.currentDesignUrl}
+            alt={activePost.idea}
+            className={cn(
+              "w-full h-full object-cover opacity-90 filter brightness-95",
+              grayscalePublished && activePost.phase === 'published' && "grayscale"
+            )}
+            videoProps={{ autoPlay: true, loop: true }}
+            imgProps={{ referrerPolicy: 'no-referrer' }}
+          />
           {/* Ambient lighting gradient overlay for TikTok UI elements readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 z-1" />
         </div>
@@ -159,9 +129,12 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
         <div className="absolute right-3 bottom-24 z-10 flex flex-col items-center gap-4 text-white">
           {/* Avatar Profile */}
           <div className="relative mb-2">
-            <div 
+            {/* deriveAccentPalette: same contrast fix as the dynamic --app-accent —
+                the project's raw color has no guaranteed contrast against the white
+                initial painted on top of it. */}
+            <div
               className="w-11 h-11 rounded-full border-2 border-white flex items-center justify-center font-bold text-xs shadow-lg overflow-hidden shrink-0"
-              style={{ backgroundColor: proj?.color || '#4F46E5' }}
+              style={{ backgroundColor: deriveAccentPalette(proj?.color || '#4F46E5').primary }}
             >
               {proj ? proj.name[0].toUpperCase() : 'T'}
             </div>
@@ -254,11 +227,13 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
   const renderGridView = () => {
     if (visiblePosts.length === 0) {
       return (
-        <div className="col-span-full py-20 text-center text-gray-400 bg-white border border-gray-100 rounded-3xl shadow-sm">
-          <Music size={40} className="mx-auto text-gray-200 mb-3 animate-pulse" />
-          <p className="font-bold text-sm text-gray-500">No hay posts planificados para TikTok</p>
-          <p className="text-xs text-gray-400 max-w-sm mx-auto mt-1">Crea un post en el calendario con la plataforma "TikTok" para comenzar.</p>
-        </div>
+        <EmptyState
+          icon={Music}
+          title="No hay posts planificados para TikTok"
+          description='Crea un post en el calendario con la plataforma "TikTok" para comenzar.'
+          bordered
+          className="col-span-full"
+        />
       );
     }
 
@@ -266,32 +241,21 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {visiblePosts.map((post) => {
           return (
-            <div 
+            <button
+              type="button"
               key={post.id}
               onClick={() => onSelectPost(post)}
-              className="group aspect-[9/16] bg-zinc-950 rounded-2xl overflow-hidden relative border border-zinc-900 cursor-pointer shadow-sm hover:shadow-md transition-all active:scale-[0.99]"
+              className="group text-left aspect-[9/16] bg-zinc-950 rounded-2xl overflow-hidden relative border border-zinc-900 cursor-pointer shadow-sm hover:shadow-md transition-all active:scale-[0.99]"
             >
-              {isVideoUrl(post.currentDesignUrl!) ? (
-                <video
-                  src={post.currentDesignUrl}
-                  className={cn(
-                    "w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105",
-                    grayscalePublished && post.phase === 'published' && "grayscale"
-                  )}
-                  muted
-                  playsInline
-                />
-              ) : (
-                <img
-                  src={post.currentDesignUrl}
-                  alt={post.idea}
-                  className={cn(
-                    "w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105",
-                    grayscalePublished && post.phase === 'published' && "grayscale"
-                  )}
-                  referrerPolicy="no-referrer"
-                />
-              )}
+              <Media
+                src={post.currentDesignUrl}
+                alt={post.idea}
+                className={cn(
+                  "w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105",
+                  grayscalePublished && post.phase === 'published' && "grayscale"
+                )}
+                imgProps={{ referrerPolicy: 'no-referrer' }}
+              />
 
               {/* Grid Overlays */}
               <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex items-center justify-between z-10 text-white">
@@ -302,7 +266,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
                   {PHASES[post.phase]?.label.split(': ').pop() || post.phase}
                 </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -324,21 +288,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
 
           <div className="flex items-center justify-between text-xs">
             <span className="font-bold text-gray-600">Publicados en B/N</span>
-            <button
-              role="switch"
-              aria-checked={grayscalePublished}
-              aria-label="Poner en blanco y negro los posts publicados"
-              onClick={() => setGrayscalePublished(!grayscalePublished)}
-              className={cn(
-                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                grayscalePublished ? "bg-app-accent" : "bg-gray-200"
-              )}
-            >
-              <span className={cn(
-                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                grayscalePublished ? "translate-x-6" : "translate-x-1"
-              )} />
-            </button>
+            <Toggle checked={grayscalePublished} onChange={setGrayscalePublished} label="Poner en blanco y negro los posts publicados" />
           </div>
 
           <div className="space-y-2">
@@ -394,25 +344,11 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
 
         {viewMode === 'phone' && visiblePosts.length > 1 && (
           <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-            <button
-              disabled={currentPostIndex === 0}
-              onClick={handlePrevPost}
-              className="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors"
-              aria-label="Post anterior"
-            >
-              <ChevronLeft size={16} />
-            </button>
+            <IconButton icon={ChevronLeft} disabled={currentPostIndex === 0} onClick={handlePrevPost} className="border border-gray-200" aria-label="Post anterior" />
             <span className="text-xs font-bold text-gray-700">
               Post {currentPostIndex + 1} de {visiblePosts.length}
             </span>
-            <button
-              disabled={currentPostIndex === visiblePosts.length - 1}
-              onClick={handleNextPost}
-              className="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors"
-              aria-label="Post siguiente"
-            >
-              <ChevronRight size={16} />
-            </button>
+            <IconButton icon={ChevronRight} disabled={currentPostIndex === visiblePosts.length - 1} onClick={handleNextPost} className="border border-gray-200" aria-label="Post siguiente" />
           </div>
         )}
       </div>
