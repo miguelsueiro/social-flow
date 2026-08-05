@@ -1269,8 +1269,9 @@ export default function App() {
       <div className="min-h-screen bg-gray-50 flex flex-1">
         <Toaster position="bottom-right" />
       
-      {/* Sidebar - Desktop Only with Fixed Height (h-screen, sticky, non-scrollable) */}
-      {activeProjectId !== 'dashboard' && (
+      {/* Sidebar - Desktop Only with Fixed Height (h-screen, sticky, non-scrollable) —
+          always rendered, including on the Dashboard, so the app's chrome (logo,
+          nav, account footer) never swaps out for a separate screen. */}
         <aside className="w-64 bg-white border-r border-divider p-6 flex flex-col shrink-0 hidden lg:flex h-screen sticky top-0 overflow-hidden justify-between">
           <div className="flex flex-col overflow-hidden flex-1">
             {/* Logo / Header */}
@@ -1283,7 +1284,23 @@ export default function App() {
 
             {/* Nav Tab List (scrollable if screen is extremely small, but self-contained) */}
             <nav className="flex-1 space-y-1 overflow-y-auto pr-1 scrollbar-hide">
-              {(() => {
+              <button
+                onClick={() => selectProject('dashboard')}
+                aria-current={activeProjectId === 'dashboard' ? 'page' : undefined}
+                className={cn(
+                   "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group",
+                   activeProjectId === 'dashboard'
+                     ? "bg-app-accent/10 text-app-accent"
+                     : "text-ink-muted hover:text-ink-secondary hover:bg-gray-50"
+                )}
+              >
+                <Grid size={18} className={cn("transition-all shrink-0", activeProjectId === 'dashboard' ? "text-app-accent" : "text-ink-muted")} />
+                Dashboard
+              </button>
+              {/* Project-scoped sections only make sense once a project (or "todos")
+                  is actually selected — hidden here rather than shown disabled, since
+                  there's nothing meaningful to preview about them without that context. */}
+              {activeProjectId !== 'dashboard' && (() => {
                 const activeProj = projects.find(p => p.id === activeProjectId);
                 const activePlatforms = activeProj && activeProj.platforms ? activeProj.platforms : ['instagram', 'linkedin', 'tiktok'];
                 return [
@@ -1369,12 +1386,10 @@ export default function App() {
             </div>
           </div>
         </aside>
-      )}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
-        {/* Topbar */}
-        {activeProjectId !== 'dashboard' && (
+        {/* Topbar — always rendered, including on the Dashboard */}
           <header className="h-20 bg-white border-b border-divider px-6 flex items-center justify-between shrink-0">
             <div ref={searchContainerRef} className="relative w-full max-w-md">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={18} />
@@ -1503,8 +1518,28 @@ export default function App() {
                 title="Abrir Guía de Uso"
                 aria-label="Abrir Guía de Uso"
               />
+              {/* On the Dashboard, "Configuración" isn't in the sidebar yet (it's
+                  project-scoped and no project is selected) — this is the only
+                  way an admin reaches it from here. */}
+              {userRole === 'admin' && activeProjectId === 'dashboard' && (
+                <button
+                  onClick={() => {
+                    const firstProj = projects[0];
+                    if (firstProj) {
+                      selectProject(firstProj.id);
+                      setSidebarTab('configuracion');
+                    } else {
+                      toast.error('No hay proyectos creados para configurar');
+                    }
+                  }}
+                  className="bg-white hover:bg-slate-50 border border-divider text-ink-secondary px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                >
+                  <Settings size={14} className="text-ink-secondary" />
+                  Ajustes de Plataforma
+                </button>
+              )}
               {userRole !== 'client' && activeProjectId !== 'dashboard' && (
-                 <button 
+                 <button
                   onClick={() => handleCreatePost(new Date())}
                   className="bg-app-accent text-white hover:bg-app-accent-hover px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-app-accent/15 transition-all active:scale-95 flex items-center gap-2"
                  >
@@ -1514,7 +1549,6 @@ export default function App() {
               )}
             </div>
           </header>
-        )}
 
         {/* Content Area */}
         <div className={cn(
@@ -1525,42 +1559,6 @@ export default function App() {
         )}>
           {activeProjectId === 'dashboard' ? (
             <div className="space-y-8 animate-fade-in">
-              {/* Dashboard top navigation bar (only inside dashboard itself) */}
-              <div className="flex items-center justify-between border-b border-divider pb-5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 bg-app-accent rounded-xl flex items-center justify-center text-white font-black text-base shadow-sm">
-                    <LayoutDashboard size={18} />
-                  </div>
-                  <span className="text-lg font-black text-ink tracking-tight">SocialFlow</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  {userRole === 'admin' && (
-                    <button
-                      onClick={() => {
-                        const firstProj = projects[0];
-                        if (firstProj) {
-                          selectProject(firstProj.id);
-                          setSidebarTab('configuracion');
-                        } else {
-                          toast.error('No hay proyectos creados para configurar');
-                        }
-                      }}
-                      className="bg-white hover:bg-slate-50 border border-divider text-ink-secondary px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
-                    >
-                      <Settings size={14} className="text-ink-secondary" />
-                      Ajustes de Plataforma
-                    </button>
-                  )}
-                  <button
-                    onClick={logOut}
-                    className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-                  >
-                    <LogOut size={14} />
-                    Cerrar Sesión
-                  </button>
-                </div>
-              </div>
-
               {/* Welcome banner (Minimalist look) */}
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-divider shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-app-accent/10 rounded-full translate-x-32 -translate-y-32 blur-3xl" />
@@ -1899,10 +1897,22 @@ export default function App() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation Bar */}
-      {activeProjectId !== 'dashboard' && (
+      {/* Mobile Bottom Navigation Bar — always rendered, including on the Dashboard */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-divider h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0">
-          {(() => {
+          <button
+            onClick={() => selectProject('dashboard')}
+            aria-current={activeProjectId === 'dashboard' ? 'page' : undefined}
+            className={cn(
+              "flex flex-col items-center justify-center flex-1 h-full py-1 text-[11px] font-extrabold transition-all",
+              activeProjectId === 'dashboard'
+                ? "text-app-accent font-black"
+                : "text-ink-muted hover:text-ink-secondary"
+            )}
+          >
+            <Grid size={18} className={cn("mb-1 transition-all", activeProjectId === 'dashboard' ? "text-app-accent" : "text-ink-muted")} />
+            <span className="truncate">Dashboard</span>
+          </button>
+          {activeProjectId !== 'dashboard' && (() => {
             const activeProj = projects.find(p => p.id === activeProjectId);
             const activePlatforms = activeProj && activeProj.platforms ? activeProj.platforms : ['instagram', 'linkedin', 'tiktok'];
             return [
@@ -1937,7 +1947,6 @@ export default function App() {
             ));
           })()}
         </nav>
-      )}
 
       {/* Modals & Dialogs */}
       <AnimatePresence>
