@@ -19,6 +19,7 @@ import {
 import { cn, deriveAccentPalette, getVisibleFeedPosts } from '../lib/utils';
 import { Post } from '../types';
 import Toggle from './Toggle';
+import SegmentedControl from './SegmentedControl';
 import PhaseBadge from './PhaseBadge';
 import IconButton from './IconButton';
 import Media from './Media';
@@ -138,52 +139,28 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
 
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-ink-muted uppercase tracking-widest">Filtrar Estado</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-divider">
-              <button 
-                onClick={() => setFilterPhase('all')}
-                className={cn(
-                  "py-1.5 text-xs font-semibold rounded-lg transition-all",
-                  filterPhase === 'all' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
-                )}
-              >
-                Todos
-              </button>
-              <button 
-                onClick={() => setFilterPhase('approved_only')}
-                className={cn(
-                  "py-1.5 text-xs font-semibold rounded-lg transition-all",
-                  filterPhase === 'approved_only' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
-                )}
-              >
-                Aprobados
-              </button>
-            </div>
+            <SegmentedControl
+              aria-label="Filtrar estado"
+              value={filterPhase}
+              onChange={(v) => setFilterPhase(v as 'all' | 'approved_only')}
+              options={[
+                { value: 'all', label: 'Todos' },
+                { value: 'approved_only', label: 'Aprobados' }
+              ]}
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-ink-muted uppercase tracking-widest">Modo de Vista</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-divider">
-              <button 
-                onClick={() => setDeviceMode('desktop')}
-                className={cn(
-                  "py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all",
-                  deviceMode === 'desktop' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
-                )}
-              >
-                <Laptop size={14} />
-                Desktop
-              </button>
-              <button 
-                onClick={() => setDeviceMode('mobile')}
-                className={cn(
-                  "py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all",
-                  deviceMode === 'mobile' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
-                )}
-              >
-                <Smartphone size={14} />
-                Móvil
-              </button>
-            </div>
+            <SegmentedControl
+              aria-label="Modo de vista"
+              value={deviceMode}
+              onChange={(v) => setDeviceMode(v as 'desktop' | 'mobile')}
+              options={[
+                { value: 'desktop', label: 'Desktop', icon: Laptop },
+                { value: 'mobile', label: 'Móvil', icon: Smartphone }
+              ]}
+            />
           </div>
         </div>
 

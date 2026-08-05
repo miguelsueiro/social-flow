@@ -36,6 +36,7 @@ import IconButton from './components/IconButton';
 import PhaseBadge from './components/PhaseBadge';
 import Avatar from './components/Avatar';
 import NavItems, { NavItem } from './components/NavItems';
+import SegmentedControl from './components/SegmentedControl';
 import SettingsView from './components/SettingsView';
 import UserGuideModal from './components/UserGuideModal';
 import { InstagramIcon, TikTokIcon, LinkedInIcon, PLATFORM_META } from './components/SocialIcons';
@@ -63,7 +64,8 @@ import {
   Video,
   Grid,
   Info,
-  Download
+  Download,
+  ChevronDown
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
@@ -1694,28 +1696,16 @@ export default function App() {
               {/* View Switcher */}
               {sidebarTab === 'calendario' && (
                 <div className="flex items-center justify-between shrink-0">
-                  <div className="flex bg-gray-100 p-1 rounded-xl border border-divider">
-                    <button 
-                      onClick={() => setView('calendar')}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                        view === 'calendar' ? "bg-white text-app-accent shadow-sm" : "text-ink-secondary hover:text-ink-secondary"
-                      )}
-                    >
-                      <CalendarIcon size={14} />
-                      Calendario
-                    </button>
-                    <button
-                      onClick={() => setView('board')}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                        view === 'board' ? "bg-white text-app-accent shadow-sm" : "text-ink-secondary hover:text-ink-secondary"
-                      )}
-                    >
-                      <Columns size={14} />
-                      Producción (Board)
-                    </button>
-                  </div>
+                  <SegmentedControl
+                    aria-label="Vista de calendario"
+                    fullWidth={false}
+                    value={view}
+                    onChange={(v) => setView(v as 'calendar' | 'board')}
+                    options={[
+                      { value: 'calendar', label: 'Calendario', icon: CalendarIcon },
+                      { value: 'board', label: 'Producción (Board)', icon: Columns }
+                    ]}
+                  />
 
                   {(() => {
                     const activeProj = projects.find(p => p.id === activeProjectId);
@@ -1723,40 +1713,71 @@ export default function App() {
                     const hasActiveFilters = filterPhase !== 'all' || filterPlatform !== 'all' || filterTerritory !== 'all' || filterAssignedToMe;
                     return (
                       <div className="flex items-center gap-2 flex-wrap justify-end">
-                        <select
-                          value={filterPhase}
-                          onChange={e => setFilterPhase(e.target.value as Phase | 'all')}
-                          aria-label="Filtrar por fase"
-                          className="bg-white border border-divider rounded-md py-2 px-3 text-xs font-semibold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
-                        >
-                          <option value="all">Todas las fases</option>
-                          {(Object.keys(PHASES) as Phase[]).filter(p => p !== 'idea_2').map(p => (
-                            <option key={p} value={p}>{PHASES[p].label}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={filterPlatform}
-                          onChange={e => setFilterPlatform(e.target.value as any)}
-                          aria-label="Filtrar por plataforma"
-                          className="bg-white border border-divider rounded-md py-2 px-3 text-xs font-semibold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
-                        >
-                          <option value="all">Todas las plataformas</option>
-                          <option value="instagram">Instagram</option>
-                          <option value="linkedin">LinkedIn</option>
-                          <option value="tiktok">TikTok</option>
-                        </select>
-                        {projectTerritories.length > 0 && (
+                        {/* Native <select>, styled as the same filter-chip pill used by
+                            "Asignado a mí" — a real dropdown menu would need a Menu/Popover
+                            primitive this app doesn't have yet; the native control already
+                            gives keyboard support and correct semantics for free. */}
+                        <div className={cn(
+                          "relative rounded-full border transition-all",
+                          filterPhase !== 'all' ? "bg-app-accent/10 border-app-accent" : "bg-white border-divider hover:border-outline"
+                        )}>
                           <select
-                            value={filterTerritory}
-                            onChange={e => setFilterTerritory(e.target.value)}
-                            aria-label="Filtrar por territorio"
-                            className="bg-white border border-divider rounded-md py-2 px-3 text-xs font-semibold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
+                            value={filterPhase}
+                            onChange={e => setFilterPhase(e.target.value as Phase | 'all')}
+                            aria-label="Filtrar por fase"
+                            className={cn(
+                              "appearance-none bg-transparent rounded-full py-1.5 pl-3 pr-7 text-xs font-bold outline-none cursor-pointer",
+                              filterPhase !== 'all' ? "text-app-accent" : "text-ink-secondary"
+                            )}
                           >
-                            <option value="all">Todos los territorios</option>
-                            {projectTerritories.map(t => (
-                              <option key={t} value={t}>{t}</option>
+                            <option value="all">Todas las fases</option>
+                            {(Object.keys(PHASES) as Phase[]).filter(p => p !== 'idea_2').map(p => (
+                              <option key={p} value={p}>{PHASES[p].label}</option>
                             ))}
                           </select>
+                          <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ink-muted" />
+                        </div>
+                        <div className={cn(
+                          "relative rounded-full border transition-all",
+                          filterPlatform !== 'all' ? "bg-app-accent/10 border-app-accent" : "bg-white border-divider hover:border-outline"
+                        )}>
+                          <select
+                            value={filterPlatform}
+                            onChange={e => setFilterPlatform(e.target.value as any)}
+                            aria-label="Filtrar por plataforma"
+                            className={cn(
+                              "appearance-none bg-transparent rounded-full py-1.5 pl-3 pr-7 text-xs font-bold outline-none cursor-pointer",
+                              filterPlatform !== 'all' ? "text-app-accent" : "text-ink-secondary"
+                            )}
+                          >
+                            <option value="all">Todas las plataformas</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="linkedin">LinkedIn</option>
+                            <option value="tiktok">TikTok</option>
+                          </select>
+                          <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ink-muted" />
+                        </div>
+                        {projectTerritories.length > 0 && (
+                          <div className={cn(
+                            "relative rounded-full border transition-all",
+                            filterTerritory !== 'all' ? "bg-app-accent/10 border-app-accent" : "bg-white border-divider hover:border-outline"
+                          )}>
+                            <select
+                              value={filterTerritory}
+                              onChange={e => setFilterTerritory(e.target.value)}
+                              aria-label="Filtrar por territorio"
+                              className={cn(
+                                "appearance-none bg-transparent rounded-full py-1.5 pl-3 pr-7 text-xs font-bold outline-none cursor-pointer",
+                                filterTerritory !== 'all' ? "text-app-accent" : "text-ink-secondary"
+                              )}
+                            >
+                              <option value="all">Todos los territorios</option>
+                              {projectTerritories.map(t => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ink-muted" />
+                          </div>
                         )}
                         {userRole !== 'client' && (
                           <button

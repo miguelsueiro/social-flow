@@ -17,6 +17,7 @@ import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import InstagramDetailModal from './InstagramDetailModal';
 import Toggle from './Toggle';
+import SegmentedControl from './SegmentedControl';
 import Media from './Media';
 import EmptyState from './EmptyState';
 import Skeleton from './Skeleton';
@@ -282,26 +283,15 @@ export default function InstagramFeed({ posts, onSelectPost, userRole, loading =
           {/* Filter Phases */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-bold text-ink-muted uppercase block">Fases Incluidas</label>
-            <div className="grid grid-cols-2 gap-1.5 bg-gray-50 p-1 rounded-xl border border-divider">
-              <button
-                onClick={() => setFilterPhase('all')}
-                className={cn(
-                  "py-1.5 text-[11px] font-bold rounded-lg transition-all",
-                  filterPhase === 'all' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
-                )}
-              >
-                Todos
-              </button>
-              <button
-                onClick={() => setFilterPhase('approved_only')}
-                className={cn(
-                  "py-1.5 text-[11px] font-bold rounded-lg transition-all",
-                  filterPhase === 'approved_only' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
-                )}
-              >
-                Aprobados / Publ.
-              </button>
-            </div>
+            <SegmentedControl
+              aria-label="Fases incluidas"
+              value={filterPhase}
+              onChange={(v) => setFilterPhase(v as 'all' | 'approved_only')}
+              options={[
+                { value: 'all', label: 'Todos' },
+                { value: 'approved_only', label: 'Aprobados / Publ.' }
+              ]}
+            />
           </div>
         </div>
 

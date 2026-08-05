@@ -17,6 +17,7 @@ import { cn, PHASES, deriveAccentPalette, onActivateKey, getVisibleFeedPosts } f
 import { Post } from '../types';
 import SocialCaption from './SocialCaption';
 import Toggle from './Toggle';
+import SegmentedControl from './SegmentedControl';
 import IconButton from './IconButton';
 import Media from './Media';
 import EmptyState from './EmptyState';
@@ -313,52 +314,28 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
 
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-ink-muted uppercase tracking-widest">Filtrar Estado</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-divider">
-              <button 
-                onClick={() => setFilterPhase('all')}
-                className={cn(
-                  "py-1.5 text-xs font-semibold rounded-lg transition-all",
-                  filterPhase === 'all' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
-                )}
-              >
-                Todos
-              </button>
-              <button 
-                onClick={() => setFilterPhase('approved_only')}
-                className={cn(
-                  "py-1.5 text-xs font-semibold rounded-lg transition-all",
-                  filterPhase === 'approved_only' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
-                )}
-              >
-                Aprobados
-              </button>
-            </div>
+            <SegmentedControl
+              aria-label="Filtrar estado"
+              value={filterPhase}
+              onChange={(v) => setFilterPhase(v as 'all' | 'approved_only')}
+              options={[
+                { value: 'all', label: 'Todos' },
+                { value: 'approved_only', label: 'Aprobados' }
+              ]}
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-ink-muted uppercase tracking-widest">Modo de Vista</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-divider">
-              <button 
-                onClick={() => setViewMode('phone')}
-                className={cn(
-                  "py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all",
-                  viewMode === 'phone' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
-                )}
-              >
-                <Smartphone size={14} />
-                Móvil
-              </button>
-              <button 
-                onClick={() => setViewMode('grid')}
-                className={cn(
-                  "py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all",
-                  viewMode === 'grid' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
-                )}
-              >
-                <GridIcon size={14} />
-                Cuadrícula
-              </button>
-            </div>
+            <SegmentedControl
+              aria-label="Modo de vista"
+              value={viewMode}
+              onChange={(v) => setViewMode(v as 'phone' | 'grid')}
+              options={[
+                { value: 'phone', label: 'Móvil', icon: Smartphone },
+                { value: 'grid', label: 'Cuadrícula', icon: GridIcon }
+              ]}
+            />
           </div>
         </div>
 
