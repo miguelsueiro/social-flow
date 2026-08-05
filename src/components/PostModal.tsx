@@ -7,7 +7,6 @@ import {
   Image as ImageIcon,
   CheckCircle,
   Lightbulb,
-  Clock,
   ExternalLink,
   ChevronRight,
   Plus,
@@ -21,11 +20,11 @@ import {
   Save,
   Copy
 } from 'lucide-react';
-import { cn, PHASES, PHASE_TIMELINE_ORDER, Phase, Role, ROLES, compressImage, isVideoUrl } from '../lib/utils';
+import { cn, PHASE_TIMELINE_ORDER, Phase, Role, ROLES, compressImage, isVideoUrl } from '../lib/utils';
 import { useModalA11y } from '../lib/useModalA11y';
 import { PlatformBadge } from './SocialIcons';
 import ConfirmInline from './ConfirmInline';
-import PhaseTimeline from './PhaseTimeline';
+import PhaseBar from './PhaseBar';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { db, auth } from '../lib/firebase';
@@ -437,6 +436,7 @@ export default function PostModal({
   const [localPost, setLocalPost] = useState<Post | null>(post);
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [showRequestChangesForm, setShowRequestChangesForm] = useState(false);
   const [changesRequestReason, setChangesRequestReason] = useState('');
@@ -799,6 +799,16 @@ export default function PostModal({
   const projectTerritories: string[] = projectInfo?.territories || [];
   const hasTerritories = projectTerritories.length > 0;
 
+  const FORMAT_LABELS: Record<string, string> = { estatico: 'Estático', reel: 'Reel', carrusel: 'Carrusel' };
+  const LANGUAGE_LABELS: Record<string, string> = { es: 'Castellano', en: 'Inglés', ca: 'Catalán', fr: 'Francés', pt: 'Portugués' };
+  const detailsSummary = [
+    FORMAT_LABELS[localPost.format || 'estatico'],
+    format(displayDate, 'dd/MM/yyyy'),
+    LANGUAGE_LABELS[localPost.language || 'es'],
+    localPost.territory || null,
+    isAgencyMember ? (localPost.assigneeName || 'Sin asignar') : null
+  ].filter(Boolean).join(' · ');
+
   // --- Drag & Drop Handlers ---
   const handleReferencesDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -974,7 +984,7 @@ export default function PostModal({
         ref={modalContainerRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="post-modal-title"
+        aria-label={`Post: ${localPost.title || 'sin título'}`}
         tabIndex={-1}
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -982,32 +992,33 @@ export default function PostModal({
         className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden cursor-default outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className={cn(
-              "px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-sm",
-              PHASES[localPost.phase].color
-            )}>
-              <Clock size={12} />
-              {PHASES[localPost.phase].label}
-            </div>
-            <h3 id="post-modal-title" className="text-xl font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
-              <PlatformBadge platform={localPost.platform} size={20} showLabel className="font-extrabold" />
-              <span className="text-gray-300 font-normal mx-0.5">|</span>
-              <span className="text-gray-600 font-medium text-lg">{format(displayDate, 'dd/MM/yyyy')}</span>
-              {projectInfo && (
-                <span 
-                  className="px-2.5 py-0.5 text-white border rounded-full text-xs font-semibold shadow-sm ml-1.5"
-                  style={{ backgroundColor: projectInfo.color || '#4F46E5', borderColor: 'transparent' }}
-                >
-                  {projectInfo.name}
-                </span>
-              )}
-            </h3>
+        {/* Header: the post title IS the modal title — it used to live in its own
+            labelled row below, which cost a full block of vertical space. */}
+        <div className="px-4 sm:px-6 py-3 border-b border-gray-100 flex items-center gap-3 bg-white">
+          <PlatformBadge platform={localPost.platform} size={20} className="shrink-0" />
+          <div className="min-w-0 flex-1">
+            <label htmlFor="post-title-input" className="sr-only">Título del Post</label>
+            <input
+              id="post-title-input"
+              type="text"
+              disabled={!canEditIdea}
+              value={localPost.title || ''}
+              onChange={e => setLocalPost({ ...localPost, title: e.target.value })}
+              onBlur={handleUpdate}
+              className="w-full bg-transparent border border-transparent hover:border-gray-200 focus:border-app-accent focus:bg-white focus:ring-2 focus:ring-app-accent/20 rounded-md -ml-2 px-2 py-1 text-lg font-bold text-gray-900 placeholder-gray-300 outline-none transition-all disabled:cursor-not-allowed disabled:hover:border-transparent"
+              placeholder="Post sin título"
+            />
           </div>
-          
-          <div className="flex items-center gap-2">
+          {projectInfo && (
+            <span
+              className="hidden sm:inline px-2.5 py-0.5 text-white rounded-full text-[11px] font-bold shrink-0"
+              style={{ backgroundColor: projectInfo.color || '#4F46E5' }}
+            >
+              {projectInfo.name}
+            </span>
+          )}
+
+          <div className="flex items-center gap-1 shrink-0">
             {isAgencyMember && onDuplicate && (
               <button
                 onClick={() => localPost && onDuplicate(localPost)}
@@ -1053,10 +1064,10 @@ export default function PostModal({
           </div>
         </div>
 
-        {/* Phase Timeline: always visible, independent of the active tab, so the
-            current phase and how to move it are never buried inside a specific tab. */}
-        <div className="px-4 sm:px-6 py-3 border-b border-gray-100 bg-white space-y-3">
-          <PhaseTimeline
+        {/* Phase bar: always visible, independent of the active tab, so the current
+            phase and how to move it are never buried inside a specific tab. */}
+        <div className="px-4 sm:px-6 py-2.5 border-b border-gray-100 bg-gray-50/60 space-y-2.5">
+          <PhaseBar
             displayPhase={timelineDisplayPhase}
             isChangesRequested={isChangesRequested}
             canGoBack={canGoBackPhase}
@@ -1151,24 +1162,34 @@ export default function PostModal({
           )}
         </div>
 
-        {/* Generic fields: apply to the post as a whole, independent of the active tab */}
-        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/30 shrink-0 space-y-3">
-          <section>
-            <label htmlFor="post-title-input" className="block text-xs font-semibold text-gray-500 mb-1">Título del Post</label>
-            <input
-              id="post-title-input"
-              type="text"
-              disabled={!canEditIdea}
-              value={localPost.title || ''}
-              onChange={e => setLocalPost({ ...localPost, title: e.target.value })}
-              onBlur={handleUpdate}
-              className="w-full bg-white border border-gray-200 rounded-md px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all text-sm font-semibold disabled:opacity-75 disabled:cursor-not-allowed"
-              placeholder="Introduce un título descriptivo para la card..."
+        {/* Post-wide settings. Collapsed by default: these are set once when the post
+            is created and rarely touched again, so they shouldn't push the tabs —
+            where the actual work happens — halfway down the screen. */}
+        <div className="px-4 sm:px-6 py-2 border-b border-gray-100 bg-white shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowDetails(!showDetails)}
+            aria-expanded={showDetails}
+            className="w-full flex items-center gap-2 text-left group"
+          >
+            <ChevronRight
+              size={14}
+              className={cn("shrink-0 text-gray-400 transition-transform", showDetails && "rotate-90")}
             />
-          </section>
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider shrink-0">Detalles</span>
+            {!showDetails && (
+              <span className="text-xs text-gray-500 font-medium truncate">
+                {detailsSummary}
+              </span>
+            )}
+            <span className="ml-auto text-[11px] font-bold text-gray-400 group-hover:text-app-accent transition-colors shrink-0">
+              {showDetails ? 'Ocultar' : 'Editar'}
+            </span>
+          </button>
 
           <div className={cn(
-            "grid grid-cols-2 gap-3",
+            "grid grid-cols-2 gap-3 pt-3",
+            !showDetails && "hidden",
             (hasTerritories && isAgencyMember) ? "sm:grid-cols-6" : (hasTerritories || isAgencyMember) ? "sm:grid-cols-5" : "sm:grid-cols-4"
           )}>
             <section>
@@ -1303,7 +1324,7 @@ export default function PostModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 px-4 pt-2 bg-gray-50/60 gap-1 shrink-0">
+        <div className="flex border-b border-gray-200 px-4 pt-1.5 bg-gray-50/60 gap-1 shrink-0 overflow-x-auto scrollbar-hide">
           {[
             // La Idea and Historial expose internal drafts, versions and rationale that
             // the client is never meant to see — only agency roles get these two tabs.
@@ -1317,7 +1338,7 @@ export default function PostModal({
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                "py-3 px-4 border-b-[3px] transition-all flex items-center gap-2 text-sm rounded-t-lg",
+                "py-2.5 px-4 border-b-[3px] transition-all flex items-center gap-2 text-sm rounded-t-lg whitespace-nowrap shrink-0",
                 activeTab === tab.id
                   ? "border-app-accent text-app-accent font-bold bg-white shadow-[0_-1px_4px_rgba(24,24,27,0.04)]"
                   : "border-transparent text-gray-500 font-semibold hover:text-gray-700 hover:bg-white/60"
