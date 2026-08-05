@@ -20,7 +20,7 @@ import {
   Save,
   Copy
 } from 'lucide-react';
-import { cn, PHASE_TIMELINE_ORDER, Phase, Role, ROLES, compressImage, isVideoUrl, deriveAccentPalette, onActivateKey } from '../lib/utils';
+import { cn, PHASE_TIMELINE_ORDER, Phase, Role, ROLES, compressImage, isVideoUrl, onActivateKey } from '../lib/utils';
 import { Post, VersionItem, InternalFeedback } from '../types';
 import { useModalA11y } from '../lib/useModalA11y';
 import { PlatformBadge } from './SocialIcons';
@@ -32,6 +32,7 @@ import Avatar from './Avatar';
 import Media from './Media';
 import EmptyState from './EmptyState';
 import Field from './Field';
+import ProjectTag from './ProjectTag';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { db, auth } from '../lib/firebase';
@@ -980,17 +981,7 @@ export default function PostModal({
             />
           </div>
           {projectInfo && (
-            // The project's raw color has no guaranteed contrast against white text
-            // (a light project color could read as low as ~1.5:1) — deriveAccentPalette's
-            // primary tone is the same fix already applied to the dynamic --app-accent
-            // in App.tsx, reused here since this badge has the identical shape: white
-            // text painted directly on an arbitrary per-project color.
-            <span
-              className="hidden sm:inline px-2.5 py-0.5 text-white rounded-full text-[11px] font-bold shrink-0"
-              style={{ backgroundColor: deriveAccentPalette(projectInfo.color || '#4F46E5').primary }}
-            >
-              {projectInfo.name}
-            </span>
+            <ProjectTag name={projectInfo.name} color={projectInfo.color || '#4F46E5'} emphasis="strong" className="hidden sm:inline-flex" />
           )}
 
           <div className="flex items-center gap-1 shrink-0">

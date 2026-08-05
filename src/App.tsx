@@ -36,6 +36,7 @@ import IconButton from './components/IconButton';
 import PhaseBadge from './components/PhaseBadge';
 import Avatar from './components/Avatar';
 import NavItems, { NavItem } from './components/NavItems';
+import ProjectTag from './components/ProjectTag';
 import SegmentedControl from './components/SegmentedControl';
 import SettingsView from './components/SettingsView';
 import UserGuideModal from './components/UserGuideModal';
@@ -1348,15 +1349,19 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-3.5 h-3.5 rounded-full shrink-0"
-                  style={{ backgroundColor: activeProjectId === 'dashboard' ? '#4F46E5' : (projects.find(p => p.id === activeProjectId)?.color || '#4F46E5') }}
+              {activeProjectId === 'dashboard' || activeProjectId === 'all' ? (
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded-full shrink-0 bg-app-accent" />
+                  <span className="text-xs font-bold text-ink truncate">
+                    {activeProjectId === 'dashboard' ? '📂 Panel de Proyectos' : '📁 Todos los Proyectos'}
+                  </span>
+                </div>
+              ) : (
+                <ProjectTag
+                  name={projects.find(p => p.id === activeProjectId)?.name || 'Cargando...'}
+                  color={projects.find(p => p.id === activeProjectId)?.color || '#4F46E5'}
                 />
-                <span className="text-xs font-bold text-ink truncate">
-                  {activeProjectId === 'dashboard' ? '📂 Panel de Proyectos' : activeProjectId === 'all' ? '📁 Todos los Proyectos' : (projects.find(p => p.id === activeProjectId)?.name || 'Cargando...')}
-                </span>
-              </div>
+              )}
               {activeProjectId !== 'dashboard' && (
                 <button 
                   onClick={() => selectProject('dashboard')}
@@ -1453,12 +1458,7 @@ export default function App() {
                                     <Video size={13} className="text-ink shrink-0" />
                                   )}
                                   {proj && (
-                                    <span 
-                                      className="text-[11px] font-black px-1.5 py-0.5 rounded-md truncate shrink-0 max-w-[130px]"
-                                      style={{ backgroundColor: `${proj.color}12`, color: proj.color }}
-                                    >
-                                      {proj.name}
-                                    </span>
+                                    <ProjectTag name={proj.name} color={proj.color} emphasis="subtle" className="max-w-[130px]" />
                                   )}
                                 </div>
                                 {/* Right side: Phase Badge */}
