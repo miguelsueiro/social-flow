@@ -35,6 +35,7 @@ import PublishHubView from './components/PublishHubView';
 import IconButton from './components/IconButton';
 import PhaseBadge from './components/PhaseBadge';
 import Avatar from './components/Avatar';
+import NavItems, { NavItem } from './components/NavItems';
 import SettingsView from './components/SettingsView';
 import UserGuideModal from './components/UserGuideModal';
 import { InstagramIcon, TikTokIcon, LinkedInIcon, PLATFORM_META } from './components/SocialIcons';
@@ -285,6 +286,38 @@ export default function App() {
   const selectProject = (projectId: string) => {
     setActiveProjectId(projectId);
     updateProjectUrl(projectId);
+  };
+
+  // Shared by the desktop sidebar and mobile bottom bar — one source for nav
+  // items, instead of two independently hand-copied arrays with two different
+  // active-state languages. "Dashboard" plus the project-scoped items
+  // (Calendario/Feeds/Publicación/Notificaciones/Configuración, hidden until a
+  // project is actually selected) live on one unified list with one active id,
+  // since exactly one of the two is ever "current" at a time. `short` swaps to
+  // abbreviated labels for the mobile bar's tighter tap targets.
+  const getNavItems = (short: boolean): NavItem[] => {
+    const activeProj = projects.find(p => p.id === activeProjectId);
+    const activePlatforms = activeProj && activeProj.platforms ? activeProj.platforms : ['instagram', 'linkedin', 'tiktok'];
+    const dashboardItem: NavItem = { id: 'dashboard', label: 'Dashboard', icon: Grid };
+    if (activeProjectId === 'dashboard') return [dashboardItem];
+    const projectScoped = [
+      { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
+      { id: 'instagram_feed', label: short ? 'Instagram' : 'Feed Instagram', icon: InstagramIcon, iconColor: PLATFORM_META.instagram.color, platform: 'instagram' },
+      { id: 'linkedin_feed', label: short ? 'LinkedIn' : 'Feed LinkedIn', icon: LinkedInIcon, iconColor: PLATFORM_META.linkedin.color, platform: 'linkedin' },
+      { id: 'tiktok_feed', label: 'TikTok', icon: TikTokIcon, iconColor: PLATFORM_META.tiktok.color, platform: 'tiktok' },
+      { id: 'publicacion', label: short ? 'Publicar' : 'Listo para Publicar', icon: Download, agencyOnly: true },
+      { id: 'notificaciones', label: short ? 'Alertas' : 'Notificaciones', icon: Bell },
+      { id: 'configuracion', label: short ? 'Config.' : 'Configuración', icon: Settings }
+    ]
+      .filter(item => !item.platform || activePlatforms.includes(item.platform))
+      .filter(item => !item.agencyOnly || userRole !== 'client');
+    return [dashboardItem, ...projectScoped];
+  };
+
+  const activeNavId = activeProjectId === 'dashboard' ? 'dashboard' : sidebarTab;
+  const handleNavSelect = (id: string) => {
+    if (id === 'dashboard') selectProject('dashboard');
+    else setSidebarTab(id as any);
   };
 
   // Synchronize initial active project from URL param or pathname at startup
@@ -1283,58 +1316,14 @@ export default function App() {
             </div>
 
             {/* Nav Tab List (scrollable if screen is extremely small, but self-contained) */}
-            <nav className="flex-1 space-y-1 overflow-y-auto pr-1 scrollbar-hide">
-              <button
-                onClick={() => selectProject('dashboard')}
-                aria-current={activeProjectId === 'dashboard' ? 'page' : undefined}
-                className={cn(
-                   "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group",
-                   activeProjectId === 'dashboard'
-                     ? "bg-app-accent/10 text-app-accent"
-                     : "text-ink-muted hover:text-ink-secondary hover:bg-gray-50"
-                )}
-              >
-                <Grid size={18} className={cn("transition-all shrink-0", activeProjectId === 'dashboard' ? "text-app-accent" : "text-ink-muted")} />
-                Dashboard
-              </button>
-              {/* Project-scoped sections only make sense once a project (or "todos")
-                  is actually selected — hidden here rather than shown disabled, since
-                  there's nothing meaningful to preview about them without that context. */}
-              {activeProjectId !== 'dashboard' && (() => {
-                const activeProj = projects.find(p => p.id === activeProjectId);
-                const activePlatforms = activeProj && activeProj.platforms ? activeProj.platforms : ['instagram', 'linkedin', 'tiktok'];
-                return [
-                  { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
-                  { id: 'instagram_feed', label: 'Feed Instagram', icon: InstagramIcon, platform: 'instagram', iconColor: PLATFORM_META.instagram.color },
-                  { id: 'linkedin_feed', label: 'Feed LinkedIn', icon: LinkedInIcon, platform: 'linkedin', iconColor: PLATFORM_META.linkedin.color },
-                  { id: 'tiktok_feed', label: 'Feed TikTok', icon: TikTokIcon, platform: 'tiktok', iconColor: PLATFORM_META.tiktok.color },
-                  { id: 'publicacion', label: 'Listo para Publicar', icon: Download, agencyOnly: true },
-                  { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
-                  { id: 'configuracion', label: 'Configuración', icon: Settings }
-                ].filter(item => !item.platform || activePlatforms.includes(item.platform))
-                  .filter(item => !item.agencyOnly || userRole !== 'client')
-                  .map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setSidebarTab(item.id as any)}
-                    aria-current={sidebarTab === item.id ? 'page' : undefined}
-                    className={cn(
-                       "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group",
-                       sidebarTab === item.id
-                         ? "bg-app-accent/10 text-app-accent"
-                         : "text-ink-muted hover:text-ink-secondary hover:bg-gray-50"
-                    )}
-                  >
-                    <item.icon
-                      size={18}
-                      className={cn("transition-all shrink-0", !item.iconColor && (sidebarTab === item.id ? "text-app-accent" : "text-ink-muted"))}
-                      style={item.iconColor ? { color: item.iconColor } : undefined}
-                    />
-                    {item.label}
-                  </button>
-                ));
-              })()}
-            </nav>
+            <div className="flex-1 overflow-y-auto pr-1 scrollbar-hide">
+              <NavItems
+                orientation="vertical"
+                items={getNavItems(false)}
+                activeId={activeNavId}
+                onSelect={handleNavSelect}
+              />
+            </div>
           </div>
 
           {/* Fixed Footer Elements */}
@@ -1898,55 +1887,13 @@ export default function App() {
       </main>
 
       {/* Mobile Bottom Navigation Bar — always rendered, including on the Dashboard */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-divider h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0">
-          <button
-            onClick={() => selectProject('dashboard')}
-            aria-current={activeProjectId === 'dashboard' ? 'page' : undefined}
-            className={cn(
-              "flex flex-col items-center justify-center flex-1 h-full py-1 text-[11px] font-extrabold transition-all",
-              activeProjectId === 'dashboard'
-                ? "text-app-accent font-black"
-                : "text-ink-muted hover:text-ink-secondary"
-            )}
-          >
-            <Grid size={18} className={cn("mb-1 transition-all", activeProjectId === 'dashboard' ? "text-app-accent" : "text-ink-muted")} />
-            <span className="truncate">Dashboard</span>
-          </button>
-          {activeProjectId !== 'dashboard' && (() => {
-            const activeProj = projects.find(p => p.id === activeProjectId);
-            const activePlatforms = activeProj && activeProj.platforms ? activeProj.platforms : ['instagram', 'linkedin', 'tiktok'];
-            return [
-              { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
-              { id: 'instagram_feed', label: 'Instagram', icon: InstagramIcon, platform: 'instagram', iconColor: PLATFORM_META.instagram.color },
-              { id: 'linkedin_feed', label: 'LinkedIn', icon: LinkedInIcon, platform: 'linkedin', iconColor: PLATFORM_META.linkedin.color },
-              { id: 'tiktok_feed', label: 'TikTok', icon: TikTokIcon, platform: 'tiktok', iconColor: PLATFORM_META.tiktok.color },
-              { id: 'publicacion', label: 'Publicar', icon: Download, agencyOnly: true },
-              { id: 'notificaciones', label: 'Alertas', icon: Bell },
-              { id: 'configuracion', label: 'Config.', icon: Settings }
-            ].filter(item => !item.platform || activePlatforms.includes(item.platform))
-              .filter(item => !item.agencyOnly || userRole !== 'client')
-              .map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setSidebarTab(item.id as any)}
-                aria-current={sidebarTab === item.id ? 'page' : undefined}
-                className={cn(
-                  "flex flex-col items-center justify-center flex-1 h-full py-1 text-[11px] font-extrabold transition-all",
-                  sidebarTab === item.id
-                    ? "text-app-accent font-black"
-                    : "text-ink-muted hover:text-ink-secondary"
-                )}
-              >
-                <item.icon
-                  size={18}
-                  className={cn("mb-1 transition-all", !item.iconColor && (sidebarTab === item.id ? "text-app-accent" : "text-ink-muted"))}
-                  style={item.iconColor ? { color: item.iconColor } : undefined}
-                />
-                <span className="truncate">{item.label}</span>
-              </button>
-            ));
-          })()}
-        </nav>
+        <NavItems
+          orientation="horizontal"
+          items={getNavItems(true)}
+          activeId={activeNavId}
+          onSelect={handleNavSelect}
+          className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-divider h-16 px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0"
+        />
 
       {/* Modals & Dialogs */}
       <AnimatePresence>
