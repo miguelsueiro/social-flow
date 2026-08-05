@@ -344,18 +344,18 @@ export default function InstagramDetailModal({
         </div>
 
         {/* Right Column: Details & Comments Area */}
-        <div className="w-full md:w-[380px] flex flex-col border-l border-gray-100 bg-white">
+        <div className="w-full md:w-[380px] flex flex-col border-l border-divider bg-white">
           {/* Header */}
-          <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between">
+          <div className="p-4 sm:p-6 border-b border-divider flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
                 <div className="w-full h-full bg-white rounded-full p-[1px]">
-                  <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center text-xs font-semibold text-gray-700">S</div>
+                  <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center text-xs font-semibold text-ink-secondary">S</div>
                 </div>
               </div>
               <div className="text-left">
                 <div className="flex items-center gap-1">
-                  <span className="text-xs font-semibold text-gray-900">socialflow_agency</span>
+                  <span className="text-xs font-semibold text-ink">socialflow_agency</span>
                   <span className="w-3 h-3 bg-blue-500 rounded-full text-white flex items-center justify-center text-[11px] font-bold">✓</span>
                 </div>
                 <p className="text-caption text-ink-muted capitalize">{PHASES[post.phase].label}</p>
@@ -376,7 +376,7 @@ export default function InstagramDetailModal({
               )}
               {/* p-2 -m-2: grows the tap target without a visible chip — these action-bar
                   icons deliberately mimic real Instagram, which has no button background here. */}
-              <button className="text-gray-400 hover:text-gray-600 p-2 -m-2" aria-label="Más opciones">
+              <button className="text-ink-muted hover:text-ink-secondary p-2 -m-2" aria-label="Más opciones">
                 <MoreHorizontal size={18} />
               </button>
             </div>
@@ -386,14 +386,14 @@ export default function InstagramDetailModal({
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs scrollbar-hide max-h-[220px] md:max-h-none">
             {/* The Post Caption acts as the first comment */}
             <div className="flex gap-3 text-left">
-              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 text-[11px] shrink-0">S</div>
+              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center font-bold text-ink-secondary text-[11px] shrink-0">S</div>
               <div className="flex-1">
                 <SocialCaption
                   username="socialflow_agency"
                   text={post.copyCaption || post.idea}
                   maxChars={125}
                   highlightClass="font-semibold text-blue-600"
-                  className="text-gray-800 leading-relaxed whitespace-pre-wrap"
+                  className="text-ink leading-relaxed whitespace-pre-wrap"
                 />
                 <div className="text-caption text-ink-muted mt-1 flex items-center gap-2">
                   <span>1 h</span>
@@ -407,8 +407,8 @@ export default function InstagramDetailModal({
               <div key={comment.id} className="flex gap-3 text-left">
                 <Avatar name={comment.authorName} size="sm" />
                 <div className="flex-1">
-                  <span className="font-bold text-gray-900 mr-1.5">{comment.authorName}</span>
-                  <span className="text-gray-700 leading-relaxed">{comment.text}</span>
+                  <span className="font-bold text-ink mr-1.5">{comment.authorName}</span>
+                  <span className="text-ink-secondary leading-relaxed">{comment.text}</span>
                   <div className="text-caption text-ink-muted mt-1 flex items-center gap-2">
                     <span>{format(comment.createdAt, 'HH:mm dd/MM')}</span>
                     <span className="capitalize text-caption text-ink-muted">{comment.roleAtTime}</span>
@@ -423,14 +423,14 @@ export default function InstagramDetailModal({
           </div>
 
           {/* Action Engagement Bar */}
-          <div className="p-3 border-t border-gray-100 space-y-2 bg-gray-50/50">
+          <div className="p-3 border-t border-divider space-y-2 bg-gray-50/50">
             <div className="flex items-center justify-between">
               {/* p-2 -m-2 on each: grows the tap target without a visible chip, same
                   reasoning as the "Más opciones" button above — these mimic Instagram's
                   real action bar, which renders bare icons with no button background. */}
-              <div className="flex items-center gap-3 text-gray-700">
+              <div className="flex items-center gap-3 text-ink-secondary">
                 <button onClick={toggleLike} className="hover:scale-110 transition-transform p-2 -m-2" aria-label={isLiked ? "Quitar me gusta" : "Me gusta"}>
-                  <Heart size={20} className={cn(isLiked ? "fill-red-500 text-red-500" : "text-gray-700")} />
+                  <Heart size={20} className={cn(isLiked ? "fill-red-500 text-red-500" : "text-ink-secondary")} />
                 </button>
                 <button
                   onClick={() => {
@@ -447,12 +447,12 @@ export default function InstagramDetailModal({
                   <Share2 size={18} />
                 </button>
               </div>
-              <button className="text-gray-700 hover:scale-110 transition-transform p-2 -m-2" aria-label="Guardar">
+              <button className="text-ink-secondary hover:scale-110 transition-transform p-2 -m-2" aria-label="Guardar">
                 <Bookmark size={18} />
               </button>
             </div>
 
-            <div className="text-left font-semibold text-gray-800 text-xs">
+            <div className="text-left font-semibold text-ink text-xs">
               {likesCount} Me gusta
             </div>
             
@@ -464,7 +464,7 @@ export default function InstagramDetailModal({
           {/* Add Comment input — internal-only, hidden from clients (matches PostModal's
               Comments tab, which is agency-only). Clients give feedback from the Feedback tab. */}
           {userRole !== 'client' ? (
-            <form onSubmit={handleSubmitComment} className="p-3 border-t border-gray-100 bg-white flex items-center relative">
+            <form onSubmit={handleSubmitComment} className="p-3 border-t border-divider bg-white flex items-center relative">
               <input
                 type="text"
                 aria-label="Añadir comentario"
@@ -482,7 +482,7 @@ export default function InstagramDetailModal({
               </button>
             </form>
           ) : (
-            <div className="p-3 border-t border-gray-100 bg-gray-50/50 text-center text-caption text-ink-muted">
+            <div className="p-3 border-t border-divider bg-gray-50/50 text-center text-caption text-ink-muted">
               Para dar feedback sobre este post, ábrelo desde el calendario o el tablero.
             </div>
           )}

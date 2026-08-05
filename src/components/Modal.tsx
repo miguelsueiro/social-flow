@@ -9,7 +9,7 @@ type ModalTone = 'default' | 'accent' | 'danger' | 'success';
 type ModalSize = 'sm' | 'md' | 'lg';
 
 const TONE_CLASSES: Record<ModalTone, string> = {
-  default: 'bg-gray-100 text-gray-600',
+  default: 'bg-gray-100 text-ink-secondary',
   accent: 'bg-app-accent/10 text-app-accent',
   danger: 'bg-red-50 text-red-600',
   success: 'bg-emerald-50 text-emerald-600',
@@ -59,19 +59,19 @@ export default function Modal({ onClose, title, icon: Icon, tone = 'accent', siz
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'bg-white rounded-3xl border border-gray-100 shadow-2xl w-full overflow-hidden outline-none flex flex-col max-h-[90vh]',
+          'bg-white rounded-3xl border border-divider shadow-2xl w-full overflow-hidden outline-none flex flex-col max-h-[90vh]',
           SIZE_CLASSES[size],
           className
         )}
       >
-        <div className="p-4 sm:p-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/50 shrink-0">
+        <div className="p-4 sm:p-6 border-b border-divider flex items-center justify-between bg-gray-50/50 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             {Icon && (
               <div className={cn('p-2 rounded-lg shrink-0', TONE_CLASSES[tone])}>
                 <Icon size={18} />
               </div>
             )}
-            <h3 id={titleId} className="font-extrabold text-gray-900 text-sm truncate">{title}</h3>
+            <h3 id={titleId} className="font-extrabold text-ink text-sm truncate">{title}</h3>
           </div>
           <IconButton icon={X} onClick={onClose} aria-label="Cerrar" className="shrink-0" />
         </div>
@@ -81,7 +81,7 @@ export default function Modal({ onClose, title, icon: Icon, tone = 'accent', siz
         </div>
 
         {footer && (
-          <div className="p-4 sm:p-6 border-t border-gray-50 shrink-0">
+          <div className="p-4 sm:p-6 border-t border-divider shrink-0">
             {footer}
           </div>
         )}

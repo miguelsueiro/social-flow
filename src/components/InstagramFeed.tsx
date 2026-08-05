@@ -19,6 +19,7 @@ import InstagramDetailModal from './InstagramDetailModal';
 import Toggle from './Toggle';
 import Media from './Media';
 import EmptyState from './EmptyState';
+import Skeleton from './Skeleton';
 import Field from './Field';
 import { toast } from 'react-hot-toast';
 
@@ -26,9 +27,10 @@ interface InstagramFeedProps {
   posts: Post[];
   onSelectPost: (post: Post, initialTab?: 'comments' | 'feedback') => void;
   userRole: string;
+  loading?: boolean;
 }
 
-export default function InstagramFeed({ posts, onSelectPost, userRole }: InstagramFeedProps) {
+export default function InstagramFeed({ posts, onSelectPost, userRole, loading = false }: InstagramFeedProps) {
   const [activeTab, setActiveTab] = useState<'posts' | 'reels'>('posts');
   const [showDeviceFrame, setShowDeviceFrame] = useState(true);
   const [isPersonalizerExpanded, setIsPersonalizerExpanded] = useState(false);
@@ -144,7 +146,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
   const approvedCount = instagramPosts.filter(p => p.phase === 'approved' || p.phase === 'published').length;
 
   const renderProfileHeader = () => (
-    <div className="border-b border-gray-100 pb-6 mb-4">
+    <div className="border-b border-divider pb-6 mb-4">
       <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
         {/* Profile Pic */}
         <div className="relative shrink-0">
@@ -167,7 +169,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
         {/* Profile Info */}
         <div className="flex-1 text-center md:text-left space-y-2.5 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-center md:justify-start">
-            <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-1 justify-center sm:justify-start truncate">
+            <h2 className="text-base md:text-lg font-bold text-ink flex items-center gap-1 justify-center sm:justify-start truncate">
               {profileUsername}
               <span className="inline-block w-3.5 h-3.5 bg-blue-500 rounded-full text-white flex items-center justify-center p-0.5 text-[11px] font-bold shrink-0">✓</span>
             </h2>
@@ -178,14 +180,14 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
               a live account. */}
           <div className="flex justify-center md:justify-start gap-4 text-xs">
             <div>
-              <span className="font-bold text-gray-900">{postsCount}</span> <span className="text-gray-400">publicaciones</span>
+              <span className="font-bold text-ink">{postsCount}</span> <span className="text-ink-muted">publicaciones</span>
             </div>
           </div>
 
           {/* Bio */}
-          <div className="text-[11px] text-gray-700 space-y-0.5 leading-normal max-w-md">
-            <p className="font-bold text-gray-900">{profileUsername}</p>
-            <p className="text-gray-500 whitespace-pre-wrap">{profileBio}</p>
+          <div className="text-[11px] text-ink-secondary space-y-0.5 leading-normal max-w-md">
+            <p className="font-bold text-ink">{profileUsername}</p>
+            <p className="text-ink-secondary whitespace-pre-wrap">{profileBio}</p>
             <div className="flex items-center gap-1 text-app-accent font-semibold justify-center md:justify-start mt-1.5">
               <span className="text-[11px] bg-app-accent-subtle text-app-accent px-2 py-0.5 rounded-full font-bold">
                 Aprobados: {approvedCount}/{postsCount}
@@ -198,6 +200,16 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
   );
 
   const renderGridContent = () => {
+    if (loading) {
+      return (
+        <div className="grid grid-cols-3 gap-[0.5px] md:gap-0.5 bg-gray-200/60" role="status" aria-label="Cargando publicaciones">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Skeleton key={i} shape="block" className="aspect-[4/5] rounded-none" />
+          ))}
+        </div>
+      );
+    }
+
     if (feedPosts.length === 0) {
       return (
         <EmptyState
@@ -242,9 +254,9 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
       {/* Settings / Controls Sidebar Panel */}
       <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
         
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-divider shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+            <h3 className="font-bold text-ink text-sm flex items-center gap-2">
               <Smartphone size={16} className="text-app-accent" />
               Vista Instagram
             </h3>
@@ -253,29 +265,29 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
             </span>
           </div>
           
-          <hr className="border-gray-100" />
+          <hr className="border-divider" />
 
           {/* Toggle Mobile Frame */}
           <div className="flex items-center justify-between text-xs">
-            <span className="font-bold text-gray-600">Simulador de Móvil</span>
+            <span className="font-bold text-ink-secondary">Simulador de Móvil</span>
             <Toggle checked={showDeviceFrame} onChange={setShowDeviceFrame} label="Simulador de móvil" />
           </div>
 
           {/* Toggle B&W for published posts */}
           <div className="flex items-center justify-between text-xs">
-            <span className="font-bold text-gray-600">Publicados en B/N</span>
+            <span className="font-bold text-ink-secondary">Publicados en B/N</span>
             <Toggle checked={grayscalePublished} onChange={setGrayscalePublished} label="Poner en blanco y negro los posts publicados" />
           </div>
 
           {/* Filter Phases */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-gray-400 uppercase block">Fases Incluidas</label>
-            <div className="grid grid-cols-2 gap-1.5 bg-gray-50 p-1 rounded-xl border border-gray-200">
+            <label className="text-[11px] font-bold text-ink-muted uppercase block">Fases Incluidas</label>
+            <div className="grid grid-cols-2 gap-1.5 bg-gray-50 p-1 rounded-xl border border-divider">
               <button
                 onClick={() => setFilterPhase('all')}
                 className={cn(
                   "py-1.5 text-[11px] font-bold rounded-lg transition-all",
-                  filterPhase === 'all' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  filterPhase === 'all' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
                 )}
               >
                 Todos
@@ -284,7 +296,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                 onClick={() => setFilterPhase('approved_only')}
                 className={cn(
                   "py-1.5 text-[11px] font-bold rounded-lg transition-all",
-                  filterPhase === 'approved_only' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  filterPhase === 'approved_only' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
                 )}
               >
                 Aprobados / Publ.
@@ -294,10 +306,10 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
         </div>
 
         {/* Mockup Profile Customizer Panel (Folded under Vista Instagram) */}
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-divider shadow-sm space-y-3">
           <button 
             onClick={() => setIsPersonalizerExpanded(!isPersonalizerExpanded)}
-            className="w-full flex items-center justify-between text-xs font-bold text-gray-700 hover:text-gray-900 transition-colors uppercase tracking-wider text-left"
+            className="w-full flex items-center justify-between text-xs font-bold text-ink-secondary hover:text-ink transition-colors uppercase tracking-wider text-left"
           >
             <div className="flex items-center gap-2">
               <Edit2 size={14} className="text-app-accent" />
@@ -306,7 +318,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
             <motion.span
               animate={{ rotate: isPersonalizerExpanded ? 180 : 0 }}
               transition={{ duration: 0.2 }}
-              className="text-gray-400 text-[11px]"
+              className="text-ink-muted text-[11px]"
             >
               ▼
             </motion.span>
@@ -319,30 +331,30 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="space-y-3 text-xs overflow-hidden pt-2 border-t border-gray-100"
+                className="space-y-3 text-xs overflow-hidden pt-2 border-t border-divider"
               >
-                <Field label="Nombre de Usuario" id="ig-profile-username" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase">
+                <Field label="Nombre de Usuario" id="ig-profile-username" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-ink-muted [&>label]:uppercase">
                   <input
                     type="text"
                     value={profileUsername}
                     onChange={e => handleUsernameChange(e.target.value)}
                     placeholder="usuario_marca"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-xs"
+                    className="w-full bg-gray-50 border border-divider rounded-md px-3 py-2 font-bold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-xs"
                   />
                 </Field>
 
-                <Field label="Biografía / Descripción" id="ig-profile-bio" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase">
+                <Field label="Biografía / Descripción" id="ig-profile-bio" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-ink-muted [&>label]:uppercase">
                   <textarea
                     rows={3}
                     value={profileBio}
                     onChange={e => handleBioChange(e.target.value)}
                     placeholder="Escribe la descripción de la marca..."
-                    className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 font-semibold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-xs resize-none"
+                    className="w-full bg-gray-50 border border-divider rounded-md px-3 py-2 font-semibold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-xs resize-none"
                   />
                 </Field>
 
                 <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase block mb-1">Foto de Perfil</label>
+                  <label className="text-[11px] font-bold text-ink-muted uppercase block mb-1">Foto de Perfil</label>
                   <div className="flex gap-2 items-center">
                     <input 
                       type="file" 
@@ -353,7 +365,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                     />
                     <label 
                       htmlFor="profile-pic-upload"
-                      className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg py-2 px-3 flex items-center gap-1.5 cursor-pointer font-bold text-gray-600 text-[11px] transition-colors"
+                      className="bg-gray-50 hover:bg-gray-100 border border-divider rounded-lg py-2 px-3 flex items-center gap-1.5 cursor-pointer font-bold text-ink-secondary text-[11px] transition-colors"
                     >
                       <Upload size={12} />
                       Subir Foto
@@ -365,7 +377,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                         setProfileImage(fallback);
                         localStorage.setItem('ig_profile_image', fallback);
                       }}
-                      className="text-gray-400 hover:text-red-500 text-[11px] font-semibold"
+                      className="text-ink-muted hover:text-red-500 text-[11px] font-semibold"
                     >
                       Resetear
                     </button>
@@ -408,9 +420,9 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
               </div>
 
               {/* Instagram App Top Header */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-                <span className="font-extrabold text-xs tracking-tight text-gray-900">{profileUsername}</span>
-                <span className="text-gray-400">•</span>
+              <div className="flex items-center justify-between px-4 py-2 border-b border-divider">
+                <span className="font-extrabold text-xs tracking-tight text-ink">{profileUsername}</span>
+                <span className="text-ink-muted">•</span>
               </div>
 
               {/* Profile Contents */}
@@ -420,12 +432,12 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                 </div>
 
                 {/* Simulated Tab Bar */}
-                <div className="flex border-b border-gray-100 mb-2">
+                <div className="flex border-b border-divider mb-2">
                   <button 
                     onClick={() => setActiveTab('posts')}
                     className={cn(
                       "flex-1 flex justify-center py-2 border-b-2 text-xs font-bold transition-all gap-1.5",
-                      activeTab === 'posts' ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400"
+                      activeTab === 'posts' ? "border-gray-900 text-ink" : "border-transparent text-ink-muted"
                     )}
                   >
                     <Grid size={15} />
@@ -435,7 +447,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                     onClick={() => setActiveTab('reels')}
                     className={cn(
                       "flex-1 flex justify-center py-2 border-b-2 text-xs font-bold transition-all gap-1.5",
-                      activeTab === 'reels' ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400"
+                      activeTab === 'reels' ? "border-gray-900 text-ink" : "border-transparent text-ink-muted"
                     )}
                   >
                     <Tv size={15} />
@@ -449,16 +461,16 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
           </div>
         ) : (
           /* Normal Expanded Web Layout */
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm max-w-4xl mx-auto">
+          <div className="bg-white p-6 rounded-3xl border border-divider shadow-sm max-w-4xl mx-auto">
             {renderProfileHeader()}
 
             {/* Normal Web Tab Bar */}
-            <div className="flex justify-center border-t border-gray-100 gap-12 mb-4">
+            <div className="flex justify-center border-t border-divider gap-12 mb-4">
               <button 
                 onClick={() => setActiveTab('posts')}
                 className={cn(
                   "flex items-center gap-2 py-3 border-t-2 text-xs font-bold uppercase tracking-widest transition-all",
-                  activeTab === 'posts' ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400"
+                  activeTab === 'posts' ? "border-gray-900 text-ink" : "border-transparent text-ink-muted"
                 )}
               >
                 <Grid size={14} />
@@ -468,7 +480,7 @@ export default function InstagramFeed({ posts, onSelectPost, userRole }: Instagr
                 onClick={() => setActiveTab('reels')}
                 className={cn(
                   "flex items-center gap-2 py-3 border-t-2 text-xs font-bold uppercase tracking-widest transition-all",
-                  activeTab === 'reels' ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400"
+                  activeTab === 'reels' ? "border-gray-900 text-ink" : "border-transparent text-ink-muted"
                 )}
               >
                 <Tv size={14} />

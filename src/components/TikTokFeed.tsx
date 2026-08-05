@@ -20,15 +20,17 @@ import Toggle from './Toggle';
 import IconButton from './IconButton';
 import Media from './Media';
 import EmptyState from './EmptyState';
+import Skeleton from './Skeleton';
 
 interface TikTokFeedProps {
   posts: Post[];
   onSelectPost: (post: Post, initialTab?: 'comments' | 'feedback') => void;
   userRole: string;
   projects?: any[];
+  loading?: boolean;
 }
 
-export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [] }: TikTokFeedProps) {
+export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [], loading = false }: TikTokFeedProps) {
   const [viewMode, setViewMode] = useState<'phone' | 'grid'>('phone');
   const [filterPhase, setFilterPhase] = useState<'all' | 'approved_only'>('all');
   const [currentPostIndex, setCurrentPostIndex] = useState(0);
@@ -70,12 +72,20 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
 
 
   const renderActivePhoneFeed = () => {
+    if (loading) {
+      return (
+        <div className="w-full h-full rounded-[2.5rem] overflow-hidden relative bg-zinc-900" role="status" aria-label="Cargando publicaciones">
+          <Skeleton shape="block" className="absolute inset-0 rounded-none bg-gray-800" />
+        </div>
+      );
+    }
+
     if (!activePost) {
       return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 text-zinc-500 text-center p-8 rounded-[2.5rem]">
-          <Music size={40} className="animate-bounce mb-3 text-zinc-700" />
-          <p className="font-bold text-sm text-zinc-400">No hay posts de TikTok disponibles</p>
-          <p className="text-xs mt-1 text-zinc-500 max-w-xs">Planifica posts eligiendo la plataforma TikTok o aprueba ideas pendientes.</p>
+        <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 text-ink-secondary text-center p-8 rounded-[2.5rem]">
+          <Music size={40} className="animate-bounce mb-3 text-ink-secondary" />
+          <p className="font-bold text-sm text-ink-muted">No hay posts de TikTok disponibles</p>
+          <p className="text-xs mt-1 text-ink-secondary max-w-xs">Planifica posts eligiendo la plataforma TikTok o aprueba ideas pendientes.</p>
         </div>
       );
     }
@@ -209,11 +219,11 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
             lineClamp={3}
             highlightClass="font-bold text-cyan-400"
             className="text-xs leading-normal font-medium text-zinc-100"
-            moreClassName="font-semibold text-zinc-400 hover:text-white"
+            moreClassName="font-semibold text-ink-muted hover:text-white"
           />
 
           {/* Sound bar */}
-          <div className="flex items-center gap-1.5 overflow-hidden text-xs text-zinc-300">
+          <div className="flex items-center gap-1.5 overflow-hidden text-xs text-ink-muted">
             <Music size={12} className="shrink-0" />
             <div className="truncate text-[11px] font-semibold tracking-wide">
               <span>sonido original - {proj?.name || 'SocialFlow'}</span>
@@ -225,6 +235,16 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
   };
 
   const renderGridView = () => {
+    if (loading) {
+      return (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3" role="status" aria-label="Cargando publicaciones">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} shape="block" className="aspect-[9/16] rounded-2xl" />
+          ))}
+        </div>
+      );
+    }
+
     if (visiblePosts.length === 0) {
       return (
         <EmptyState
@@ -277,28 +297,28 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
     <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
       {/* Sidebar Controls */}
       <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-divider shadow-sm space-y-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <h3 className="font-extrabold text-gray-900 text-sm">Feed TikTok</h3>
+              <h3 className="font-extrabold text-ink text-sm">Feed TikTok</h3>
             </div>
-            <p className="text-xs text-gray-400 leading-normal">Simula la visualización de tus vídeos y reels en TikTok.</p>
+            <p className="text-xs text-ink-muted leading-normal">Simula la visualización de tus vídeos y reels en TikTok.</p>
           </div>
 
           <div className="flex items-center justify-between text-xs">
-            <span className="font-bold text-gray-600">Publicados en B/N</span>
+            <span className="font-bold text-ink-secondary">Publicados en B/N</span>
             <Toggle checked={grayscalePublished} onChange={setGrayscalePublished} label="Poner en blanco y negro los posts publicados" />
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Filtrar Estado</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
+            <label className="text-[11px] font-bold text-ink-muted uppercase tracking-widest">Filtrar Estado</label>
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-divider">
               <button 
                 onClick={() => setFilterPhase('all')}
                 className={cn(
                   "py-1.5 text-xs font-semibold rounded-lg transition-all",
-                  filterPhase === 'all' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  filterPhase === 'all' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
                 )}
               >
                 Todos
@@ -307,7 +327,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
                 onClick={() => setFilterPhase('approved_only')}
                 className={cn(
                   "py-1.5 text-xs font-semibold rounded-lg transition-all",
-                  filterPhase === 'approved_only' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  filterPhase === 'approved_only' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
                 )}
               >
                 Aprobados
@@ -316,13 +336,13 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Modo de Vista</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
+            <label className="text-[11px] font-bold text-ink-muted uppercase tracking-widest">Modo de Vista</label>
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-divider">
               <button 
                 onClick={() => setViewMode('phone')}
                 className={cn(
                   "py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all",
-                  viewMode === 'phone' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  viewMode === 'phone' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
                 )}
               >
                 <Smartphone size={14} />
@@ -332,7 +352,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
                 onClick={() => setViewMode('grid')}
                 className={cn(
                   "py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all",
-                  viewMode === 'grid' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  viewMode === 'grid' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
                 )}
               >
                 <GridIcon size={14} />
@@ -343,18 +363,18 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
         </div>
 
         {viewMode === 'phone' && visiblePosts.length > 1 && (
-          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-            <IconButton icon={ChevronLeft} disabled={currentPostIndex === 0} onClick={handlePrevPost} className="border border-gray-200" aria-label="Post anterior" />
-            <span className="text-xs font-bold text-gray-700">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-divider shadow-sm flex items-center justify-between">
+            <IconButton icon={ChevronLeft} disabled={currentPostIndex === 0} onClick={handlePrevPost} className="border border-divider" aria-label="Post anterior" />
+            <span className="text-xs font-bold text-ink-secondary">
               Post {currentPostIndex + 1} de {visiblePosts.length}
             </span>
-            <IconButton icon={ChevronRight} disabled={currentPostIndex === visiblePosts.length - 1} onClick={handleNextPost} className="border border-gray-200" aria-label="Post siguiente" />
+            <IconButton icon={ChevronRight} disabled={currentPostIndex === visiblePosts.length - 1} onClick={handleNextPost} className="border border-divider" aria-label="Post siguiente" />
           </div>
         )}
       </div>
 
       {/* Primary Simulator Workspace */}
-      <div className="flex-1 flex items-center justify-center overflow-y-auto min-h-0 bg-gray-50/50 rounded-3xl border border-gray-100 p-4">
+      <div className="flex-1 flex items-center justify-center overflow-y-auto min-h-0 bg-gray-50/50 rounded-3xl border border-divider p-4">
         {viewMode === 'phone' ? (
           <div className="relative w-[340px] h-[650px] bg-zinc-950 rounded-[3.2rem] p-3 border-[10px] border-zinc-900 shadow-2xl flex-shrink-0">
             {/* Speaker & camera mockup dots */}

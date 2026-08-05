@@ -4,9 +4,9 @@ import { cn } from '../lib/utils';
 type EmptyStateSize = 'sm' | 'md' | 'lg';
 
 const SIZE_CLASSES: Record<EmptyStateSize, { wrap: string; icon: number; title: string; description: string }> = {
-  sm: { wrap: 'py-6', icon: 28, title: 'text-xs font-medium text-gray-400', description: 'text-caption text-ink-muted' },
-  md: { wrap: 'py-16', icon: 40, title: 'text-sm font-bold text-gray-600', description: 'text-caption text-ink-muted mt-1' },
-  lg: { wrap: 'py-20', icon: 48, title: 'text-sm font-bold text-gray-600', description: 'text-caption text-ink-muted mt-1' },
+  sm: { wrap: 'py-6', icon: 28, title: 'text-xs font-medium text-ink-muted', description: 'text-caption text-ink-muted' },
+  md: { wrap: 'py-16', icon: 40, title: 'text-sm font-bold text-ink-secondary', description: 'text-caption text-ink-muted mt-1' },
+  lg: { wrap: 'py-20', icon: 48, title: 'text-sm font-bold text-ink-secondary', description: 'text-caption text-ink-muted mt-1' },
 };
 
 interface EmptyStateProps {
@@ -31,10 +31,10 @@ export default function EmptyState({ icon: Icon, title, description, size = 'md'
     <div className={cn(
       'text-center',
       s.wrap,
-      bordered && 'bg-gray-50 rounded-2xl border border-dashed border-gray-200',
+      bordered && 'bg-gray-50 rounded-2xl border border-dashed border-divider',
       className
     )}>
-      {Icon && <Icon size={s.icon} className="mx-auto text-gray-300 mb-2" />}
+      {Icon && <Icon size={s.icon} className="mx-auto text-ink-muted mb-2" />}
       <p className={s.title}>{title}</p>
       {description && <p className={s.description}>{description}</p>}
     </div>

@@ -357,8 +357,8 @@ export default function SettingsView({
             <ShieldCheck size={22} />
           </div>
           <div>
-            <h3 className="font-extrabold text-gray-900 text-sm">Modo de Rol de Usuario (Avanzado)</h3>
-            <p className="text-xs text-gray-400">Cambia tu rol real en Firestore para probar permisos y vistas. No es una vista previa.</p>
+            <h3 className="font-extrabold text-ink text-sm">Modo de Rol de Usuario (Avanzado)</h3>
+            <p className="text-xs text-ink-muted">Cambia tu rol real en Firestore para probar permisos y vistas. No es una vista previa.</p>
           </div>
         </div>
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-800 font-medium">
@@ -377,11 +377,11 @@ export default function SettingsView({
                 className={`p-4 rounded-2xl border text-left flex flex-col justify-between h-24 transition-all relative ${
                   isSelected
                     ? 'border-app-accent bg-app-accent/10 ring-2 ring-app-accent/10'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    : 'border-divider hover:border-outline hover:bg-gray-50'
                 }`}
               >
                 <div className="flex items-center justify-between w-full">
-                  <span className={`text-[11px] font-black uppercase tracking-wider ${isSelected ? 'text-app-accent' : 'text-gray-400'}`}>
+                  <span className={`text-[11px] font-black uppercase tracking-wider ${isSelected ? 'text-app-accent' : 'text-ink-muted'}`}>
                     {key === 'client' ? 'Externo' : 'Agencia'}
                   </span>
                   {isSelected && (
@@ -391,7 +391,7 @@ export default function SettingsView({
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-black text-gray-900 leading-snug">{label}</p>
+                  <p className="text-xs font-black text-ink leading-snug">{label}</p>
                   <p className="text-caption text-ink-muted mt-0.5 truncate">Permisos de {key === 'client' ? 'revisión' : 'edición'}</p>
                 </div>
               </button>
@@ -402,12 +402,12 @@ export default function SettingsView({
       )}
 
       {/* 1. Project switching panel (moved from sidebar/topbar) */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-4 sm:p-6">
+      <div className="bg-white rounded-3xl border border-divider shadow-sm overflow-hidden p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-4">
           <Folder size={20} className="text-app-accent" />
           <div>
-            <h3 className="font-extrabold text-gray-900 text-sm">Cambiar de Proyecto de Trabajo Activo</h3>
-            <p className="text-xs text-gray-400">Selecciona el espacio de trabajo que quieres planificar en el calendario y ver en el tablero.</p>
+            <h3 className="font-extrabold text-ink text-sm">Cambiar de Proyecto de Trabajo Activo</h3>
+            <p className="text-xs text-ink-muted">Selecciona el espacio de trabajo que quieres planificar en el calendario y ver en el tablero.</p>
           </div>
         </div>
 
@@ -418,14 +418,14 @@ export default function SettingsView({
               className={`p-4 rounded-2xl border text-left flex flex-col justify-between h-28 transition-all ${
                 activeProjectId === 'all'
                   ? 'border-app-accent bg-app-accent/10 ring-2 ring-app-accent/10'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  : 'border-divider hover:border-outline hover:bg-gray-50'
               }`}
             >
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500">
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-ink-secondary">
                 <Grid size={16} />
               </div>
               <div>
-                <p className="text-xs font-black text-gray-900">Todos los Proyectos</p>
+                <p className="text-xs font-black text-ink">Todos los Proyectos</p>
                 <p className="text-caption text-ink-muted mt-0.5">Vea la parrilla global consolidada</p>
               </div>
             </button>
@@ -438,7 +438,7 @@ export default function SettingsView({
               className={`p-4 rounded-2xl border text-left flex flex-col justify-between h-28 transition-all relative group ${
                 activeProjectId === proj.id
                   ? 'border-transparent ring-2'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  : 'border-divider hover:border-outline hover:bg-gray-50'
               }`}
               style={{
                 boxShadow: activeProjectId === proj.id ? `0 0 0 2px ${proj.color}` : 'none',
@@ -452,7 +452,7 @@ export default function SettingsView({
                 {proj.name[0]}
               </div>
               <div>
-                <p className="text-xs font-black text-gray-900 line-clamp-1">{proj.name}</p>
+                <p className="text-xs font-black text-ink line-clamp-1">{proj.name}</p>
                 <p className="text-caption text-ink-muted mt-0.5 line-clamp-1">Cliente: {proj.clientName}</p>
               </div>
               {activeProjectId === proj.id && (
@@ -467,14 +467,14 @@ export default function SettingsView({
 
       {/* 1.5. Permissions panel for Admin */}
       {userRole === 'admin' && (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-fade-in">
-          <div className="p-4 sm:p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white rounded-3xl border border-divider shadow-sm overflow-hidden animate-fade-in">
+          <div className="p-4 sm:p-6 border-b border-divider flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
+              <h3 className="font-extrabold text-ink text-sm flex items-center gap-2">
                 <Users size={18} className="text-app-accent" />
                 Gestión de Usuarios y Permisos de Proyectos
               </h3>
-              <p className="text-xs text-gray-400 mt-1">Como administrador, puedes invitar colaboradores, asignar roles de la agencia y habilitar o deshabilitar el acceso a proyectos específicos.</p>
+              <p className="text-xs text-ink-muted mt-1">Como administrador, puedes invitar colaboradores, asignar roles de la agencia y habilitar o deshabilitar el acceso a proyectos específicos.</p>
             </div>
             <Button variant="primary" onClick={() => setShowInviteModal(true)} className="py-2 self-start md:self-auto shrink-0 animate-fade-in">
               <UserPlus size={14} />
@@ -485,18 +485,18 @@ export default function SettingsView({
           <div className="p-4 sm:p-6 space-y-6">
             {/* Search Input */}
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" size={15} />
               <input
                 aria-label="Buscar usuarios por nombre o correo"
                 placeholder="Buscar usuarios por nombre o correo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 pl-10 pr-4 text-xs focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 outline-none transition-all"
+                className="w-full bg-gray-50 border border-divider rounded-md py-2 pl-10 pr-4 text-xs focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 outline-none transition-all"
               />
             </div>
 
             {usersList.length === 0 ? (
-              <div className="text-center text-xs text-gray-400 py-6">Cargando usuarios...</div>
+              <div className="text-center text-xs text-ink-muted py-6">Cargando usuarios...</div>
             ) : (
               <div className="divide-y divide-gray-100">
                 {usersList
@@ -515,35 +515,35 @@ export default function SettingsView({
                     const isEditing = editingUserId === usr.id;
 
                     return (
-                      <div key={usr.id} className="py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-50/50 pb-4">
+                      <div key={usr.id} className="py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-divider/50 pb-4">
                         <div className="flex-1 flex items-center gap-3">
                           <Avatar name={usr.name || ''} src={usr.avatar} />
                           
                           {isEditing ? (
                             <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                              <Field label="Nombre" id={`edit-user-name-${usr.id}`} className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase [&>label]:tracking-wider">
+                              <Field label="Nombre" id={`edit-user-name-${usr.id}`} className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-ink-muted [&>label]:uppercase [&>label]:tracking-wider">
                                 <input
                                   type="text"
                                   value={editUserName}
                                   onChange={(e) => setEditUserName(e.target.value)}
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
+                                  className="w-full bg-gray-50 border border-divider rounded-md px-3 py-2 text-xs font-bold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
                                   placeholder="Nombre completo"
                                 />
                               </Field>
-                              <Field label="Correo" id={`edit-user-email-${usr.id}`} className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase [&>label]:tracking-wider">
+                              <Field label="Correo" id={`edit-user-email-${usr.id}`} className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-ink-muted [&>label]:uppercase [&>label]:tracking-wider">
                                 <input
                                   type="email"
                                   value={editUserEmail}
                                   onChange={(e) => setEditUserEmail(e.target.value)}
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
+                                  className="w-full bg-gray-50 border border-divider rounded-md px-3 py-2 text-xs font-bold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all"
                                   placeholder="correo@ejemplo.com"
                                 />
                               </Field>
-                              <Field label="Estado" id={`edit-user-status-${usr.id}`} className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase [&>label]:tracking-wider">
+                              <Field label="Estado" id={`edit-user-status-${usr.id}`} className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-ink-muted [&>label]:uppercase [&>label]:tracking-wider">
                                 <select
                                   value={editUserStatus}
                                   onChange={(e) => setEditUserStatus(e.target.value)}
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all cursor-pointer"
+                                  className="w-full bg-gray-50 border border-divider rounded-md px-3 py-2 text-xs font-bold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all cursor-pointer"
                                 >
                                   <option value="active">Activo</option>
                                   <option value="pending">Pendiente</option>
@@ -553,7 +553,7 @@ export default function SettingsView({
                           ) : (
                             <div>
                               <div className="flex items-center gap-2">
-                                <p className="font-bold text-gray-900 text-xs">{usr.name}</p>
+                                <p className="font-bold text-ink text-xs">{usr.name}</p>
                                 {usr.status === 'pending' ? (
                                   <span className="bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded-full text-[11px] uppercase tracking-wider animate-pulse">Pendiente</span>
                                 ) : (
@@ -576,7 +576,7 @@ export default function SettingsView({
                               </button>
                               <button
                                 onClick={() => setEditingUserId(null)}
-                                className="bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold text-[11px] px-3 py-1.5 rounded-xl transition-all"
+                                className="bg-white hover:bg-gray-100 border border-divider text-ink-secondary font-bold text-[11px] px-3 py-1.5 rounded-xl transition-all"
                               >
                                 Cancelar
                               </button>
@@ -585,7 +585,7 @@ export default function SettingsView({
                             <>
                               {/* Role Selector */}
                               <div className="flex flex-col">
-                                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Rol / Permisos</span>
+                                <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider mb-1">Rol / Permisos</span>
                                 {isUserAdmin ? (
                                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-app-accent/10 text-app-accent font-bold rounded-xl text-xs">
                                     {ROLES.admin}
@@ -595,7 +595,7 @@ export default function SettingsView({
                                     aria-label={`Rol de ${usr.name}`}
                                     value={usr.role || 'client'}
                                     onChange={(e) => handleRoleChangeInDb(usr.id, e.target.value as Role)}
-                                    className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all cursor-pointer"
+                                    className="bg-gray-50 hover:bg-gray-100 border border-divider rounded-md px-3 py-2 text-xs font-bold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all cursor-pointer"
                                   >
                                     {Object.entries(ROLES).map(([key, label]) => (
                                       <option key={key} value={key}>{label}</option>
@@ -606,22 +606,22 @@ export default function SettingsView({
 
                               {/* Projects Selector */}
                               <div className="flex flex-col items-end max-w-[260px]">
-                                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Acceso a Proyectos</span>
+                                <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider mb-1">Acceso a Proyectos</span>
                                 {isUserAdmin ? (
-                                  <span className="inline-flex items-center px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-400 italic">
+                                  <span className="inline-flex items-center px-3 py-1.5 bg-gray-50 border border-divider rounded-xl text-xs text-ink-muted italic">
                                     Acceso Total (Admin)
                                   </span>
                                 ) : (
                                   <div className="flex flex-col items-end gap-1.5">
                                     <div className="flex flex-wrap gap-1 justify-end">
                                       {userPermitted.length === 0 ? (
-                                        <span className="text-xs text-gray-400 italic">Sin proyectos asignados</span>
+                                        <span className="text-xs text-ink-muted italic">Sin proyectos asignados</span>
                                       ) : (
                                         userPermitted.map((projId: string) => {
                                           const pObj = projects.find(p => p.id === projId);
                                           if (!pObj) return null;
                                           return (
-                                            <span key={projId} className="inline-flex items-center gap-1 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg text-xs text-gray-600 max-w-[160px]">
+                                            <span key={projId} className="inline-flex items-center gap-1 bg-gray-50 border border-divider px-2 py-1 rounded-lg text-xs text-ink-secondary max-w-[160px]">
                                               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: pObj.color }} />
                                               <span className="truncate">{pObj.name}</span>
                                             </span>
@@ -642,7 +642,7 @@ export default function SettingsView({
                               </div>
 
                               {/* Action buttons (Edit & Delete) */}
-                              <div className="flex items-center gap-1 pl-2 border-l border-gray-100 h-9 self-end">
+                              <div className="flex items-center gap-1 pl-2 border-l border-divider h-9 self-end">
                                 <IconButton icon={Edit2} size="sm" onClick={() => startEditingUser(usr)} aria-label="Editar usuario" title="Editar usuario" />
 
                                 {userToDelete === usr.id ? (
@@ -674,14 +674,14 @@ export default function SettingsView({
 
       {/* 2. Global Project & Client Admin CRUD Panel */}
       {userRole !== 'client' && (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-4 sm:p-6 border-b border-gray-50 flex items-center justify-between">
+        <div className="bg-white rounded-3xl border border-divider shadow-sm overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-divider flex items-center justify-between">
             <div>
-              <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
+              <h3 className="font-extrabold text-ink text-sm flex items-center gap-2">
                 <Folder size={18} className="text-app-accent" />
                 Administración de Proyectos y Clientes
               </h3>
-              <p className="text-xs text-gray-400 mt-1">Crea, modifica y elimina tus cuentas de clientes o marcas activas en el sistema.</p>
+              <p className="text-xs text-ink-muted mt-1">Crea, modifica y elimina tus cuentas de clientes o marcas activas en el sistema.</p>
             </div>
             {!isAdding && (
               <Button variant="primary" onClick={() => setIsAdding(true)} className="py-2">
@@ -700,10 +700,10 @@ export default function SettingsView({
             )}
 
             {/* List Table */}
-            <div className="overflow-x-auto rounded-xl border border-gray-100">
+            <div className="overflow-x-auto rounded-xl border border-divider">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                  <tr className="border-b border-divider bg-gray-50 text-[11px] font-semibold text-ink-secondary uppercase tracking-wider">
                     <th className="px-4 py-4">Color</th>
                     <th className="px-4 py-4">Nombre del Proyecto</th>
                     <th className="px-4 py-4">Cliente Legal</th>
@@ -727,30 +727,30 @@ export default function SettingsView({
                               className="w-8 h-8 rounded border p-0.5 cursor-pointer bg-white"
                             />
                           ) : (
-                            <div className="w-5 h-5 rounded-full border border-gray-100" style={{ backgroundColor: proj.color }} />
+                            <div className="w-5 h-5 rounded-full border border-divider" style={{ backgroundColor: proj.color }} />
                           )}
                         </td>
-                        <td className="px-4 py-4 font-bold text-gray-900">
+                        <td className="px-4 py-4 font-bold text-ink">
                           {isEditing ? (
                             <input
                               type="text"
                               aria-label="Nombre del proyecto"
                               value={editName}
                               onChange={e => setEditName(e.target.value)}
-                              className="bg-white border border-gray-200 rounded px-3 py-2 text-xs w-full font-bold"
+                              className="bg-white border border-divider rounded px-3 py-2 text-xs w-full font-bold"
                             />
                           ) : (
                             proj.name
                           )}
                         </td>
-                        <td className="px-4 py-4 text-gray-500 font-medium">
+                        <td className="px-4 py-4 text-ink-secondary font-medium">
                           {isEditing ? (
                             <input
                               type="text"
                               aria-label="Cliente legal del proyecto"
                               value={editClient}
                               onChange={e => setEditClient(e.target.value)}
-                              className="bg-white border border-gray-200 rounded px-3 py-2 text-xs w-full"
+                              className="bg-white border border-divider rounded px-3 py-2 text-xs w-full"
                             />
                           ) : (
                             proj.clientName
@@ -762,7 +762,7 @@ export default function SettingsView({
                               {[
                                 { id: 'instagram', label: 'Instagram', icon: InstagramIcon, color: 'text-[#E1306C] border-[#E1306C]/30 bg-[#E1306C]/5' },
                                 { id: 'linkedin', label: 'LinkedIn', icon: LinkedInIcon, color: 'text-[#0A66C2] border-[#0A66C2]/30 bg-[#0A66C2]/5' },
-                                { id: 'tiktok', label: 'TikTok', icon: TikTokIcon, color: 'text-zinc-900 border-zinc-900/30 bg-zinc-900/5' }
+                                { id: 'tiktok', label: 'TikTok', icon: TikTokIcon, color: 'text-ink border-zinc-900/30 bg-zinc-900/5' }
                               ].map(platform => {
                                 const isActive = editPlatforms.includes(platform.id);
                                 return (
@@ -786,7 +786,7 @@ export default function SettingsView({
                                     }}
                                     className={cn(
                                       'rounded-xl border',
-                                      isActive ? platform.color : 'bg-gray-50 border-gray-200 text-gray-400 opacity-60 hover:bg-gray-50 hover:text-gray-400'
+                                      isActive ? platform.color : 'bg-gray-50 border-divider text-ink-muted opacity-60 hover:bg-gray-50 hover:text-ink-muted'
                                     )}
                                   />
                                 );
@@ -797,7 +797,7 @@ export default function SettingsView({
                               {(proj.platforms || ['instagram', 'linkedin', 'tiktok']).map(p => {
                                 return (
                                   <span key={p} className={`px-1.5 py-0.5 rounded-md font-extrabold text-[11px] uppercase tracking-wider flex items-center gap-1 ${
-                                    p === 'instagram' ? 'bg-[#E1306C]/10 text-[#E1306C]' : p === 'linkedin' ? 'bg-[#0A66C2]/10 text-[#0A66C2]' : 'bg-zinc-900/10 text-zinc-900'
+                                    p === 'instagram' ? 'bg-[#E1306C]/10 text-[#E1306C]' : p === 'linkedin' ? 'bg-[#0A66C2]/10 text-[#0A66C2]' : 'bg-zinc-900/10 text-ink'
                                   }`}>
                                     {p === 'instagram' && <InstagramIcon size={10} />}
                                     {p === 'linkedin' && <LinkedInIcon size={10} />}
@@ -822,13 +822,13 @@ export default function SettingsView({
                             proj.territories && proj.territories.length > 0 ? (
                               <div className="flex gap-1 flex-wrap">
                                 {proj.territories.map(t => (
-                                  <span key={t} className="px-1.5 py-0.5 rounded-md font-bold text-[11px] bg-slate-100 text-slate-600">
+                                  <span key={t} className="px-1.5 py-0.5 rounded-md font-bold text-[11px] bg-slate-100 text-ink-secondary">
                                     {t}
                                   </span>
                                 ))}
                               </div>
                             ) : (
-                              <span className="text-gray-300 text-[11px]">—</span>
+                              <span className="text-ink-muted text-[11px]">—</span>
                             )
                           )}
                         </td>
@@ -837,7 +837,7 @@ export default function SettingsView({
                             <div className="flex justify-end gap-1.5">
                               <button
                                 onClick={() => setEditingProjId(null)}
-                                className="text-caption text-ink-muted hover:text-gray-600 px-2 py-1"
+                                className="text-caption text-ink-muted hover:text-ink-secondary px-2 py-1"
                               >
                                 Cancelar
                               </button>
@@ -877,39 +877,39 @@ export default function SettingsView({
           settings/agency, so a client submitting this got a raw
           permission-denied toast instead of never seeing the form at all). */}
       {userRole !== 'client' && (
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-50">
-          <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
+      <div className="bg-white rounded-3xl border border-divider shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-divider">
+          <h3 className="font-extrabold text-ink text-base flex items-center gap-2">
             <Settings size={18} className="text-app-accent" />
             Configuración del Workspace
           </h3>
-          <p className="text-xs text-gray-400 mt-1">Establece los parámetros generales y las preferencias de notificación de tu agencia.</p>
+          <p className="text-xs text-ink-muted mt-1">Establece los parámetros generales y las preferencias de notificación de tu agencia.</p>
         </div>
 
         <form onSubmit={handleSaveAgencySettings} className="p-4 sm:p-6 space-y-6">
           {/* General Section */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-xs font-black text-ink-muted uppercase tracking-widest">
               <Globe size={14} />
               <span>General</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="Nombre de la Agencia" id="agency-name" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase [&>label]:tracking-wider">
+              <Field label="Nombre de la Agencia" id="agency-name" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-ink-muted [&>label]:uppercase [&>label]:tracking-wider">
                 <input
                   type="text"
                   value={agencyName}
                   onChange={(e) => setAgencyName(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all"
+                  className="w-full bg-gray-50 border border-divider rounded-md py-2.5 px-3 text-xs font-bold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all"
                   required
                 />
               </Field>
 
-              <Field label="Zona Horaria Predeterminada" id="agency-timezone" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-gray-400 [&>label]:uppercase [&>label]:tracking-wider">
+              <Field label="Zona Horaria Predeterminada" id="agency-timezone" className="[&>label]:text-[11px] [&>label]:font-bold [&>label]:text-ink-muted [&>label]:uppercase [&>label]:tracking-wider">
                 <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2.5 px-3 text-xs font-bold text-gray-700 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all"
+                  className="w-full bg-gray-50 border border-divider rounded-md py-2.5 px-3 text-xs font-bold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all"
                 >
                   <option value="Europe/Madrid">Madrid (CET) - Europe/Madrid</option>
                   <option value="America/New_York">New York (EST) - America/New_York</option>
@@ -920,11 +920,11 @@ export default function SettingsView({
             </div>
           </div>
 
-          <hr className="border-gray-100" />
+          <hr className="border-divider" />
 
           {/* Notifications Section */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-xs font-black text-ink-muted uppercase tracking-widest">
               <Bell size={14} />
               <span>Notificaciones Automáticas</span>
             </div>
@@ -932,7 +932,7 @@ export default function SettingsView({
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-gray-800">Alertas por Correo</p>
+                  <p className="text-xs font-bold text-ink">Alertas por Correo</p>
                   <p className="text-caption text-ink-muted">Recibe resúmenes diarios con los comentarios y cambios de estado.</p>
                 </div>
                 <Toggle checked={notifyEmail} onChange={setNotifyEmail} label="Alertas por correo" />
@@ -940,7 +940,7 @@ export default function SettingsView({
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-gray-800">Notificaciones en Slack</p>
+                  <p className="text-xs font-bold text-ink">Notificaciones en Slack</p>
                   <p className="text-caption text-ink-muted">Notifica automáticamente al canal #social-media cuando haya un nuevo post.</p>
                 </div>
                 <Toggle checked={notifySlack} onChange={setNotifySlack} label="Notificaciones en Slack" />
@@ -948,7 +948,7 @@ export default function SettingsView({
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-gray-800">Flujo Aprobación de Cliente</p>
+                  <p className="text-xs font-bold text-ink">Flujo Aprobación de Cliente</p>
                   <p className="text-caption text-ink-muted">Recibe una alerta inmediata cuando el cliente apruebe un post final.</p>
                 </div>
                 <Toggle checked={notifyClientApprove} onChange={setNotifyClientApprove} label="Flujo de aprobación de cliente" />
@@ -956,7 +956,7 @@ export default function SettingsView({
             </div>
           </div>
 
-          <div className="pt-4 border-t border-gray-100 flex justify-end">
+          <div className="pt-4 border-t border-divider flex justify-end">
             <Button type="submit" variant="primary" disabled={isSavingAgencySettings} className="gap-2 px-6 py-2.5">
               <Save size={16} />
               {isSavingAgencySettings ? 'Guardando...' : 'Guardar Configuración'}
@@ -988,7 +988,7 @@ export default function SettingsView({
             </div>
           }
         >
-          <p className="text-xs text-gray-500 leading-relaxed">
+          <p className="text-xs text-ink-secondary leading-relaxed">
             Esta acción es irreversible. Se eliminará el proyecto seleccionado y todas las publicaciones asociadas podrían quedar huérfanas o sin clasificar.
           </p>
         </Modal>
@@ -1006,30 +1006,30 @@ export default function SettingsView({
             tabIndex={-1}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl p-4 sm:p-6 max-w-md w-full shadow-2xl border border-gray-100 outline-none"
+            className="bg-white rounded-3xl p-4 sm:p-6 max-w-md w-full shadow-2xl border border-divider outline-none"
           >
             <div className="flex justify-between items-start mb-1">
               <div>
-                <h4 className="text-base font-extrabold text-gray-900">Acceso a proyectos</h4>
-                <p className="text-xs text-gray-500 mt-0.5">{projectAccessUser.name} · {projectAccessUser.email}</p>
+                <h4 className="text-base font-extrabold text-ink">Acceso a proyectos</h4>
+                <p className="text-xs text-ink-secondary mt-0.5">{projectAccessUser.name} · {projectAccessUser.email}</p>
               </div>
               <IconButton icon={X} onClick={closeProjectAccessModal} aria-label="Cerrar" className="shrink-0" />
             </div>
 
-            <p className="text-xs text-gray-400 leading-relaxed mt-3 mb-3">
+            <p className="text-xs text-ink-muted leading-relaxed mt-3 mb-3">
               Marca los proyectos a los que {projectAccessUser.role === 'client' ? 'este cliente' : 'esta persona'} puede acceder. Los cambios no se guardan hasta que pulses "Guardar".
             </p>
 
             {projects.length > 4 && (
               <div className="relative flex items-center mb-2">
-                <Search size={13} className="absolute left-3 text-gray-400" />
+                <Search size={13} className="absolute left-3 text-ink-muted" />
                 <input
                   type="text"
                   aria-label="Buscar proyecto"
                   placeholder="Buscar proyecto..."
                   value={projectAccessSearch}
                   onChange={(e) => setProjectAccessSearch(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 pl-8 pr-3 text-xs outline-none focus:bg-white focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all text-gray-800"
+                  className="w-full bg-gray-50 border border-divider rounded-md py-2 pl-8 pr-3 text-xs outline-none focus:bg-white focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all text-ink"
                 />
               </div>
             )}
@@ -1050,19 +1050,19 @@ export default function SettingsView({
                       }}
                       className={cn(
                         "w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all text-xs border",
-                        hasPerm ? "bg-app-accent/5 border-app-accent/20" : "bg-white border-gray-100 hover:bg-gray-50"
+                        hasPerm ? "bg-app-accent/5 border-app-accent/20" : "bg-white border-divider hover:bg-gray-50"
                       )}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-2.5 h-2.5 rounded-full border border-white shrink-0" style={{ backgroundColor: proj.color }} />
                         <div className="min-w-0">
-                          <p className="truncate font-bold text-gray-800">{proj.name}</p>
+                          <p className="truncate font-bold text-ink">{proj.name}</p>
                           <p className="text-caption text-ink-muted truncate">Cliente: {proj.clientName}</p>
                         </div>
                       </div>
                       <div className={cn(
                         "w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0",
-                        hasPerm ? "bg-app-accent border-app-accent text-white" : "border-gray-200 bg-white"
+                        hasPerm ? "bg-app-accent border-app-accent text-white" : "border-divider bg-white"
                       )}>
                         {hasPerm && <Check size={10} className="stroke-[3]" />}
                       </div>
@@ -1109,7 +1109,7 @@ export default function SettingsView({
           title="Invitar colaborador o cliente"
           icon={UserPlus}
         >
-          <p className="text-xs text-gray-500 leading-relaxed mb-6">
+          <p className="text-xs text-ink-secondary leading-relaxed mb-6">
             Se crea una invitación pendiente. Debes compartir tú mismo el enlace de la app con esta persona — todavía no enviamos el correo automáticamente.
           </p>
 
@@ -1120,7 +1120,7 @@ export default function SettingsView({
                   value={inviteName}
                   onChange={(e) => setInviteName(e.target.value)}
                   placeholder="Ej. Ana Belén"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-gray-800"
+                  className="w-full bg-gray-50 border border-divider rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-ink"
                   required
                 />
               </Field>
@@ -1131,7 +1131,7 @@ export default function SettingsView({
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="Ej. ana.client@basetis.com"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-gray-800"
+                  className="w-full bg-gray-50 border border-divider rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all text-ink"
                   required
                 />
               </Field>
@@ -1140,7 +1140,7 @@ export default function SettingsView({
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as Role)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
+                  className="w-full bg-gray-50 border border-divider rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all font-bold text-ink-secondary cursor-pointer"
                 >
                   {ASSIGNABLE_ROLES.map((key) => (
                     <option key={key} value={key}>{ROLES[key]}</option>
@@ -1154,7 +1154,7 @@ export default function SettingsView({
                     value={inviteProjectId}
                     onChange={(e) => setInviteProjectId(e.target.value)}
                     required
-                    className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all font-bold text-gray-700 cursor-pointer"
+                    className="w-full bg-gray-50 border border-divider rounded-md py-2 px-3 text-xs outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 focus:bg-white transition-all font-bold text-ink-secondary cursor-pointer"
                   >
                     <option value="">Selecciona un proyecto...</option>
                     {projects.map(p => (

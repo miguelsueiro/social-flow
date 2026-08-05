@@ -34,7 +34,7 @@ export default function Avatar({ name, src, size = 'md', className, title }: Ava
         src={src}
         alt={name}
         title={title}
-        className={cn('rounded-full object-cover shrink-0 border border-gray-100', sizeClass, className)}
+        className={cn('rounded-full object-cover shrink-0 border border-divider', sizeClass, className)}
       />
     );
   }

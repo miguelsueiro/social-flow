@@ -23,6 +23,7 @@ import PhaseBadge from './PhaseBadge';
 import IconButton from './IconButton';
 import Media from './Media';
 import EmptyState from './EmptyState';
+import Skeleton from './Skeleton';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import SocialCaption from './SocialCaption';
@@ -32,9 +33,10 @@ interface LinkedInFeedProps {
   onSelectPost: (post: Post, initialTab?: 'comments' | 'feedback') => void;
   userRole: string;
   projects?: any[];
+  loading?: boolean;
 }
 
-export default function LinkedInFeed({ posts, onSelectPost, userRole, projects = [] }: LinkedInFeedProps) {
+export default function LinkedInFeed({ posts, onSelectPost, userRole, projects = [], loading = false }: LinkedInFeedProps) {
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'mobile'>('desktop');
   const [filterPhase, setFilterPhase] = useState<'all' | 'approved_only'>('all');
   const [activeCarouselSlides, setActiveCarouselSlides] = useState<Record<string, number>>({});
@@ -75,7 +77,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
     if (post.format === 'carrusel' && post.carouselUrls && post.carouselUrls.length > 0) {
       const activeIdx = activeCarouselSlides[post.id] || 0;
       return (
-        <div className="relative bg-slate-50 border-y border-gray-100 overflow-hidden group">
+        <div className="relative bg-slate-50 border-y border-divider overflow-hidden group">
           <Media
             src={post.carouselUrls[activeIdx]}
             alt={`Slide ${activeIdx + 1}`}
@@ -101,7 +103,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
     // (filtered in visiblePosts), so a plain design/video is always here.
     const isReel = post.format === 'reel';
     return (
-      <div className="relative bg-slate-50 border-y border-gray-100 overflow-hidden">
+      <div className="relative bg-slate-50 border-y border-divider overflow-hidden">
         <Media
           src={post.currentDesignUrl}
           alt={post.idea}
@@ -123,25 +125,25 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
     <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
       {/* Controls panel */}
       <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-divider shadow-sm space-y-4">
           <div>
-            <h3 className="font-bold text-gray-800 text-sm">Feed LinkedIn</h3>
-            <p className="text-xs text-gray-400 mt-1">Simulador de feed corporativo.</p>
+            <h3 className="font-bold text-ink text-sm">Feed LinkedIn</h3>
+            <p className="text-xs text-ink-muted mt-1">Simulador de feed corporativo.</p>
           </div>
 
           <div className="flex items-center justify-between text-xs">
-            <span className="font-bold text-gray-600">Publicados en B/N</span>
+            <span className="font-bold text-ink-secondary">Publicados en B/N</span>
             <Toggle checked={grayscalePublished} onChange={setGrayscalePublished} label="Poner en blanco y negro los posts publicados" />
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Filtrar Estado</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
+            <label className="text-[11px] font-bold text-ink-muted uppercase tracking-widest">Filtrar Estado</label>
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-divider">
               <button 
                 onClick={() => setFilterPhase('all')}
                 className={cn(
                   "py-1.5 text-xs font-semibold rounded-lg transition-all",
-                  filterPhase === 'all' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  filterPhase === 'all' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
                 )}
               >
                 Todos
@@ -150,7 +152,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                 onClick={() => setFilterPhase('approved_only')}
                 className={cn(
                   "py-1.5 text-xs font-semibold rounded-lg transition-all",
-                  filterPhase === 'approved_only' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  filterPhase === 'approved_only' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
                 )}
               >
                 Aprobados
@@ -159,13 +161,13 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Modo de Vista</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-100">
+            <label className="text-[11px] font-bold text-ink-muted uppercase tracking-widest">Modo de Vista</label>
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-50 rounded-xl border border-divider">
               <button 
                 onClick={() => setDeviceMode('desktop')}
                 className={cn(
                   "py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all",
-                  deviceMode === 'desktop' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  deviceMode === 'desktop' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
                 )}
               >
                 <Laptop size={14} />
@@ -175,7 +177,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                 onClick={() => setDeviceMode('mobile')}
                 className={cn(
                   "py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all",
-                  deviceMode === 'mobile' ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  deviceMode === 'mobile' ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink-secondary"
                 )}
               >
                 <Smartphone size={14} />
@@ -192,7 +194,22 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
 
       {/* Live Stream Simulator */}
       <div className="flex-1 flex justify-center items-start overflow-y-auto pr-2 pb-12">
-        {visiblePosts.length === 0 ? (
+        {loading ? (
+          <div className="w-full max-w-xl space-y-4" role="status" aria-label="Cargando publicaciones">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="bg-white border border-divider rounded-lg shadow-sm overflow-hidden p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton shape="circle" className="w-10 h-10" />
+                  <div className="space-y-1.5 flex-1">
+                    <Skeleton shape="text" className="h-3 w-32" />
+                    <Skeleton shape="text" className="h-2.5 w-20" />
+                  </div>
+                </div>
+                <Skeleton shape="block" className="h-48 w-full" />
+              </div>
+            ))}
+          </div>
+        ) : visiblePosts.length === 0 ? (
           <EmptyState
             icon={Globe}
             title="No hay posts de LinkedIn"
@@ -213,7 +230,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                 return (
                   <div 
                     key={post.id} 
-                    className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden text-left"
+                    className="bg-white border border-divider rounded-lg shadow-sm overflow-hidden text-left"
                   >
                     {/* User Profile Info */}
                     <div className="p-4 flex items-center justify-between">
@@ -232,7 +249,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                         </div>
                         <div>
                           <div className="flex items-center gap-1">
-                            <h4 className="font-bold text-gray-900 text-xs sm:text-sm">
+                            <h4 className="font-bold text-ink text-xs sm:text-sm">
                               {project?.name || 'Cliente Corporativo'}
                             </h4>
                             {/* Was always accent-tinted regardless of phase — PhaseBadge
@@ -261,7 +278,7 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                         text={post.copyCaption || post.idea}
                         lineClamp={3}
                         highlightClass="font-semibold text-blue-600"
-                        className="text-gray-800 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed"
+                        className="text-ink text-xs sm:text-sm whitespace-pre-wrap leading-relaxed"
                       />
                     </div>
 
@@ -271,12 +288,12 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                     </button>
 
                     {/* Engagement Buttons */}
-                    <div className="grid grid-cols-4 px-2 py-1 text-gray-500 font-semibold text-xs sm:text-sm">
+                    <div className="grid grid-cols-4 px-2 py-1 text-ink-secondary font-semibold text-xs sm:text-sm">
                       <button 
                         onClick={() => toggleLike(post.id)}
                         className={cn(
                           "py-2 flex items-center justify-center gap-1.5 hover:bg-gray-50 rounded-lg transition-colors",
-                          isLiked ? "text-blue-600 font-bold" : "hover:text-gray-700"
+                          isLiked ? "text-blue-600 font-bold" : "hover:text-ink-secondary"
                         )}
                       >
                         <ThumbsUp size={14} fill={isLiked ? "currentColor" : "none"} />
@@ -284,20 +301,20 @@ export default function LinkedInFeed({ posts, onSelectPost, userRole, projects =
                       </button>
                       <button
                         onClick={() => onSelectPost(post, userRole !== 'client' ? 'comments' : 'feedback')}
-                        className="py-2 flex items-center justify-center gap-1.5 hover:bg-gray-50 rounded-lg transition-colors hover:text-gray-700"
+                        className="py-2 flex items-center justify-center gap-1.5 hover:bg-gray-50 rounded-lg transition-colors hover:text-ink-secondary"
                       >
                         <MessageSquare size={14} />
                         <span>Comentar</span>
                       </button>
                       <button 
-                        className="py-2 flex items-center justify-center gap-1.5 hover:bg-gray-50 rounded-lg transition-colors hover:text-gray-700"
+                        className="py-2 flex items-center justify-center gap-1.5 hover:bg-gray-50 rounded-lg transition-colors hover:text-ink-secondary"
                         onClick={() => alert('¡Simulación de compartir enlace de previsualización copiado!')}
                       >
                         <Share2 size={14} />
                         <span>Compartir</span>
                       </button>
                       <button 
-                        className="py-2 flex items-center justify-center gap-1.5 hover:bg-gray-50 rounded-lg transition-colors hover:text-gray-700"
+                        className="py-2 flex items-center justify-center gap-1.5 hover:bg-gray-50 rounded-lg transition-colors hover:text-ink-secondary"
                         onClick={() => onSelectPost(post)}
                       >
                         <Send size={14} />

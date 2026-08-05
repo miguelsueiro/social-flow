@@ -72,33 +72,33 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900 capitalize">
+    <div className="bg-white rounded-xl shadow-sm border border-divider overflow-hidden">
+      <div className="p-4 border-b border-divider flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-ink capitalize">
           {format(currentMonth, 'MMMM yyyy')}
         </h2>
         <div className="flex items-center gap-2">
-          <IconButton icon={ChevronLeft} onClick={prevMonth} aria-label="Mes anterior" size="sm" className="border border-gray-200" />
+          <IconButton icon={ChevronLeft} onClick={prevMonth} aria-label="Mes anterior" size="sm" className="border border-divider" />
           <button
             onClick={() => setCurrentMonth(new Date())}
-            className="px-3 py-1 text-sm font-medium hover:bg-gray-50 rounded-lg border border-gray-200"
+            className="px-3 py-1 text-sm font-medium hover:bg-gray-50 rounded-lg border border-divider"
           >
             Hoy
           </button>
-          <IconButton icon={ChevronRight} onClick={nextMonth} aria-label="Mes siguiente" size="sm" className="border border-gray-200" />
+          <IconButton icon={ChevronRight} onClick={nextMonth} aria-label="Mes siguiente" size="sm" className="border border-divider" />
         </div>
       </div>
 
-      <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/40">
+      <div className="grid grid-cols-7 border-b border-divider bg-gray-50/40">
         {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => (
-          <div key={day} className="p-3 text-center text-xs font-semibold text-gray-500">
+          <div key={day} className="p-3 text-center text-xs font-semibold text-ink-secondary">
             {day}
           </div>
         ))}
       </div>
 
       {!loading && !monthHasPosts && (
-        <div className="px-4 py-2.5 bg-gray-50/60 border-b border-gray-100 text-xs text-gray-400 font-medium text-center">
+        <div className="px-4 py-2.5 bg-gray-50/60 border-b border-divider text-xs text-ink-muted font-medium text-center">
           No hay posts programados en {format(currentMonth, 'MMMM yyyy')}.
         </div>
       )}
@@ -106,7 +106,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
       {loading ? (
         <div className="grid grid-cols-7 auto-rows-[120px] md:auto-rows-[160px]" role="status" aria-label="Cargando calendario">
           {calendarDays.map((day) => (
-            <div key={day.toISOString()} className="p-2 border-r border-b border-gray-50 flex flex-col gap-1.5">
+            <div key={day.toISOString()} className="p-2 border-r border-b border-divider flex flex-col gap-1.5">
               <div className="w-7 h-7 rounded-full bg-gray-100 animate-pulse" />
               <div className="h-10 rounded-lg bg-gray-100 animate-pulse mt-1" />
             </div>
@@ -128,7 +128,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, day)}
               className={cn(
-                "p-2 border-r border-b border-gray-50 flex flex-col gap-1 relative group transition-all duration-150",
+                "p-2 border-r border-b border-divider flex flex-col gap-1 relative group transition-all duration-150",
                 !isCurrentMonth && "bg-gray-50/50",
                 isToday && "bg-app-accent-subtle/20",
                 isDraggedOver && "ring-2 ring-dashed ring-app-accent bg-app-accent/5 z-10 scale-[0.98] shadow-inner"
@@ -137,8 +137,8 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
               <div className="flex justify-between items-start">
                 <span className={cn(
                   "text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full",
-                  isToday ? "bg-app-accent text-white shadow-sm" : "text-gray-500",
-                  !isCurrentMonth && "text-gray-300"
+                  isToday ? "bg-app-accent text-white shadow-sm" : "text-ink-secondary",
+                  !isCurrentMonth && "text-ink-muted"
                 )}>
                   {format(day, 'd')}
                 </span>
@@ -188,7 +188,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                           </span>
                         )}
                       </div>
-                      <p className="font-bold truncate text-xs text-gray-900">{post.title || "Post sin título"}</p>
+                      <p className="font-bold truncate text-xs text-ink">{post.title || "Post sin título"}</p>
                     </motion.button>
                   );
                 })}

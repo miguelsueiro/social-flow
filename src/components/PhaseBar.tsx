@@ -46,7 +46,7 @@ export default function PhaseBar({ displayPhase, isChangesRequested, canGoBack, 
             type="button"
             onClick={onPrev}
             title={`Devolver a ${prevLabel}`}
-            className="flex items-center gap-1 min-h-9 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-300 hover:bg-gray-50 text-xs font-bold transition-colors"
+            className="flex items-center gap-1 min-h-9 px-3 py-2 rounded-lg border border-divider bg-white text-ink-secondary hover:text-ink hover:border-outline hover:bg-gray-50 text-xs font-bold transition-colors"
           >
             <ChevronLeft size={14} />
             <span className="hidden md:inline">{prevLabel}</span>

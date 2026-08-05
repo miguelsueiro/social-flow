@@ -149,17 +149,17 @@ export default function PublishHubView({ posts, onSelectPost, loading = false }:
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-ink flex items-center gap-2">
             <CheckCircle2 className="text-emerald-600" size={20} />
             Listo para Publicar
           </h2>
-          <p className="text-xs text-gray-400 mt-0.5">Descarga la creatividad y copia el caption de cada post aprobado, listo para subir a la red social.</p>
+          <p className="text-xs text-ink-muted mt-0.5">Descarga la creatividad y copia el caption de cada post aprobado, listo para subir a la red social.</p>
         </div>
         <select
           value={platformFilter}
           onChange={e => setPlatformFilter(e.target.value as any)}
           aria-label="Filtrar por plataforma"
-          className="bg-white border border-gray-200 rounded-md py-2 px-3 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
+          className="bg-white border border-divider rounded-md py-2 px-3 text-xs font-semibold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
         >
           <option value="all">Todas las plataformas</option>
           <option value="instagram">Instagram</option>
@@ -182,7 +182,7 @@ export default function PublishHubView({ posts, onSelectPost, loading = false }:
             const hasTranslatedCaption = post.translationEnabled && !!post.copyCaptionTranslated?.trim();
 
             return (
-              <div key={post.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+              <div key={post.id} className="bg-white rounded-2xl border border-divider shadow-sm overflow-hidden flex flex-col">
                 <button
                   type="button"
                   onClick={() => onSelectPost(post)}
@@ -213,13 +213,13 @@ export default function PublishHubView({ posts, onSelectPost, loading = false }:
                     >
                       <PlatformBadge platform={post.platform} size={16} showLabel />
                     </span>
-                    <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full">
-                      <CalendarDays size={13} className="text-gray-400" />
+                    <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-ink-secondary bg-gray-100 px-2.5 py-1 rounded-full">
+                      <CalendarDays size={13} className="text-ink-muted" />
                       {post.date ? format(post.date instanceof Date ? post.date : (post.date?.toDate ? post.date.toDate() : new Date(post.date)), "d MMM yyyy") : ''}
                     </span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-800 line-clamp-1">{post.title || post.idea}</p>
+                    <p className="text-sm font-semibold text-ink line-clamp-1">{post.title || post.idea}</p>
                   </div>
 
                   <div className="flex flex-col gap-1.5 mt-auto">
@@ -238,7 +238,7 @@ export default function PublishHubView({ posts, onSelectPost, loading = false }:
                     <button
                       type="button"
                       onClick={() => copyCaption(post.copyCaption, 'Caption')}
-                      className="w-full flex items-center justify-center gap-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs font-bold py-2 rounded-lg transition-colors"
+                      className="w-full flex items-center justify-center gap-1.5 bg-gray-50 hover:bg-gray-100 text-ink-secondary text-xs font-bold py-2 rounded-lg transition-colors"
                     >
                       <Copy size={13} /> Copiar caption
                     </button>
@@ -246,7 +246,7 @@ export default function PublishHubView({ posts, onSelectPost, loading = false }:
                       <button
                         type="button"
                         onClick={() => copyCaption(post.copyCaptionTranslated, 'Caption traducido')}
-                        className="w-full flex items-center justify-center gap-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs font-bold py-2 rounded-lg transition-colors"
+                        className="w-full flex items-center justify-center gap-1.5 bg-gray-50 hover:bg-gray-100 text-ink-secondary text-xs font-bold py-2 rounded-lg transition-colors"
                       >
                         <Languages size={13} /> Copiar traducido
                       </button>

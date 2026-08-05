@@ -186,16 +186,16 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col md:flex-row h-[550px] outline-none"
+        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-divider flex flex-col md:flex-row h-[550px] outline-none"
       >
         {/* Left Side: Step Indicator Panel */}
-        <div className="w-full md:w-52 bg-slate-50 border-r border-slate-100 p-4 sm:p-6 flex flex-col justify-between shrink-0">
+        <div className="w-full md:w-52 bg-slate-50 border-r border-divider p-4 sm:p-6 flex flex-col justify-between shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-6">
               <div className="p-1.5 bg-app-accent text-white rounded-lg">
                 <BookOpen size={14} />
               </div>
-              <span className="text-[11px] font-extrabold text-slate-800 uppercase tracking-widest">Guía de Uso</span>
+              <span className="text-[11px] font-extrabold text-ink uppercase tracking-widest">Guía de Uso</span>
             </div>
             
             <div className="space-y-2 hidden md:block">
@@ -205,8 +205,8 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
                   onClick={() => setCurrentStep(idx)}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2.5 ${
                     currentStep === idx
-                      ? 'bg-white text-app-accent shadow-sm border border-slate-100'
-                      : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                      ? 'bg-white text-app-accent shadow-sm border border-divider'
+                      : 'text-ink-muted hover:text-ink-secondary hover:bg-slate-100'
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${currentStep === idx ? 'bg-app-accent' : 'bg-slate-300'}`} />
@@ -233,7 +233,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
                 <span className="text-[11px] font-extrabold text-app-accent uppercase tracking-widest bg-app-accent/10 px-2 py-0.5 rounded-md">
                   PASO {currentStep + 1} DE {steps.length}
                 </span>
-                <h3 id="user-guide-title" className="text-lg font-black text-slate-900 tracking-tight mt-1">
+                <h3 id="user-guide-title" className="text-lg font-black text-ink tracking-tight mt-1">
                   {ActiveStep.title}
                 </h3>
               </div>
@@ -243,8 +243,8 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
 
           {/* Content Body */}
           <div className="flex-1 my-6 overflow-y-auto pr-2 space-y-4">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{ActiveStep.subtitle}</p>
-            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+            <p className="text-xs font-bold text-ink-muted uppercase tracking-wider">{ActiveStep.subtitle}</p>
+            <p className="text-xs text-ink-secondary leading-relaxed font-medium">
               {ActiveStep.description}
             </p>
 
@@ -253,13 +253,13 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
               {ActiveStep.details.map((detail, idx) => (
                 <div key={idx} className="flex items-start gap-2.5">
                   <BookmarkCheck size={14} className="text-emerald-500 shrink-0 mt-0.5" />
-                  <span className="text-xs text-slate-600 font-semibold leading-relaxed">{detail}</span>
+                  <span className="text-xs text-ink-secondary font-semibold leading-relaxed">{detail}</span>
                 </div>
               ))}
             </div>
 
             {/* Role tips section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-divider">
               <div className="p-3 bg-app-accent-subtle/40 rounded-xl border border-app-accent/20">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Zap size={11} className="text-app-accent" />
@@ -283,7 +283,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100 shrink-0">
+          <div className="flex items-center justify-between pt-4 border-t border-divider shrink-0">
             {/* Disabled (dimmed), not hidden, at the first step — the original
                 used opacity-0 to hide it while keeping its layout space, which
                 left a fully invisible-but-still-in-the-DOM control (a WCAG
@@ -300,7 +300,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
             </Button>
 
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-slate-600">
+              <Button variant="ghost" onClick={onClose} className="text-ink-muted hover:text-ink-secondary">
                 Saltar guía
               </Button>
 

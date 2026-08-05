@@ -1198,8 +1198,8 @@ export default function App() {
              <div className="w-20 h-20 bg-app-accent rounded-3xl mx-auto flex items-center justify-center text-white shadow-lg shadow-app-accent/20 mb-6">
                 <LayoutDashboard size={40} />
              </div>
-             <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">SocialFlow</h1>
-             <p className="text-gray-500 font-medium mb-10 leading-relaxed text-sm">
+             <h1 className="text-4xl font-black text-ink tracking-tight mb-2">SocialFlow</h1>
+             <p className="text-ink-secondary font-medium mb-10 leading-relaxed text-sm">
                Gestión de producción, seguimiento y control de redes sociales para agencias creativas y clientes.
              </p>
              <button 
@@ -1230,13 +1230,13 @@ export default function App() {
             <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-3xl mx-auto flex items-center justify-center mb-6">
               <Clock size={40} />
             </div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-2">Cuenta pendiente de aprobación</h1>
-            <p className="text-gray-500 font-medium mb-8 leading-relaxed text-sm">
-              Tu cuenta <span className="font-semibold text-gray-700">{currentUser.email}</span> se ha creado, pero todavía no tiene un rol ni proyectos asignados. Pide a un administrador de la agencia que te dé acceso desde Configuración.
+            <h1 className="text-2xl font-black text-ink tracking-tight mb-2">Cuenta pendiente de aprobación</h1>
+            <p className="text-ink-secondary font-medium mb-8 leading-relaxed text-sm">
+              Tu cuenta <span className="font-semibold text-ink-secondary">{currentUser.email}</span> se ha creado, pero todavía no tiene un rol ni proyectos asignados. Pide a un administrador de la agencia que te dé acceso desde Configuración.
             </p>
             <button
               onClick={logOut}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-2xl font-bold transition-all active:scale-95"
+              className="w-full bg-gray-100 hover:bg-gray-200 text-ink-secondary py-3 px-6 rounded-2xl font-bold transition-all active:scale-95"
             >
               Cerrar sesión
             </button>
@@ -1271,14 +1271,14 @@ export default function App() {
       
       {/* Sidebar - Desktop Only with Fixed Height (h-screen, sticky, non-scrollable) */}
       {activeProjectId !== 'dashboard' && (
-        <aside className="w-64 bg-white border-r border-gray-100 p-6 flex flex-col shrink-0 hidden lg:flex h-screen sticky top-0 overflow-hidden justify-between">
+        <aside className="w-64 bg-white border-r border-divider p-6 flex flex-col shrink-0 hidden lg:flex h-screen sticky top-0 overflow-hidden justify-between">
           <div className="flex flex-col overflow-hidden flex-1">
             {/* Logo / Header */}
             <div className="flex items-center gap-3 mb-6 shrink-0">
               <div className="w-10 h-10 bg-app-accent rounded-xl flex items-center justify-center text-white shadow-md shadow-app-accent/15 transition-all">
                 <LayoutDashboard size={20} />
               </div>
-              <span className="text-xl font-black text-gray-900 font-sans tracking-tight">SocialFlow</span>
+              <span className="text-xl font-black text-ink font-sans tracking-tight">SocialFlow</span>
             </div>
 
             {/* Nav Tab List (scrollable if screen is extremely small, but self-contained) */}
@@ -1305,12 +1305,12 @@ export default function App() {
                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group",
                        sidebarTab === item.id
                          ? "bg-app-accent/10 text-app-accent"
-                         : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                         : "text-ink-muted hover:text-ink-secondary hover:bg-gray-50"
                     )}
                   >
                     <item.icon
                       size={18}
-                      className={cn("transition-all shrink-0", !item.iconColor && (sidebarTab === item.id ? "text-app-accent" : "text-gray-400"))}
+                      className={cn("transition-all shrink-0", !item.iconColor && (sidebarTab === item.id ? "text-app-accent" : "text-ink-muted"))}
                       style={item.iconColor ? { color: item.iconColor } : undefined}
                     />
                     {item.label}
@@ -1321,15 +1321,15 @@ export default function App() {
           </div>
 
           {/* Fixed Footer Elements */}
-          <div className="shrink-0 pt-4 border-t border-gray-100 space-y-4">
+          <div className="shrink-0 pt-4 border-t border-divider space-y-4">
             {/* Project Label Display (Now at the bottom, above user) */}
-            <div className="relative bg-slate-50 border border-slate-100/80 p-3.5 rounded-2xl shrink-0">
+            <div className="relative bg-slate-50 border border-divider/80 p-3.5 rounded-2xl shrink-0">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-caption text-ink-muted">Proyecto seleccionado</label>
                 
                 {/* Information Icon Tooltip */}
                 <div className="relative group leading-none flex items-center justify-center">
-                  <Info size={14} className="text-slate-400 hover:text-slate-600 cursor-pointer transition-colors" />
+                  <Info size={14} className="text-ink-muted hover:text-ink-secondary cursor-pointer transition-colors" />
                   <div className="absolute right-0 bottom-full mb-2 w-52 bg-slate-800 text-white text-[11px] p-2.5 rounded-xl shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 z-50 leading-normal font-medium border border-slate-700">
                     {userRole !== 'client' 
                       ? "Puedes cambiar de proyecto en el Dashboard o Configuración." 
@@ -1345,14 +1345,14 @@ export default function App() {
                   className="w-3.5 h-3.5 rounded-full shrink-0"
                   style={{ backgroundColor: activeProjectId === 'dashboard' ? '#4F46E5' : (projects.find(p => p.id === activeProjectId)?.color || '#4F46E5') }}
                 />
-                <span className="text-xs font-bold text-gray-800 truncate">
+                <span className="text-xs font-bold text-ink truncate">
                   {activeProjectId === 'dashboard' ? '📂 Panel de Proyectos' : activeProjectId === 'all' ? '📁 Todos los Proyectos' : (projects.find(p => p.id === activeProjectId)?.name || 'Cargando...')}
                 </span>
               </div>
               {activeProjectId !== 'dashboard' && (
                 <button 
                   onClick={() => selectProject('dashboard')}
-                  className="mt-3 w-full bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-black py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm"
+                  className="mt-3 w-full bg-white hover:bg-slate-100 border border-divider text-ink-secondary text-[11px] font-black py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm"
                 >
                   ← Volver al Dashboard
                 </button>
@@ -1362,7 +1362,7 @@ export default function App() {
             <div className="flex items-center gap-3">
               <Avatar name={currentUser.displayName || 'Usuario'} src={currentUser.photoURL || undefined} className="border-2 border-white shadow-sm" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-gray-900 truncate">{currentUser.displayName}</p>
+                <p className="text-sm font-bold text-ink truncate">{currentUser.displayName}</p>
                 <p className="text-[11px] font-semibold text-app-accent truncate">{ROLES[userRole]}</p>
               </div>
               <IconButton icon={LogOut} onClick={logOut} variant="danger" aria-label="Cerrar Sesión" title="Cerrar Sesión" className="shrink-0" />
@@ -1375,9 +1375,9 @@ export default function App() {
       <main className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
         {activeProjectId !== 'dashboard' && (
-          <header className="h-20 bg-white border-b border-gray-100 px-6 flex items-center justify-between shrink-0">
+          <header className="h-20 bg-white border-b border-divider px-6 flex items-center justify-between shrink-0">
             <div ref={searchContainerRef} className="relative w-full max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={18} />
               <input
                 aria-label="Buscar posts, ideas, copys o plataformas"
                 value={searchQuery}
@@ -1414,9 +1414,9 @@ export default function App() {
                     initial={{ opacity: 0, y: 10, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                    className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100"
+                    className="absolute top-full left-0 right-0 mt-2 bg-white border border-divider rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100"
                   >
-                    <div className="p-3 bg-slate-50 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <div className="p-3 bg-slate-50 flex items-center justify-between text-[11px] font-bold text-ink-muted uppercase tracking-wider">
                       <span>Sugerencias predictivas</span>
                       <span>
                         {matchingSuggestions.length} {matchingSuggestions.length === 1 ? 'post' : 'posts'}
@@ -1444,7 +1444,7 @@ export default function App() {
                                   {post.platform === 'instagram' ? (
                                     <Instagram size={13} className="text-pink-600 shrink-0" />
                                   ) : (
-                                    <Video size={13} className="text-slate-800 shrink-0" />
+                                    <Video size={13} className="text-ink shrink-0" />
                                   )}
                                   {proj && (
                                     <span 
@@ -1460,7 +1460,7 @@ export default function App() {
                               </div>
                               
                               {/* Idea / content description */}
-                              <p className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-app-accent transition-colors">
+                              <p className="text-xs font-bold text-ink line-clamp-1 group-hover:text-app-accent transition-colors">
                                 {post.idea}
                               </p>
 
@@ -1474,9 +1474,9 @@ export default function App() {
                           );
                         })
                       ) : (
-                        <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+                        <div className="p-8 text-center text-ink-muted text-xs flex flex-col items-center justify-center gap-2">
                           <span>🔍</span>
-                          <p className="font-bold text-slate-400">No se encontraron posts</p>
+                          <p className="font-bold text-ink-muted">No se encontraron posts</p>
                           <p className="text-caption text-ink-muted">Prueba a buscar otra palabra clave, idea o plataforma.</p>
                         </div>
                       )}
@@ -1488,9 +1488,9 @@ export default function App() {
 
             <div className="flex items-center gap-4">
               {/* Topbar Client/Project Label */}
-              <div className="flex items-center gap-2 bg-gray-100/70 border border-gray-200/50 px-3.5 py-2 rounded-xl">
+              <div className="flex items-center gap-2 bg-gray-100/70 border border-divider/50 px-3.5 py-2 rounded-xl">
                 <span className="text-caption text-ink-muted hidden sm:inline">Proyecto:</span>
-                <span className="text-xs font-bold text-gray-700">
+                <span className="text-xs font-bold text-ink-secondary">
                   {activeProjectId === 'dashboard' ? 'Panel de Control' : activeProjectId === 'all' ? 'Todos los Proyectos' : (projects.find(p => p.id === activeProjectId)?.name || 'Cargando...')}
                 </span>
               </div>
@@ -1526,12 +1526,12 @@ export default function App() {
           {activeProjectId === 'dashboard' ? (
             <div className="space-y-8 animate-fade-in">
               {/* Dashboard top navigation bar (only inside dashboard itself) */}
-              <div className="flex items-center justify-between border-b border-slate-100 pb-5">
+              <div className="flex items-center justify-between border-b border-divider pb-5">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 bg-app-accent rounded-xl flex items-center justify-center text-white font-black text-base shadow-sm">
                     <LayoutDashboard size={18} />
                   </div>
-                  <span className="text-lg font-black text-slate-900 tracking-tight">SocialFlow</span>
+                  <span className="text-lg font-black text-ink tracking-tight">SocialFlow</span>
                 </div>
                 <div className="flex items-center gap-3">
                   {userRole === 'admin' && (
@@ -1545,9 +1545,9 @@ export default function App() {
                           toast.error('No hay proyectos creados para configurar');
                         }
                       }}
-                      className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                      className="bg-white hover:bg-slate-50 border border-divider text-ink-secondary px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
                     >
-                      <Settings size={14} className="text-slate-500" />
+                      <Settings size={14} className="text-ink-secondary" />
                       Ajustes de Plataforma
                     </button>
                   )}
@@ -1562,17 +1562,17 @@ export default function App() {
               </div>
 
               {/* Welcome banner (Minimalist look) */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-divider shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-app-accent/10 rounded-full translate-x-32 -translate-y-32 blur-3xl" />
                 <div className="relative z-10 space-y-3">
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-app-accent uppercase tracking-wider">
                     <span className="w-1.5 h-1.5 rounded-full bg-app-accent animate-pulse" />
                     Panel de Control Global
                   </span>
-                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  <h2 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">
                     ¡Hola, {currentUser?.displayName?.split(' ')[0] || 'Usuario'}!
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 max-w-xl font-semibold leading-relaxed">
+                  <p className="text-xs sm:text-sm text-ink-secondary max-w-xl font-semibold leading-relaxed">
                     Bienvenido a SocialFlow. Selecciona un proyecto para planificar contenidos en el calendario, redactar copys, adjuntar diseños y ver feeds en vivo.
                   </p>
                 </div>
@@ -1581,14 +1581,14 @@ export default function App() {
               {/* Projects list */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
+                  <h3 className="text-sm font-extrabold text-ink flex items-center gap-2">
                     <Grid size={16} className="text-app-accent" />
                     Tus proyectos
                   </h3>
                   {userRole === 'admin' && (
                     <button
                       onClick={() => setShowNewProjectModal(true)}
-                      className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 shadow-sm px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                      className="bg-white hover:bg-gray-50 text-ink-secondary border border-divider shadow-sm px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
                     >
                       <Plus size={14} />
                       Nuevo Proyecto
@@ -1598,10 +1598,10 @@ export default function App() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {projects.filter(p => hasProjectPermission(p.id)).length === 0 ? (
-                    <div className="col-span-full bg-white rounded-[2.25rem] p-12 border border-gray-100 shadow-sm text-center space-y-3">
+                    <div className="col-span-full bg-white rounded-[2.25rem] p-12 border border-divider shadow-sm text-center space-y-3">
                       <span className="text-3xl">📁</span>
-                      <h4 className="font-extrabold text-gray-900 text-sm">No tienes proyectos asignados</h4>
-                      <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                      <h4 className="font-extrabold text-ink text-sm">No tienes proyectos asignados</h4>
+                      <p className="text-xs text-ink-muted max-w-sm mx-auto">
                         Pídele al Administrador de la plataforma que te asigne permisos para acceder a proyectos específicos.
                       </p>
                     </div>
@@ -1621,17 +1621,17 @@ export default function App() {
                             selectProject(proj.id);
                             setSidebarTab('calendario');
                           }}
-                          className="bg-white rounded-[2.25rem] border border-slate-100/80 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 cursor-pointer flex flex-col justify-between overflow-hidden group animate-fade-in relative animate-fade-in text-left"
+                          className="bg-white rounded-[2.25rem] border border-divider/80 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 cursor-pointer flex flex-col justify-between overflow-hidden group animate-fade-in relative animate-fade-in text-left"
                         >
                           <div className="p-7 flex-1 flex flex-col justify-between space-y-6">
                             {/* Card Header */}
                             <div className="flex items-start justify-between gap-4">
                               <div className="space-y-1.5">
-                                <h4 className="font-black text-slate-900 text-lg sm:text-xl group-hover:text-app-accent transition-colors line-clamp-1 tracking-tight">
+                                <h4 className="font-black text-ink text-lg sm:text-xl group-hover:text-app-accent transition-colors line-clamp-1 tracking-tight">
                                   {proj.name}
                                 </h4>
-                                <p className="text-xs text-slate-400 font-semibold">
-                                  Cliente: <span className="text-slate-600 font-normal">{proj.clientName}</span>
+                                <p className="text-xs text-ink-muted font-semibold">
+                                  Cliente: <span className="text-ink-secondary font-normal">{proj.clientName}</span>
                                 </p>
                               </div>
                               <div 
@@ -1643,21 +1643,21 @@ export default function App() {
                             </div>
 
                             {/* Stats Grid with larger numbers and titles */}
-                            <div className="grid grid-cols-2 gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-100/50">
+                            <div className="grid grid-cols-2 gap-4 bg-slate-50/70 p-4 rounded-2xl border border-divider/50">
                               <div className="space-y-1">
-                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">Total Posts</p>
-                                <p className="text-xl sm:text-2xl font-black text-slate-900">{total}</p>
+                                <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wider leading-none">Total Posts</p>
+                                <p className="text-xl sm:text-2xl font-black text-ink">{total}</p>
                               </div>
                               <div className="space-y-1">
-                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">En Producción</p>
+                                <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wider leading-none">En Producción</p>
                                 <p className="text-xl sm:text-2xl font-black text-orange-600">{enProduccion}</p>
                               </div>
                               <div className="space-y-1">
-                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">Aprobados</p>
+                                <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wider leading-none">Aprobados</p>
                                 <p className="text-xl sm:text-2xl font-black text-emerald-600">{aprobados}</p>
                               </div>
                               <div className="space-y-1">
-                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">Publicados</p>
+                                <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wider leading-none">Publicados</p>
                                 <p className="text-xl sm:text-2xl font-black text-app-accent">{publicados}</p>
                               </div>
                             </div>
@@ -1667,10 +1667,10 @@ export default function App() {
                                 the card itself is a real <button>, this has to be a <span> or
                                 the card would contain an invalid nested button. */}
                             <span
-                              className="w-full bg-slate-50 group-hover:bg-app-accent group-hover:text-white text-slate-700 font-extrabold text-xs py-3 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 border border-slate-100"
+                              className="w-full bg-slate-50 group-hover:bg-app-accent group-hover:text-white text-ink-secondary font-extrabold text-xs py-3 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 border border-divider"
                             >
                               Entrar al Proyecto
-                              <span className="text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-transform">→</span>
+                              <span className="text-ink-muted group-hover:text-white group-hover:translate-x-1 transition-transform">→</span>
                             </span>
                           </div>
                         </button>
@@ -1691,13 +1691,13 @@ export default function App() {
                     { label: 'Aprobados', value: stats.approved, icon: Trophy, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                     { label: 'Publicados', value: stats.published, icon: ShieldCheck, color: 'text-app-accent', bg: 'bg-app-accent-subtle' }
                   ].map((stat, i) => (
-                    <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:scale-[1.02]">
+                    <div key={i} className="bg-white p-4 rounded-2xl border border-divider shadow-sm flex items-center gap-4 transition-all hover:scale-[1.02]">
                       <div className={cn("p-3 rounded-xl", stat.bg, stat.color)}>
                         <stat.icon size={20} />
                       </div>
                       <div>
                         <p className="text-caption text-ink-muted leading-none mb-1">{stat.label}</p>
-                        <p className="text-xl font-black text-gray-900">{stat.value}</p>
+                        <p className="text-xl font-black text-ink">{stat.value}</p>
                       </div>
                     </div>
                   ))}
@@ -1707,12 +1707,12 @@ export default function App() {
               {/* View Switcher */}
               {sidebarTab === 'calendario' && (
                 <div className="flex items-center justify-between shrink-0">
-                  <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+                  <div className="flex bg-gray-100 p-1 rounded-xl border border-divider">
                     <button 
                       onClick={() => setView('calendar')}
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                        view === 'calendar' ? "bg-white text-app-accent shadow-sm" : "text-gray-500 hover:text-gray-700"
+                        view === 'calendar' ? "bg-white text-app-accent shadow-sm" : "text-ink-secondary hover:text-ink-secondary"
                       )}
                     >
                       <CalendarIcon size={14} />
@@ -1722,7 +1722,7 @@ export default function App() {
                       onClick={() => setView('board')}
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                        view === 'board' ? "bg-white text-app-accent shadow-sm" : "text-gray-500 hover:text-gray-700"
+                        view === 'board' ? "bg-white text-app-accent shadow-sm" : "text-ink-secondary hover:text-ink-secondary"
                       )}
                     >
                       <Columns size={14} />
@@ -1740,7 +1740,7 @@ export default function App() {
                           value={filterPhase}
                           onChange={e => setFilterPhase(e.target.value as Phase | 'all')}
                           aria-label="Filtrar por fase"
-                          className="bg-white border border-gray-200 rounded-md py-2 px-3 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
+                          className="bg-white border border-divider rounded-md py-2 px-3 text-xs font-semibold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
                         >
                           <option value="all">Todas las fases</option>
                           {(Object.keys(PHASES) as Phase[]).filter(p => p !== 'idea_2').map(p => (
@@ -1751,7 +1751,7 @@ export default function App() {
                           value={filterPlatform}
                           onChange={e => setFilterPlatform(e.target.value as any)}
                           aria-label="Filtrar por plataforma"
-                          className="bg-white border border-gray-200 rounded-md py-2 px-3 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
+                          className="bg-white border border-divider rounded-md py-2 px-3 text-xs font-semibold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
                         >
                           <option value="all">Todas las plataformas</option>
                           <option value="instagram">Instagram</option>
@@ -1763,7 +1763,7 @@ export default function App() {
                             value={filterTerritory}
                             onChange={e => setFilterTerritory(e.target.value)}
                             aria-label="Filtrar por territorio"
-                            className="bg-white border border-gray-200 rounded-md py-2 px-3 text-xs font-semibold text-gray-600 outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
+                            className="bg-white border border-divider rounded-md py-2 px-3 text-xs font-semibold text-ink-secondary outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 cursor-pointer"
                           >
                             <option value="all">Todos los territorios</option>
                             {projectTerritories.map(t => (
@@ -1779,7 +1779,7 @@ export default function App() {
                               "text-xs font-bold px-3 py-1.5 rounded-full border transition-all",
                               filterAssignedToMe
                                 ? "bg-app-accent/10 border-app-accent text-app-accent"
-                                : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                                : "bg-white border-divider text-ink-secondary hover:border-outline"
                             )}
                           >
                             Asignado a mí
@@ -1794,7 +1794,7 @@ export default function App() {
                               setFilterTerritory('all');
                               setFilterAssignedToMe(false);
                             }}
-                            className="text-xs font-bold text-gray-400 hover:text-gray-600 px-2 py-1.5"
+                            className="text-xs font-bold text-ink-muted hover:text-ink-secondary px-2 py-1.5"
                           >
                             Limpiar filtros
                           </button>
@@ -1828,28 +1828,31 @@ export default function App() {
                 )}
 
                 {sidebarTab === 'instagram_feed' && (
-                  <InstagramFeed 
-                    posts={filteredPosts} 
+                  <InstagramFeed
+                    posts={filteredPosts}
                     onSelectPost={openPostModal}
                     userRole={userRole}
+                    loading={postsLoading}
                   />
                 )}
 
                 {sidebarTab === 'linkedin_feed' && (
-                  <LinkedInFeed 
-                    posts={filteredPosts} 
+                  <LinkedInFeed
+                    posts={filteredPosts}
                     onSelectPost={openPostModal}
                     userRole={userRole}
                     projects={projects}
+                    loading={postsLoading}
                   />
                 )}
 
                 {sidebarTab === 'tiktok_feed' && (
-                  <TikTokFeed 
-                    posts={filteredPosts} 
+                  <TikTokFeed
+                    posts={filteredPosts}
                     onSelectPost={openPostModal}
                     userRole={userRole}
                     projects={projects}
+                    loading={postsLoading}
                   />
                 )}
 
@@ -1898,7 +1901,7 @@ export default function App() {
 
       {/* Mobile Bottom Navigation Bar */}
       {activeProjectId !== 'dashboard' && (
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-divider h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0">
           {(() => {
             const activeProj = projects.find(p => p.id === activeProjectId);
             const activePlatforms = activeProj && activeProj.platforms ? activeProj.platforms : ['instagram', 'linkedin', 'tiktok'];
@@ -1921,12 +1924,12 @@ export default function App() {
                   "flex flex-col items-center justify-center flex-1 h-full py-1 text-[11px] font-extrabold transition-all",
                   sidebarTab === item.id
                     ? "text-app-accent font-black"
-                    : "text-gray-400 hover:text-gray-500"
+                    : "text-ink-muted hover:text-ink-secondary"
                 )}
               >
                 <item.icon
                   size={18}
-                  className={cn("mb-1 transition-all", !item.iconColor && (sidebarTab === item.id ? "text-app-accent" : "text-gray-400"))}
+                  className={cn("mb-1 transition-all", !item.iconColor && (sidebarTab === item.id ? "text-app-accent" : "text-ink-muted"))}
                   style={item.iconColor ? { color: item.iconColor } : undefined}
                 />
                 <span className="truncate">{item.label}</span>

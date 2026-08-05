@@ -29,7 +29,7 @@ const VARIANT_CLASSES: Record<IconButtonVariant, string> = {
   default: 'text-ink-muted hover:text-ink hover:bg-gray-100',
   danger: 'text-red-500 hover:text-red-700 hover:bg-red-50',
   overlay: 'rounded-full text-white bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60',
-  light: 'rounded-full text-ink-secondary bg-white/80 shadow-md border border-gray-100 hover:bg-white hover:text-ink',
+  light: 'rounded-full text-ink-secondary bg-white/80 shadow-md border border-divider hover:bg-white hover:text-ink',
   primary: 'text-white bg-app-accent hover:bg-app-accent-hover shadow-sm',
 };
 

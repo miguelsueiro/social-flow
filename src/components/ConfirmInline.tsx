@@ -40,7 +40,7 @@ export default function ConfirmInline({
       <button
         type="button"
         onClick={onCancel}
-        className={`bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold ${textSize} ${padding} rounded-lg transition-all shadow-sm`}
+        className={`bg-white hover:bg-gray-100 border border-divider text-ink-secondary font-bold ${textSize} ${padding} rounded-lg transition-all shadow-sm`}
       >
         {cancelLabel}
       </button>

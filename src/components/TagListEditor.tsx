@@ -48,7 +48,7 @@ export default function TagListEditor({ tags, onChange, placeholder = 'Añadir..
           {tags.map(tag => (
             <span
               key={tag}
-              className={`inline-flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-full font-bold text-slate-600 ${chipSize}`}
+              className={`inline-flex items-center gap-1 bg-slate-100 border border-divider rounded-full font-bold text-ink-secondary ${chipSize}`}
             >
               {tag}
               {/* Deliberately not <IconButton> — its 36px floor would dwarf this
@@ -58,7 +58,7 @@ export default function TagListEditor({ tags, onChange, placeholder = 'Añadir..
                 type="button"
                 onClick={() => removeTag(tag)}
                 aria-label={`Quitar ${tag}`}
-                className="p-1 -m-1 text-slate-400 hover:text-red-600 transition-colors"
+                className="p-1 -m-1 text-ink-muted hover:text-red-600 transition-colors"
               >
                 <X size={10} />
               </button>
@@ -74,13 +74,13 @@ export default function TagListEditor({ tags, onChange, placeholder = 'Añadir..
           onChange={e => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={`flex-1 bg-white border border-gray-200 rounded-md outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all ${inputSize}`}
+          className={`flex-1 bg-white border border-divider rounded-md outline-none focus:border-app-accent focus:ring-2 focus:ring-app-accent/20 transition-all ${inputSize}`}
         />
         <button
           type="button"
           onClick={addTag}
           aria-label="Añadir"
-          className="shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg px-2 flex items-center justify-center transition-colors"
+          className="shrink-0 bg-gray-100 hover:bg-gray-200 text-ink-secondary rounded-lg px-2 flex items-center justify-center transition-colors"
         >
           <Plus size={14} />
         </button>

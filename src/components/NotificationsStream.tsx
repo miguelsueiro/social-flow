@@ -99,7 +99,7 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
       case 'create':
         return <FileText size={14} className="text-indigo-600" />;
       default:
-        return <RefreshCw size={14} className="text-gray-600" />;
+        return <RefreshCw size={14} className="text-ink-secondary" />;
     }
   };
 
@@ -127,10 +127,10 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
   };
 
   return (
-    <div className="flex-1 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col max-w-4xl mx-auto w-full">
+    <div className="flex-1 bg-white rounded-3xl border border-divider shadow-sm overflow-hidden flex flex-col max-w-4xl mx-auto w-full">
       <div aria-live="polite" className="sr-only">{announcement}</div>
-      <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-        <h3 className="font-extrabold text-gray-900 text-base flex items-center gap-2">
+      <div className="p-6 border-b border-divider flex items-center justify-between">
+        <h3 className="font-extrabold text-ink text-base flex items-center gap-2">
           <Bell size={18} className="text-app-accent animate-pulse" />
           Historial de Notificaciones y Actividad
         </h3>
@@ -171,18 +171,18 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
               {/* Notification Text */}
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-gray-900">{notif.user}</span>
+                  <span className="text-xs font-bold text-ink">{notif.user}</span>
                   <span className="text-caption text-ink-muted flex items-center gap-1 shrink-0">
                     <Clock size={10} />
                     {formatNotificationTime(notif.createdAt)}
                   </span>
                 </div>
-                <p className="text-xs text-gray-600 font-medium leading-relaxed">
-                  {notif.action} <span className="font-bold text-gray-900 group-hover:text-app-accent transition-colors">"{notif.target}"</span>
+                <p className="text-xs text-ink-secondary font-medium leading-relaxed">
+                  {notif.action} <span className="font-bold text-ink group-hover:text-app-accent transition-colors">"{notif.target}"</span>
                 </p>
               </div>
 
-              <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all self-center shrink-0" />
+              <ChevronRight size={14} className="text-ink-muted group-hover:text-ink-muted group-hover:translate-x-0.5 transition-all self-center shrink-0" />
             </motion.div>
           ))
         )}

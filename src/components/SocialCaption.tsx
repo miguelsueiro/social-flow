@@ -43,7 +43,7 @@ export default function SocialCaption({
   lineClamp,
   moreLabel = 'más',
   lessLabel = 'ver menos',
-  moreClassName = 'font-semibold text-gray-400 hover:text-gray-600',
+  moreClassName = 'font-semibold text-ink-muted hover:text-ink-secondary',
 }: SocialCaptionProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -53,7 +53,7 @@ export default function SocialCaption({
       <span className={className}>
         {username && <span className="font-semibold text-inherit mr-1">{username}</span>}
         {renderRichText(truncated, highlightClass)}
-        <span className="text-gray-400">... </span>
+        <span className="text-ink-muted">... </span>
         <button type="button" onClick={() => setExpanded(true)} className={moreClassName}>
           {moreLabel}
         </button>

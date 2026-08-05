@@ -141,7 +141,7 @@ function SaveVersionButton({ type, currentValue, versions = [], isAgencyMember, 
     <button
       type="button"
       onClick={handleSaveVersion}
-      className="mt-2 text-xs bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold px-3 py-1.5 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
+      className="mt-2 text-xs bg-white border border-divider hover:bg-slate-100 text-ink-secondary font-bold px-3 py-1.5 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
       title="Capturar el estado actual como una versión en el Historial"
     >
       💾 Guardar Versión
@@ -246,7 +246,7 @@ function HistoryEntryCard({
                 key={i}
                 src={url}
                 alt={`preview-${i}`}
-                className="w-10 h-10 object-cover rounded border border-slate-200 shadow-xs"
+                className="w-10 h-10 object-cover rounded border border-divider shadow-xs"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80';
@@ -260,17 +260,17 @@ function HistoryEntryCard({
         </div>
       );
     }
-    return <p className="whitespace-pre-line text-[11px] text-slate-600 font-medium leading-relaxed">{version.value}</p>;
+    return <p className="whitespace-pre-line text-[11px] text-ink-secondary font-medium leading-relaxed">{version.value}</p>;
   };
 
   return (
     <div className="relative pl-5">
       <span className={cn("absolute left-0 top-1 w-2.5 h-2.5 rounded-full bg-white border-2", meta.dotClass)} />
-      <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-xs space-y-2.5">
+      <div className="p-3 bg-white rounded-xl border border-divider shadow-xs space-y-2.5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className={cn("text-[11px] font-black px-2 py-0.5 rounded-md", meta.badgeClass)}>{meta.label}</span>
-            <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">v{versionNumber}</span>
+            <span className="text-[11px] font-mono font-bold text-ink-secondary bg-slate-100 px-1.5 py-0.5 rounded">v{versionNumber}</span>
             <span className="text-caption text-ink-muted">
               {version.authorName} • {format(new Date(version.createdAt), 'dd/MM HH:mm')}
             </span>
@@ -286,7 +286,7 @@ function HistoryEntryCard({
           )}
         </div>
 
-        <div className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100 max-h-28 overflow-y-auto">
+        <div className="text-xs text-ink-secondary bg-slate-50 p-2.5 rounded-lg border border-divider max-h-28 overflow-y-auto">
           {renderContent()}
         </div>
 
@@ -302,23 +302,23 @@ function HistoryEntryCard({
         )}
 
         {isAgencyMember && (
-          <div className="space-y-1.5 pl-2 border-l-2 border-slate-200">
+          <div className="space-y-1.5 pl-2 border-l-2 border-divider">
             {version.feedbacks?.length > 0 && (
               <span className="text-caption text-ink-muted block mb-1">Comentarios internos:</span>
             )}
             {version.feedbacks?.map((fb) => (
-              <div key={fb.id} className="text-[11px] leading-relaxed bg-slate-50/50 p-2 rounded-lg border border-slate-100/50">
+              <div key={fb.id} className="text-[11px] leading-relaxed bg-slate-50/50 p-2 rounded-lg border border-divider/50">
                 <div className="flex items-baseline gap-1">
-                  <span className="font-extrabold text-slate-800">{fb.authorName}</span>
+                  <span className="font-extrabold text-ink">{fb.authorName}</span>
                   <span className="text-caption text-ink-muted">({format(new Date(fb.createdAt), 'dd/MM HH:mm')})</span>
                 </div>
-                <p className="text-slate-600 mt-0.5 font-medium">{fb.text}</p>
+                <p className="text-ink-secondary mt-0.5 font-medium">{fb.text}</p>
               </div>
             ))}
 
             <div className="flex gap-1.5 mt-2 relative">
               {mentionQuery !== null && filteredMentionUsers.length > 0 && (
-                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-36 overflow-y-auto divide-y divide-slate-100">
+                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-divider rounded-xl shadow-lg z-20 max-h-36 overflow-y-auto divide-y divide-slate-100">
                   <div className="p-1.5 bg-slate-50 text-caption text-ink-muted">Mencionar usuario:</div>
                   {filteredMentionUsers.map(user => (
                     <button
@@ -329,7 +329,7 @@ function HistoryEntryCard({
                     >
                       <Avatar name={user.name} size="xs" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-bold text-gray-800 truncate">{user.name}</p>
+                        <p className="text-[11px] font-bold text-ink truncate">{user.name}</p>
                         <p className="text-caption text-ink-muted truncate">@{getMentionHandle(user)} • {user.role}</p>
                       </div>
                     </button>
@@ -348,7 +348,7 @@ function HistoryEntryCard({
                     submitFeedback();
                   }
                 }}
-                className="flex-1 bg-slate-50 border border-slate-100 rounded-md px-2.5 py-1.5 text-xs outline-none focus:bg-white focus:border-app-accent transition-all"
+                className="flex-1 bg-slate-50 border border-divider rounded-md px-2.5 py-1.5 text-xs outline-none focus:bg-white focus:border-app-accent transition-all"
               />
               <button
                 type="button"
@@ -964,7 +964,7 @@ export default function PostModal({
       >
         {/* Header: the post title IS the modal title — it used to live in its own
             labelled row below, which cost a full block of vertical space. */}
-        <div className="px-4 sm:px-6 py-3 border-b border-gray-100 flex items-center gap-3 bg-white">
+        <div className="px-4 sm:px-6 py-3 border-b border-divider flex items-center gap-3 bg-white">
           <PlatformBadge platform={localPost.platform} size={20} className="shrink-0" />
           <div className="min-w-0 flex-1">
             <label htmlFor="post-title-input" className="sr-only">Título del Post</label>
@@ -975,7 +975,7 @@ export default function PostModal({
               value={localPost.title || ''}
               onChange={e => setLocalPost({ ...localPost, title: e.target.value })}
               onBlur={handleUpdate}
-              className="w-full bg-transparent border border-transparent hover:border-gray-200 focus:border-app-accent focus:bg-white focus:ring-2 focus:ring-app-accent/20 rounded-md -ml-2 px-2 py-1 text-lg font-bold text-gray-900 placeholder-gray-300 outline-none transition-all disabled:cursor-not-allowed disabled:hover:border-transparent"
+              className="w-full bg-transparent border border-transparent hover:border-divider focus:border-app-accent focus:bg-white focus:ring-2 focus:ring-app-accent/20 rounded-md -ml-2 px-2 py-1 text-lg font-bold text-ink placeholder-gray-300 outline-none transition-all disabled:cursor-not-allowed disabled:hover:border-transparent"
               placeholder="Post sin título"
             />
           </div>
@@ -997,7 +997,7 @@ export default function PostModal({
             {isAgencyMember && onDuplicate && (
               <button
                 onClick={() => localPost && onDuplicate(localPost)}
-                className="p-2 hover:bg-gray-100 text-gray-500 hover:text-gray-700 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+                className="p-2 hover:bg-gray-100 text-ink-secondary hover:text-ink-secondary rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
                 title="Duplicar post"
                 aria-label="Duplicar post"
               >
@@ -1035,7 +1035,7 @@ export default function PostModal({
 
         {/* Phase bar: always visible, independent of the active tab, so the current
             phase and how to move it are never buried inside a specific tab. */}
-        <div className="px-4 sm:px-6 py-2.5 border-b border-gray-100 bg-gray-50/60 space-y-2.5">
+        <div className="px-4 sm:px-6 py-2.5 border-b border-divider bg-gray-50/60 space-y-2.5">
           <PhaseBar
             displayPhase={timelineDisplayPhase}
             isChangesRequested={isChangesRequested}
@@ -1063,12 +1063,12 @@ export default function PostModal({
                   value={changesRequestReason}
                   onChange={e => setChangesRequestReason(e.target.value)}
                   placeholder="¿Qué hay que cambiar? Sé específico para que la agencia no tenga que preguntar."
-                  className="w-full bg-orange-50/50 border border-orange-200 rounded-md p-2.5 text-xs text-gray-800 outline-none focus:border-orange-400 resize-none h-20"
+                  className="w-full bg-orange-50/50 border border-orange-200 rounded-md p-2.5 text-xs text-ink outline-none focus:border-orange-400 resize-none h-20"
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setShowRequestChangesForm(false); setChangesRequestReason(''); }}
-                    className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-xl font-semibold transition-all text-xs"
+                    className="flex-1 bg-white border border-outline text-ink-secondary hover:bg-gray-50 px-3 py-2 rounded-xl font-semibold transition-all text-xs"
                   >
                     Cancelar
                   </button>
@@ -1135,7 +1135,7 @@ export default function PostModal({
         {/* Post-wide settings. Collapsed by default: these are set once when the post
             is created and rarely touched again, so they shouldn't push the tabs —
             where the actual work happens — halfway down the screen. */}
-        <div className="px-4 sm:px-6 py-2 border-b border-gray-100 bg-white shrink-0">
+        <div className="px-4 sm:px-6 py-2 border-b border-divider bg-white shrink-0">
           <button
             type="button"
             onClick={() => setShowDetails(!showDetails)}
@@ -1144,11 +1144,11 @@ export default function PostModal({
           >
             <ChevronRight
               size={14}
-              className={cn("shrink-0 text-gray-400 transition-transform", showDetails && "rotate-90")}
+              className={cn("shrink-0 text-ink-muted transition-transform", showDetails && "rotate-90")}
             />
-            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider shrink-0">Detalles</span>
+            <span className="text-[11px] font-bold text-ink-secondary uppercase tracking-wider shrink-0">Detalles</span>
             {!showDetails && (
-              <span className="text-xs text-gray-500 font-medium truncate">
+              <span className="text-xs text-ink-secondary font-medium truncate">
                 {detailsSummary}
               </span>
             )}
@@ -1163,7 +1163,7 @@ export default function PostModal({
             (hasTerritories && isAgencyMember) ? "sm:grid-cols-6" : (hasTerritories || isAgencyMember) ? "sm:grid-cols-5" : "sm:grid-cols-4"
           )}>
             <section>
-              <label htmlFor="post-platform-select" className="block text-xs font-semibold text-gray-500 mb-1">Plataforma</label>
+              <label htmlFor="post-platform-select" className="block text-xs font-semibold text-ink-secondary mb-1">Plataforma</label>
               {(() => {
                 const postProject = projects?.find(p => p.id === localPost?.projectId);
                 const activePlatforms = postProject && postProject.platforms ? postProject.platforms : ['instagram', 'linkedin', 'tiktok'];
@@ -1181,7 +1181,7 @@ export default function PostModal({
                         onUpdate(updated);
                       }
                     }}
-                    className="w-full bg-white border border-gray-200 rounded-md p-2.5 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
+                    className="w-full bg-white border border-divider rounded-md p-2.5 text-xs font-semibold text-ink-secondary focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
                   >
                     {platformsToDisplay.includes('instagram') && <option value="instagram">Instagram</option>}
                     {platformsToDisplay.includes('linkedin') && <option value="linkedin">LinkedIn</option>}
@@ -1192,7 +1192,7 @@ export default function PostModal({
             </section>
 
             <section>
-              <label htmlFor="post-format-select" className="block text-xs font-semibold text-gray-500 mb-1">Formato</label>
+              <label htmlFor="post-format-select" className="block text-xs font-semibold text-ink-secondary mb-1">Formato</label>
               <select
                 id="post-format-select"
                 value={localPost.format || 'estatico'}
@@ -1201,7 +1201,7 @@ export default function PostModal({
                   setLocalPost(updated);
                   onUpdate(updated);
                 }}
-                className="w-full bg-white border border-gray-200 rounded-md p-2.5 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
+                className="w-full bg-white border border-divider rounded-md p-2.5 text-xs font-semibold text-ink-secondary focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
               >
                 <option value="estatico">Estático (Imagen única)</option>
                 <option value="reel">{localPost.platform === 'linkedin' ? 'Reel / Video (Horizontal)' : 'Reel / Video (Vertical)'}</option>
@@ -1217,19 +1217,19 @@ export default function PostModal({
             </section>
 
             <section>
-              <label htmlFor="post-date-input" className="block text-xs font-semibold text-gray-500 mb-1">Fecha Programada</label>
+              <label htmlFor="post-date-input" className="block text-xs font-semibold text-ink-secondary mb-1">Fecha Programada</label>
               <input
                 id="post-date-input"
                 type="date"
                 disabled={!isAgencyMember}
                 value={getFormattedDateForInput(localPost.date)}
                 onChange={handleDateChange}
-                className="w-full bg-white border border-gray-200 rounded-md p-2.5 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                className="w-full bg-white border border-divider rounded-md p-2.5 text-xs font-semibold text-ink-secondary focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all disabled:opacity-75 disabled:cursor-not-allowed"
               />
             </section>
 
             <section>
-              <label htmlFor="post-language-select" className="block text-xs font-semibold text-gray-500 mb-1">Idioma del Post</label>
+              <label htmlFor="post-language-select" className="block text-xs font-semibold text-ink-secondary mb-1">Idioma del Post</label>
               <select
                 id="post-language-select"
                 value={localPost.language || 'es'}
@@ -1238,7 +1238,7 @@ export default function PostModal({
                   setLocalPost(updated);
                   onUpdate(updated);
                 }}
-                className="w-full bg-white border border-gray-200 rounded-md p-2.5 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all cursor-pointer"
+                className="w-full bg-white border border-divider rounded-md p-2.5 text-xs font-semibold text-ink-secondary focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all cursor-pointer"
               >
                 <option value="es">🇪🇸 Castellano</option>
                 <option value="en">🇬🇧 Inglés</option>
@@ -1250,7 +1250,7 @@ export default function PostModal({
 
             {hasTerritories && (
               <section>
-                <label htmlFor="post-territory-select" className="block text-xs font-semibold text-gray-500 mb-1">Territorio</label>
+                <label htmlFor="post-territory-select" className="block text-xs font-semibold text-ink-secondary mb-1">Territorio</label>
                 <select
                   id="post-territory-select"
                   value={localPost.territory || ''}
@@ -1259,7 +1259,7 @@ export default function PostModal({
                     setLocalPost(updated);
                     onUpdate(updated);
                   }}
-                  className="w-full bg-white border border-gray-200 rounded-md p-2.5 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
+                  className="w-full bg-white border border-divider rounded-md p-2.5 text-xs font-semibold text-ink-secondary focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
                 >
                   <option value="">Sin especificar</option>
                   {projectTerritories.map(t => (
@@ -1271,7 +1271,7 @@ export default function PostModal({
 
             {isAgencyMember && (
               <section>
-                <label htmlFor="post-assignee-select" className="block text-xs font-semibold text-gray-500 mb-1">Responsable</label>
+                <label htmlFor="post-assignee-select" className="block text-xs font-semibold text-ink-secondary mb-1">Responsable</label>
                 <select
                   id="post-assignee-select"
                   value={localPost.assigneeId || ''}
@@ -1281,7 +1281,7 @@ export default function PostModal({
                     setLocalPost(updated);
                     onUpdate(updated);
                   }}
-                  className="w-full bg-white border border-gray-200 rounded-md p-2.5 text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
+                  className="w-full bg-white border border-divider rounded-md p-2.5 text-xs font-semibold text-ink-secondary focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all"
                 >
                   <option value="">Sin asignar</option>
                   {agencyUsers.map(u => (
@@ -1294,7 +1294,7 @@ export default function PostModal({
         </div>
 
         {/* Tabs */}
-        <div role="tablist" aria-label="Secciones del post" className="flex border-b border-gray-200 px-4 pt-1.5 bg-gray-50/60 gap-1 shrink-0 overflow-x-auto scrollbar-hide">
+        <div role="tablist" aria-label="Secciones del post" className="flex border-b border-divider px-4 pt-1.5 bg-gray-50/60 gap-1 shrink-0 overflow-x-auto scrollbar-hide">
           {postTabs.map((tab, i) => (
             <button
               key={tab.id}
@@ -1321,13 +1321,13 @@ export default function PostModal({
                 "py-2.5 px-4 border-b-[3px] transition-all flex items-center gap-2 text-sm rounded-t-lg whitespace-nowrap shrink-0",
                 activeTab === tab.id
                   ? "border-app-accent text-app-accent font-bold bg-white shadow-[0_-1px_4px_rgba(24,24,27,0.04)]"
-                  : "border-transparent text-gray-500 font-semibold hover:text-gray-700 hover:bg-white/60"
+                  : "border-transparent text-ink-secondary font-semibold hover:text-ink-secondary hover:bg-white/60"
               )}
             >
               <tab.icon size={18} />
               {tab.label}
               {tab.count !== undefined && (
-                <span className="bg-gray-100 text-gray-600 text-[11px] px-1.5 py-0.5 rounded-full ml-1">
+                <span className="bg-gray-100 text-ink-secondary text-[11px] px-1.5 py-0.5 rounded-full ml-1">
                   {tab.count}
                 </span>
               )}
@@ -1353,13 +1353,13 @@ export default function PostModal({
                 className="space-y-6 max-w-3xl"
               >
                 <section>
-                  <Field label="La Idea" id="post-idea" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-gray-700 [&>label]:mb-2">
+                  <Field label="La Idea" id="post-idea" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-ink-secondary [&>label]:mb-2">
                     <textarea
                       disabled={!canEditIdea}
                       value={localPost.idea}
                       onChange={e => setLocalPost({...localPost, idea: e.target.value})}
                       onBlur={handleUpdate}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-40 text-sm"
+                      className="w-full bg-gray-50 border border-divider rounded-md p-4 text-ink placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-40 text-sm"
                       placeholder="Describe la idea central del post..."
                     />
                   </Field>
@@ -1367,7 +1367,7 @@ export default function PostModal({
 
                 {/* Drag and Drop References Section */}
                 <section>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-ink-secondary mb-2">
                     Referencias Visuales (Arrastra imágenes o añade URLs externas)
                   </label>
 
@@ -1377,7 +1377,7 @@ export default function PostModal({
                     onDrop={handleReferencesDrop}
                     className={cn(
                       "border-2 border-dashed rounded-xl p-4 transition-all duration-200 bg-gray-50/50 flex flex-col gap-3 min-h-[100px]",
-                      isDragOverReferences ? "border-app-accent bg-app-accent/5" : "border-gray-200 hover:border-gray-300"
+                      isDragOverReferences ? "border-app-accent bg-app-accent/5" : "border-divider hover:border-outline"
                     )}
                   >
                     <div className="flex flex-wrap gap-2">
@@ -1388,7 +1388,7 @@ export default function PostModal({
                           tabIndex={0}
                           onClick={() => setZoomedImageUrl(ref)}
                           onKeyDown={onActivateKey(() => setZoomedImageUrl(ref))}
-                          className="group relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 shadow-sm cursor-zoom-in transition-transform hover:scale-105"
+                          className="group relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border border-divider shadow-sm cursor-zoom-in transition-transform hover:scale-105"
                         >
                            <img
                              src={ref}
@@ -1450,7 +1450,7 @@ export default function PostModal({
                           />
                           <label
                             htmlFor="references-upload"
-                            className="w-16 h-16 border-2 border-dashed border-gray-200 hover:border-app-accent text-gray-400 hover:text-app-accent rounded-lg flex flex-col items-center justify-center transition-all bg-gray-50 cursor-pointer"
+                            className="w-16 h-16 border-2 border-dashed border-divider hover:border-app-accent text-ink-muted hover:text-app-accent rounded-lg flex flex-col items-center justify-center transition-all bg-gray-50 cursor-pointer"
                           >
                             <Plus size={16} />
                             <span className="text-[11px] font-semibold">Subir</span>
@@ -1465,7 +1465,7 @@ export default function PostModal({
 
                     {/* Direct URL Reference input */}
                     {!isClient && (
-                      <div className="mt-2 pt-2 border-t border-gray-100/40 flex gap-2">
+                      <div className="mt-2 pt-2 border-t border-divider/40 flex gap-2">
                         <input
                           type="url"
                           aria-label="URL de referencia externa"
@@ -1485,7 +1485,7 @@ export default function PostModal({
                               }
                             }
                           }}
-                          className="flex-1 bg-white border border-gray-200 rounded-md py-1.5 px-3 text-xs outline-none focus:border-app-accent focus:ring-1 focus:ring-app-accent/20 transition-all"
+                          className="flex-1 bg-white border border-divider rounded-md py-1.5 px-3 text-xs outline-none focus:border-app-accent focus:ring-1 focus:ring-app-accent/20 transition-all"
                         />
                         <button
                           type="button"
@@ -1519,9 +1519,9 @@ export default function PostModal({
                 exit={{ opacity: 0, x: 10 }}
                 className="space-y-8"
               >
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-divider">
                   <div>
-                    <p className="text-sm font-semibold text-gray-700">Traducción</p>
+                    <p className="text-sm font-semibold text-ink-secondary">Traducción</p>
                     <p className="text-caption text-ink-muted">Activa campos aparte para el copy y el caption traducidos manualmente.</p>
                   </div>
                   <Toggle
@@ -1538,13 +1538,13 @@ export default function PostModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <section>
-                    <Field label="Copy en la Creatividad (Diseños)" id="post-copy-creativity" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-gray-700 [&>label]:mb-2">
+                    <Field label="Copy en la Creatividad (Diseños)" id="post-copy-creativity" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-ink-secondary [&>label]:mb-2">
                       <textarea
                         disabled={!canEditCopy}
                         value={localPost.copyCreativity}
                         onChange={e => setLocalPost({...localPost, copyCreativity: e.target.value})}
                         onBlur={handleUpdate}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
+                        className="w-full bg-gray-50 border border-divider rounded-md p-4 text-ink placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
                         placeholder="Texto que aparecerá dentro del diseño..."
                       />
                     </Field>
@@ -1557,13 +1557,13 @@ export default function PostModal({
                       localPost={localPost}
                     />
                     {localPost.translationEnabled && (
-                      <Field label="Copy en la Creatividad (Traducido)" id="post-copy-creativity-translated" className="mt-4 [&>label]:text-sm [&>label]:font-semibold [&>label]:text-gray-700 [&>label]:mb-2">
+                      <Field label="Copy en la Creatividad (Traducido)" id="post-copy-creativity-translated" className="mt-4 [&>label]:text-sm [&>label]:font-semibold [&>label]:text-ink-secondary [&>label]:mb-2">
                         <textarea
                           disabled={!canEditCopy}
                           value={localPost.copyCreativityTranslated || ''}
                           onChange={e => setLocalPost({...localPost, copyCreativityTranslated: e.target.value})}
                           onBlur={handleUpdate}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
+                          className="w-full bg-gray-50 border border-divider rounded-md p-4 text-ink placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
                           placeholder="Traducción manual del texto de la creatividad..."
                         />
                       </Field>
@@ -1571,13 +1571,13 @@ export default function PostModal({
                   </section>
 
                   <section>
-                    <Field label="Post Caption (Texto de Publicación)" id="post-copy-caption" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-gray-700 [&>label]:mb-2">
+                    <Field label="Post Caption (Texto de Publicación)" id="post-copy-caption" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-ink-secondary [&>label]:mb-2">
                       <textarea
                         disabled={!canEditCopy}
                         value={localPost.copyCaption}
                         onChange={e => setLocalPost({...localPost, copyCaption: e.target.value})}
                         onBlur={handleUpdate}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-y h-64 text-sm"
+                        className="w-full bg-gray-50 border border-divider rounded-md p-4 text-ink placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-y h-64 text-sm"
                         placeholder="Escribe el caption definitivo..."
                       />
                     </Field>
@@ -1590,13 +1590,13 @@ export default function PostModal({
                       localPost={localPost}
                     />
                     {localPost.translationEnabled && (
-                      <Field label="Post Caption (Traducido)" id="post-copy-caption-translated" className="mt-4 [&>label]:text-sm [&>label]:font-semibold [&>label]:text-gray-700 [&>label]:mb-2">
+                      <Field label="Post Caption (Traducido)" id="post-copy-caption-translated" className="mt-4 [&>label]:text-sm [&>label]:font-semibold [&>label]:text-ink-secondary [&>label]:mb-2">
                         <textarea
                           disabled={!canEditCopy}
                           value={localPost.copyCaptionTranslated || ''}
                           onChange={e => setLocalPost({...localPost, copyCaptionTranslated: e.target.value})}
                           onBlur={handleUpdate}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-md p-4 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-y h-64 text-sm"
+                          className="w-full bg-gray-50 border border-divider rounded-md p-4 text-ink placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-y h-64 text-sm"
                           placeholder="Traducción manual del caption..."
                         />
                       </Field>
@@ -1605,9 +1605,9 @@ export default function PostModal({
                 </div>
 
                 {/* Creatividades Section (Interactive and Drag & Drop enabled) */}
-                <section className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                <section className="bg-gray-50 p-6 rounded-2xl border border-divider">
                   <div className="flex items-center justify-between mb-4">
-                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <label className="text-sm font-semibold text-ink-secondary flex items-center gap-2">
                        <ImageIcon size={18} />
                        Creatividad / Diseño Final (Fase 4/5)
                     </label>
@@ -1636,9 +1636,9 @@ export default function PostModal({
                       {localPost.format === 'carrusel' ? (
                         <div className="space-y-4">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-semibold text-gray-500 block">Carrusel Slides:</span>
+                            <span className="text-xs font-semibold text-ink-secondary block">Carrusel Slides:</span>
                             {canEditDesign && localPost.carouselUrls && localPost.carouselUrls.length > 1 && (
-                              <span className="text-[11px] text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded-full animate-pulse shrink-0">
+                              <span className="text-[11px] text-ink-muted font-bold bg-slate-100 px-2 py-0.5 rounded-full animate-pulse shrink-0">
                                 ↔ Arrastra para reordenar
                               </span>
                             )}
@@ -1658,7 +1658,7 @@ export default function PostModal({
                                   onClick={() => setZoomedImageUrl(url)}
                                   onKeyDown={onActivateKey(() => setZoomedImageUrl(url))}
                                   className={cn(
-                                    "group relative aspect-square bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm cursor-zoom-in hover:scale-105 transition-all duration-200",
+                                    "group relative aspect-square bg-white rounded-lg overflow-hidden border border-divider shadow-sm cursor-zoom-in hover:scale-105 transition-all duration-200",
                                     draggingSlideIdx === idx ? "opacity-30 border-app-accent border-2 scale-95" : "cursor-grab active:cursor-grabbing",
                                     canEditDesign ? "hover:border-app-accent/50" : ""
                                   )}
@@ -1688,7 +1688,7 @@ export default function PostModal({
                               ))}
                             </div>
                           ) : (
-                            <EmptyState title="Sin diapositivas creadas todavía" size="sm" className="py-8 bg-white rounded-lg border border-dashed border-gray-200" />
+                            <EmptyState title="Sin diapositivas creadas todavía" size="sm" className="py-8 bg-white rounded-lg border border-dashed border-divider" />
                           )}
                         </div>
                       ) : (
@@ -1703,7 +1703,7 @@ export default function PostModal({
                           tabIndex={localPost.currentDesignUrl && !isVideoUrl(localPost.currentDesignUrl) ? 0 : undefined}
                           onKeyDown={localPost.currentDesignUrl && !isVideoUrl(localPost.currentDesignUrl) ? onActivateKey(() => setZoomedImageUrl(localPost.currentDesignUrl)) : undefined}
                           className={cn(
-                            "aspect-video bg-white rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shadow-inner group",
+                            "aspect-video bg-white rounded-xl border border-divider flex items-center justify-center overflow-hidden shadow-inner group",
                             localPost.currentDesignUrl ? (isVideoUrl(localPost.currentDesignUrl) ? "" : "cursor-zoom-in") : ""
                           )}
                         >
@@ -1718,7 +1718,7 @@ export default function PostModal({
                           ) : (
                             <div className="text-center px-4">
                               <ImageIcon className="mx-auto text-gray-200 mb-2 animate-pulse" size={48} />
-                              <p className="text-xs text-gray-400 font-medium tracking-tight">Suelta el diseño aquí o haz clic para subir</p>
+                              <p className="text-xs text-ink-muted font-medium tracking-tight">Suelta el diseño aquí o haz clic para subir</p>
                             </div>
                           )}
                         </div>
@@ -1755,8 +1755,8 @@ export default function PostModal({
                           </label>
 
                           {localPost.format !== 'carrusel' && (
-                            <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-1.5 text-left">
-                              <label htmlFor="post-design-url" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
+                            <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-divider space-y-1.5 text-left">
+                              <label htmlFor="post-design-url" className="text-[11px] font-bold text-ink-secondary uppercase tracking-wider block">
                                 O pegar URL del archivo (Imagen/Video)
                               </label>
                               <div className="flex gap-1.5">
@@ -1771,7 +1771,7 @@ export default function PostModal({
                                     setLocalPost(updated);
                                     onUpdate(updated);
                                   }}
-                                  className="flex-1 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs outline-none focus:ring-1 focus:ring-app-accent focus:border-app-accent transition-all text-gray-800"
+                                  className="flex-1 px-3 py-1.5 bg-white border border-divider rounded-md text-xs outline-none focus:ring-1 focus:ring-app-accent focus:border-app-accent transition-all text-ink"
                                 />
                                 {localPost.currentDesignUrl && (
                                   <button
@@ -1781,7 +1781,7 @@ export default function PostModal({
                                       setLocalPost(updated);
                                       onUpdate(updated);
                                     }}
-                                    className="px-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-semibold transition-colors"
+                                    className="px-2 bg-gray-200 hover:bg-gray-300 text-ink-secondary rounded-lg text-xs font-semibold transition-colors"
                                   >
                                     Borrar
                                   </button>
@@ -1794,8 +1794,8 @@ export default function PostModal({
                           )}
 
                           {localPost.platform === 'instagram' && localPost.format === 'reel' && (
-                            <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-2 text-left">
-                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
+                            <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-divider space-y-2 text-left">
+                              <label className="text-[11px] font-bold text-ink-secondary uppercase tracking-wider block">
                                 Portada del Reel (1080x1350)
                               </label>
                               <p className="text-caption text-ink-muted">
@@ -1805,7 +1805,7 @@ export default function PostModal({
                                 <img
                                   src={localPost.reelCoverUrl}
                                   alt="Portada del reel"
-                                  className="w-16 aspect-[4/5] object-cover rounded-md border border-gray-200"
+                                  className="w-16 aspect-[4/5] object-cover rounded-md border border-divider"
                                 />
                               )}
                               <input
@@ -1821,7 +1821,7 @@ export default function PostModal({
                               <div className="flex gap-1.5">
                                 <label
                                   htmlFor="reel-cover-upload"
-                                  className="flex-1 bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors cursor-pointer text-center"
+                                  className="flex-1 bg-white hover:bg-gray-100 border border-divider text-ink-secondary py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors cursor-pointer text-center"
                                 >
                                   {localPost.reelCoverUrl ? 'Cambiar portada' : 'Subir portada'}
                                 </label>
@@ -1833,7 +1833,7 @@ export default function PostModal({
                                       setLocalPost(updated);
                                       onUpdate(updated);
                                     }}
-                                    className="px-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-semibold transition-colors"
+                                    className="px-2 bg-gray-200 hover:bg-gray-300 text-ink-secondary rounded-lg text-xs font-semibold transition-colors"
                                   >
                                     Borrar
                                   </button>
@@ -1882,11 +1882,11 @@ export default function PostModal({
                       <Avatar name={comment.authorName} size="sm" />
                       <div className="flex-1">
                         <div className="flex items-baseline gap-2 mb-1">
-                          <span className="text-sm font-bold text-gray-900">{comment.authorName}</span>
+                          <span className="text-sm font-bold text-ink">{comment.authorName}</span>
                           <span className="text-caption text-ink-muted">{comment.roleAtTime}</span>
                           <span className="text-caption text-ink-muted">{format(comment.createdAt, 'HH:mm dd/MM')}</span>
                         </div>
-                        <div className="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-xs sm:text-sm text-gray-700">
+                        <div className="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-xs sm:text-sm text-ink-secondary">
                           {comment.text}
                         </div>
                       </div>
@@ -1894,11 +1894,11 @@ export default function PostModal({
                   ))}
                 </div>
 
-                <div className="sticky bottom-0 bg-white pt-4 border-t border-gray-100">
+                <div className="sticky bottom-0 bg-white pt-4 border-t border-divider">
                   <div className="relative">
                     {/* Autocomplete Suggestion Dropdown */}
                     {activeMentionInput === 'comment' && filteredMentionUsers.length > 0 && (
-                      <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto divide-y divide-gray-100">
+                      <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-divider rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto divide-y divide-gray-100">
                         <div className="p-2 bg-gray-50 text-caption text-ink-muted">
                           Mencionar usuario del proyecto:
                         </div>
@@ -1911,7 +1911,7 @@ export default function PostModal({
                           >
                             <Avatar name={user.name} size="xs" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-gray-800 truncate">{user.name}</p>
+                              <p className="text-xs font-bold text-ink truncate">{user.name}</p>
                               <p className="text-caption text-ink-muted truncate">@{getMentionHandle(user)} • {user.role}</p>
                             </div>
                           </button>
@@ -1924,7 +1924,7 @@ export default function PostModal({
                       value={commentText}
                       onChange={e => handleInputChange(e.target.value, 'comment')}
                       onKeyDown={e => e.key === 'Enter' && commentText && (onAddComment(commentText), setCommentText(''), setActiveMentionInput(null))}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-md py-4 pl-4 pr-12 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent"
+                      className="w-full bg-gray-50 border border-divider rounded-md py-4 pl-4 pr-12 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent"
                       placeholder="Escribe un comentario o feedback..."
                     />
                     <IconButton
@@ -1953,11 +1953,11 @@ export default function PostModal({
                     <EmptyState icon={MessageSquare} title="Sin feedback del cliente aún" description="Los comentarios del cliente se registran aquí para su seguimiento" size="lg" />
                   )}
                   {feedbacks.map((f) => (
-                    <div key={f.id} className={cn("flex gap-3 p-3 rounded-2xl border transition-all relative group", f.done ? "bg-gray-50/50 border-gray-100 opacity-60" : "bg-white border-gray-100 shadow-sm")}>
+                    <div key={f.id} className={cn("flex gap-3 p-3 rounded-2xl border transition-all relative group", f.done ? "bg-gray-50/50 border-divider opacity-60" : "bg-white border-divider shadow-sm")}>
                       <IconButton
                         icon={f.done ? CheckSquare : Square}
                         onClick={() => onToggleFeedbackDone(f.id, f.done)}
-                        className={cn("self-start", f.done ? "text-emerald-600 hover:text-emerald-700" : "text-gray-400 hover:text-gray-600")}
+                        className={cn("self-start", f.done ? "text-emerald-600 hover:text-emerald-700" : "text-ink-muted hover:text-ink-secondary")}
                         title={f.done ? "Marcar como pendiente" : "Marcar como hecho"}
                         aria-label={f.done ? "Marcar como pendiente" : "Marcar como hecho"}
                       />
@@ -1965,7 +1965,7 @@ export default function PostModal({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <div className="flex items-baseline gap-2 flex-wrap">
-                            <span className="text-sm font-bold text-gray-900">{f.authorName}</span>
+                            <span className="text-sm font-bold text-ink">{f.authorName}</span>
                             <span className="text-[11px] bg-app-accent-subtle text-app-accent font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">{f.roleAtTime}</span>
                             <span className="text-caption text-ink-muted">
                               {f.createdAt instanceof Date ? format(f.createdAt, 'HH:mm dd/MM') : 'Ahora'}
@@ -2023,14 +2023,14 @@ export default function PostModal({
                               aria-label="Editar texto del feedback"
                               value={editingFeedbackText}
                               onChange={(e) => setEditingFeedbackText(e.target.value)}
-                              className="w-full bg-white border border-gray-200 rounded-md p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent resize-y"
+                              className="w-full bg-white border border-divider rounded-md p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent resize-y"
                               rows={2}
                             />
                             <div className="flex gap-2 justify-end">
                               <button
                                 type="button"
                                 onClick={() => setEditingFeedbackId(null)}
-                                className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
+                                className="px-3 py-1 bg-gray-100 text-ink-secondary rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
                               >
                                 Cancelar
                               </button>
@@ -2050,7 +2050,7 @@ export default function PostModal({
                             </div>
                           </div>
                         ) : (
-                          <div className={cn("text-xs sm:text-sm text-gray-700", f.done && "line-through text-gray-400 font-medium")}>
+                          <div className={cn("text-xs sm:text-sm text-ink-secondary", f.done && "line-through text-ink-muted font-medium")}>
                             {f.text}
                           </div>
                         )}
@@ -2065,11 +2065,11 @@ export default function PostModal({
                   ))}
                 </div>
 
-                <div className="sticky bottom-0 bg-white pt-4 border-t border-gray-100">
+                <div className="sticky bottom-0 bg-white pt-4 border-t border-divider">
                   <div className="relative">
                     {/* Autocomplete Suggestion Dropdown */}
                     {activeMentionInput === 'feedback' && filteredMentionUsers.length > 0 && (
-                      <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto divide-y divide-gray-100">
+                      <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-divider rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto divide-y divide-gray-100">
                         <div className="p-2 bg-gray-50 text-caption text-ink-muted">
                           Mencionar usuario del proyecto:
                         </div>
@@ -2082,7 +2082,7 @@ export default function PostModal({
                           >
                             <Avatar name={user.name} size="xs" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-gray-800 truncate">{user.name}</p>
+                              <p className="text-xs font-bold text-ink truncate">{user.name}</p>
                               <p className="text-caption text-ink-muted truncate">@{getMentionHandle(user)} • {user.role}</p>
                             </div>
                           </button>
@@ -2095,7 +2095,7 @@ export default function PostModal({
                       value={feedbackText}
                       onChange={e => handleInputChange(e.target.value, 'feedback')}
                       onKeyDown={e => e.key === 'Enter' && feedbackText && (onAddFeedback(feedbackText), setFeedbackText(''), setActiveMentionInput(null))}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-md py-4 pl-4 pr-12 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent"
+                      className="w-full bg-gray-50 border border-divider rounded-md py-4 pl-4 pr-12 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent"
                       placeholder="Escribe una solicitud de feedback para el cliente..."
                     />
                     <IconButton
@@ -2138,7 +2138,7 @@ export default function PostModal({
                             "text-xs font-bold px-3 py-1.5 rounded-full border transition-all",
                             historyFilter === f.id
                               ? "bg-app-accent/10 border-app-accent text-app-accent"
-                              : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                              : "bg-white border-divider text-ink-secondary hover:border-outline"
                           )}
                         >
                           {f.label}

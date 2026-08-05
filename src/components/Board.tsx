@@ -75,9 +75,9 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-2">
                 <span className={cn("w-2 h-2 rounded-full", phaseInfo.dotColor)} />
-                <h3 className="font-semibold text-gray-700 text-sm">{phaseInfo.label}</h3>
+                <h3 className="font-semibold text-ink-secondary text-sm">{phaseInfo.label}</h3>
               </div>
-              <span className="bg-gray-200 text-gray-500 text-xs font-semibold px-2 py-0.5 rounded-full">
+              <span className="bg-gray-200 text-ink-secondary text-xs font-semibold px-2 py-0.5 rounded-full">
                 {phasePosts.length}
               </span>
             </div>
@@ -90,7 +90,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                 "flex-1 rounded-2xl p-3 space-y-3 min-h-[200px] border transition-all duration-200",
                 activeDropColumn === phase 
                   ? "bg-app-accent-subtle/70 border-solid border-app-accent/40 shadow-inner" 
-                  : "bg-gray-100/50 border-dashed border-gray-200"
+                  : "bg-gray-100/50 border-dashed border-divider"
               )}
             >
               {loading ? (
@@ -119,7 +119,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                 >
                   <div className="flex gap-3 items-start mb-2.5">
                     {/* Miniature Design Thumbnail Preview */}
-                    <div className="w-14 h-14 rounded-lg bg-gray-200/80 border border-gray-300/30 overflow-hidden shrink-0 flex items-center justify-center relative shadow-sm">
+                    <div className="w-14 h-14 rounded-lg bg-gray-200/80 border border-outline/30 overflow-hidden shrink-0 flex items-center justify-center relative shadow-sm">
                       {post.currentDesignUrl ? (
                         <Media
                           src={post.currentDesignUrl}
@@ -143,12 +143,12 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <PlatformBadge platform={post.platform} size={12} showLabel className="text-[11px] font-extrabold text-gray-500 uppercase truncate tracking-wider" />
+                          <PlatformBadge platform={post.platform} size={12} showLabel className="text-[11px] font-extrabold text-ink-secondary uppercase truncate tracking-wider" />
                         </div>
                         <span className="text-caption text-ink-muted shrink-0">{format(post.date, 'dd MMM')}</span>
                       </div>
                       
-                      <h4 className="text-xs sm:text-sm font-extrabold text-gray-900 line-clamp-1 leading-tight mb-0.5">
+                      <h4 className="text-xs sm:text-sm font-extrabold text-ink line-clamp-1 leading-tight mb-0.5">
                         {post.title || "Post sin título"}
                       </h4>
                       <p className="text-caption text-ink-muted line-clamp-2 leading-snug">
@@ -157,14 +157,14 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-200/40">
+                  <div className="flex items-center justify-between pt-2 border-t border-divider/40">
                     {post.assigneeName ? (
                       <Avatar name={post.assigneeName} size="xs" title={post.assigneeName} />
                     ) : (
-                      <span className="text-[11px] text-gray-300 font-semibold">Sin asignar</span>
+                      <span className="text-[11px] text-ink-muted font-semibold">Sin asignar</span>
                     )}
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <div className="flex items-center gap-0.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-gray-500 transition-colors">
+                    <div className="flex items-center gap-2 text-ink-muted">
+                      <div className="flex items-center gap-0.5 text-[11px] font-bold uppercase tracking-wider text-ink-muted hover:text-ink-secondary transition-colors">
                         <MessageSquare size={11} />
                         Detalles
                       </div>
@@ -176,9 +176,9 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                 </motion.button>
               ))}
               {phasePosts.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-gray-300 py-10">
+                <div className="h-full flex flex-col items-center justify-center text-ink-muted py-10">
                   <Clock size={32} strokeWidth={1} className="mb-2 opacity-50" />
-                  <p className="text-xs font-medium text-gray-400">Sin contenido</p>
+                  <p className="text-xs font-medium text-ink-muted">Sin contenido</p>
                 </div>
               )}
               </>
