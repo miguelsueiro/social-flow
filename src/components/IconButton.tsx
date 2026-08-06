@@ -52,7 +52,7 @@ export default function IconButton({ icon: Icon, variant = 'default', size = 'md
       type="button"
       disabled={disabled}
       className={cn(
-        'inline-flex items-center justify-center shrink-0 transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent',
+        'inline-flex items-center justify-center shrink-0 transition-colors active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:active:scale-100',
         button,
         VARIANT_CLASSES[variant],
         className

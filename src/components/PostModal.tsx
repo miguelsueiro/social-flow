@@ -20,7 +20,7 @@ import {
   Save,
   Copy
 } from 'lucide-react';
-import { cn, PHASE_TIMELINE_ORDER, Phase, Role, ROLES, compressImage, isVideoUrl, onActivateKey } from '../lib/utils';
+import { cn, PHASE_TIMELINE_ORDER, Phase, Role, ROLES, compressImage, isVideoUrl, onActivateKey, MODAL_MOTION, FADE_MOTION } from '../lib/utils';
 import { Post, VersionItem, InternalFeedback } from '../types';
 import { useModalA11y } from '../lib/useModalA11y';
 import { PlatformBadge } from './SocialIcons';
@@ -957,9 +957,7 @@ export default function PostModal({
         aria-modal="true"
         aria-label={`Post: ${localPost.title || 'sin título'}`}
         tabIndex={-1}
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        {...MODAL_MOTION}
         className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden cursor-default outline-none"
         onClick={(e) => e.stopPropagation()}
       >
@@ -1338,9 +1336,7 @@ export default function PostModal({
             {activeTab === 'idea' && (
               <motion.div
                 key="idea"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
+                {...FADE_MOTION}
                 className="space-y-6 max-w-3xl"
               >
                 <section>
@@ -1505,9 +1501,7 @@ export default function PostModal({
             {activeTab === 'production' && (
               <motion.div
                 key="production"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
+                {...FADE_MOTION}
                 className="space-y-8"
               >
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-divider">
@@ -1859,9 +1853,7 @@ export default function PostModal({
             {activeTab === 'comments' && (
               <motion.div 
                 key="comments"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
+                {...FADE_MOTION}
                 className="flex flex-col h-full max-h-[500px]"
               >
                 <div className="flex-1 space-y-4 overflow-y-auto pr-2 mb-4 scrollbar-hide">
@@ -1934,9 +1926,7 @@ export default function PostModal({
             {activeTab === 'feedback' && (
               <motion.div 
                 key="feedback"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
+                {...FADE_MOTION}
                 className="flex flex-col h-full max-h-[500px]"
               >
                 <div className="flex-1 space-y-4 overflow-y-auto pr-2 mb-4 scrollbar-hide">
@@ -2105,9 +2095,7 @@ export default function PostModal({
             {activeTab === 'history' && (
               <motion.div
                 key="history"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
+                {...FADE_MOTION}
                 className="space-y-4"
               >
                 {historyEntries.length === 0 ? (

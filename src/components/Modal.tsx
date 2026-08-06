@@ -1,7 +1,7 @@
 import { ReactNode, ComponentType } from 'react';
 import { X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { cn } from '../lib/utils';
+import { cn, MODAL_MOTION } from '../lib/utils';
 import { useModalA11y } from '../lib/useModalA11y';
 import IconButton from './IconButton';
 
@@ -54,9 +54,7 @@ export default function Modal({ onClose, title, icon: Icon, tone = 'accent', siz
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        {...MODAL_MOTION}
         onClick={(e) => e.stopPropagation()}
         className={cn(
           'bg-white rounded-3xl border border-divider shadow-2xl w-full overflow-hidden outline-none flex flex-col max-h-[90vh]',

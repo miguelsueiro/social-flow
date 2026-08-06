@@ -160,7 +160,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
             className="flex flex-col items-center gap-1 group/btn"
             aria-label="Me gusta"
           >
-            <div className="p-2 bg-black/40 rounded-full backdrop-blur-md hover:bg-black/60 transition-all active:scale-90">
+            <div className="p-2 bg-black/40 rounded-full backdrop-blur-md hover:bg-black/60 transition-all active:scale-95">
               <Heart 
                 size={22} 
                 className={cn("transition-colors", isLiked ? "fill-[#FE2C55] text-[#FE2C55]" : "text-white")} 
@@ -185,7 +185,7 @@ export default function TikTokFeed({ posts, onSelectPost, userRole, projects = [
             className="flex flex-col items-center gap-1"
             aria-label="Guardar"
           >
-            <div className="p-2 bg-black/40 rounded-full backdrop-blur-md hover:bg-black/60 transition-all active:scale-90">
+            <div className="p-2 bg-black/40 rounded-full backdrop-blur-md hover:bg-black/60 transition-all active:scale-95">
               <Bookmark
                 size={22}
                 className={cn("transition-colors", isSaved ? "fill-[#FAC917] text-[#FAC917]" : "text-white")}

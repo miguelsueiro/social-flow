@@ -94,6 +94,26 @@ export const PHASES: Record<Phase, PhaseInfo> = {
 // to 'design', not a step of its own — see PostModal's handleResumeProduction).
 export const PHASE_TIMELINE_ORDER: Phase[] = ['idea_1', 'copy', 'design', 'client_review', 'approved', 'published'];
 
+// Shared Framer Motion curves — every modal/dialog and every tab-content swap
+// previously defined its own initial/animate/transition ad hoc (a mix of x
+// and y axes, some with an explicit duration, most without), so entrances felt
+// like a different app depending which one happened to render. Two curves
+// cover the app's two entrance shapes; NotificationsStream's manual stagger
+// stays a one-off since spacing out list items arriving over time is a
+// genuinely different animation, not a variant of either of these.
+export const MODAL_MOTION = {
+  initial: { opacity: 0, scale: 0.95, y: 20 },
+  animate: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.95, y: 20 },
+};
+
+export const FADE_MOTION = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.15 },
+};
+
 /** Shared by the Instagram/LinkedIn/TikTok feed views — each renders a wall of
  *  real creative previews, so a post only belongs there once it actually has
  *  a design uploaded (an empty placeholder isn't a preview of anything), and

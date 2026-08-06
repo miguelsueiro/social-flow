@@ -429,7 +429,7 @@ export default function InstagramDetailModal({
                   reasoning as the "Más opciones" button above — these mimic Instagram's
                   real action bar, which renders bare icons with no button background. */}
               <div className="flex items-center gap-3 text-ink-secondary">
-                <button onClick={toggleLike} className="hover:scale-110 transition-transform p-2 -m-2" aria-label={isLiked ? "Quitar me gusta" : "Me gusta"}>
+                <button onClick={toggleLike} className="active:scale-95 transition-transform p-2 -m-2" aria-label={isLiked ? "Quitar me gusta" : "Me gusta"}>
                   <Heart size={20} className={cn(isLiked ? "fill-red-500 text-red-500" : "text-ink-secondary")} />
                 </button>
                 <button
@@ -438,16 +438,16 @@ export default function InstagramDetailModal({
                     onClose();
                     onOpenEdit(userRole !== 'client' ? 'comments' : 'feedback');
                   }}
-                  className="hover:scale-110 transition-transform p-2 -m-2"
+                  className="active:scale-95 transition-transform p-2 -m-2"
                   aria-label="Comentar"
                 >
                   <MessageCircle size={20} />
                 </button>
-                <button className="hover:scale-110 transition-transform p-2 -m-2" aria-label="Compartir">
+                <button className="active:scale-95 transition-transform p-2 -m-2" aria-label="Compartir">
                   <Share2 size={18} />
                 </button>
               </div>
-              <button className="text-ink-secondary hover:scale-110 transition-transform p-2 -m-2" aria-label="Guardar">
+              <button className="text-ink-secondary active:scale-95 transition-transform p-2 -m-2" aria-label="Guardar">
                 <Bookmark size={18} />
               </button>
             </div>

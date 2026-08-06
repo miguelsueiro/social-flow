@@ -1729,7 +1729,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {projects.filter(p => hasProjectPermission(p.id)).length === 0 ? (
-                    <div className="col-span-full bg-white rounded-[2.25rem] p-12 border border-divider shadow-sm text-center space-y-3">
+                    <div className="col-span-full bg-white rounded-2xl p-12 border border-divider shadow-sm text-center space-y-3">
                       <span className="text-3xl">📁</span>
                       <h4 className="font-extrabold text-ink text-sm">No tienes proyectos asignados</h4>
                       <p className="text-xs text-ink-muted max-w-sm mx-auto">
@@ -1752,9 +1752,9 @@ export default function App() {
                             selectProject(proj.id);
                             setSidebarTab('calendario');
                           }}
-                          className="bg-white rounded-[2.25rem] border border-divider/80 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 cursor-pointer flex flex-col justify-between overflow-hidden group animate-fade-in relative animate-fade-in text-left"
+                          className="bg-white rounded-2xl border border-divider/80 shadow-sm hover:shadow-md transition hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between overflow-hidden group animate-fade-in relative animate-fade-in text-left"
                         >
-                          <div className="p-7 flex-1 flex flex-col justify-between space-y-6">
+                          <div className="p-4 sm:p-6 flex-1 flex flex-col justify-between space-y-6">
                             {/* Card Header */}
                             <div className="flex items-start justify-between gap-4">
                               <div className="space-y-1.5">

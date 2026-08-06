@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useModalA11y } from '../lib/useModalA11y';
+import { MODAL_MOTION } from '../lib/utils';
 import Button from './Button';
 import IconButton from './IconButton';
 import { 
@@ -183,9 +184,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
         aria-modal="true"
         aria-labelledby="user-guide-title"
         tabIndex={-1}
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        {...MODAL_MOTION}
         className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-divider flex flex-col md:flex-row h-[550px] outline-none"
       >
         {/* Left Side: Step Indicator Panel */}
