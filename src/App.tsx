@@ -243,6 +243,18 @@ export default function App() {
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showGuideModal, setShowGuideModal] = useState(false);
+
+  // Auto-open the guide once per browser, the first time a real role is known —
+  // waiting on posts/projects to finish loading is a proxy for "the role has
+  // settled past its 'creative_director' default", since both queries are
+  // gated on role-scoped permissions and only run once role resolves. Skipped
+  // for 'pending' users, who see the approval-pending screen, not the app.
+  useEffect(() => {
+    if (!currentUser || userRole === 'pending') return;
+    if (postsLoading || projectsLoading) return;
+    if (localStorage.getItem('socialflow_guide_seen')) return;
+    setShowGuideModal(true);
+  }, [currentUser, userRole, postsLoading, projectsLoading]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
@@ -2050,9 +2062,10 @@ export default function App() {
       {/* Modals & Dialogs */}
       <AnimatePresence>
         {showGuideModal && (
-          <UserGuideModal 
-            isOpen={showGuideModal} 
-            onClose={() => setShowGuideModal(false)} 
+          <UserGuideModal
+            isOpen={showGuideModal}
+            onClose={() => setShowGuideModal(false)}
+            userRole={userRole}
           />
         )}
 
