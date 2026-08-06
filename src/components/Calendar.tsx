@@ -187,7 +187,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                 "p-2 border-r border-b border-divider flex flex-col gap-1 relative group transition-all duration-150",
                 !isCurrentMonth && "bg-gray-50/50",
                 isToday && "bg-app-accent-subtle/20",
-                isDraggedOver && "ring-2 ring-dashed ring-app-accent bg-app-accent/5 z-10 scale-[0.98] shadow-inner"
+                isDraggedOver && "ring-2 ring-app-accent bg-app-accent/5 z-10 scale-[0.98] shadow-inner"
               )}
             >
               <div className="flex justify-between items-start">

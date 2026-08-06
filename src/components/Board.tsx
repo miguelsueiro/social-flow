@@ -65,13 +65,19 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
   });
 
   return (
-    <div className="flex gap-6 overflow-x-auto pb-6 pt-2 min-h-[calc(100vh-250px)] w-full">
+    <div className="relative w-full">
+      {/* Edge fade hints there's more to scroll — the horizontal scroll itself
+          already worked, it just had no visible affordance that columns
+          exist off-screen (audit finding R4). Hidden on lg+, where columns
+          plus viewport width mean this is rarely the case. */}
+      <div className="lg:hidden pointer-events-none absolute right-0 top-2 bottom-6 w-8 bg-gradient-to-l from-gray-50 to-transparent z-10" />
+      <div className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-6 pt-2 min-h-[calc(100vh-250px)] w-full">
       {visiblePhases.map((phase) => {
         const phaseInfo = PHASES[phase];
         const phasePosts = posts.filter(p => p.phase === phase);
 
         return (
-          <div key={phase} className="flex-shrink-0 w-80 flex flex-col gap-4">
+          <div key={phase} className="flex-shrink-0 w-80 flex flex-col gap-4 snap-start">
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-2">
                 <span className={cn("w-2 h-2 rounded-full", phaseInfo.dotColor)} />
@@ -113,6 +119,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                   className={cn(
                     "w-full text-left p-3 rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer group",
                     userRole !== 'client' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+                    draggedPost?.id === post.id ? "opacity-40 scale-95" : "",
                     PHASES[post.phase].cardClass
                   )}
                   whileHover={{ y: -2 }}
@@ -187,6 +194,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

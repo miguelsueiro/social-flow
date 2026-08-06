@@ -704,20 +704,27 @@ export default function SettingsView({
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-divider bg-gray-50 text-[11px] font-semibold text-ink-secondary uppercase tracking-wider">
-                    <th className="px-4 py-4">Color</th>
-                    <th className="px-4 py-4">Nombre del Proyecto</th>
-                    <th className="px-4 py-4">Cliente Legal</th>
-                    <th className="px-4 py-4">Redes Activas</th>
-                    <th className="px-4 py-4">Territorios</th>
-                    <th className="px-4 py-4 text-right">Acciones</th>
+                    <th className="px-4 py-2.5">Color</th>
+                    <th className="px-4 py-2.5">Nombre del Proyecto</th>
+                    <th className="px-4 py-2.5">Cliente Legal</th>
+                    <th className="px-4 py-2.5">Redes Activas</th>
+                    <th className="px-4 py-2.5">Territorios</th>
+                    <th className="px-4 py-2.5 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
+                  {projects.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-3">
+                        <EmptyState title="Todavía no hay proyectos" description="Crea el primero con el botón de arriba." size="sm" />
+                      </td>
+                    </tr>
+                  )}
                   {projects.map((proj) => {
                     const isEditing = editingProjId === proj.id;
                     return (
-                      <tr key={proj.id} className="hover:bg-gray-50/40">
-                        <td className="px-4 py-4">
+                      <tr key={proj.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5">
                           {isEditing ? (
                             <input
                               type="color"
@@ -730,7 +737,7 @@ export default function SettingsView({
                             <div className="w-5 h-5 rounded-full border border-divider" style={{ backgroundColor: proj.color }} />
                           )}
                         </td>
-                        <td className="px-4 py-4 font-bold text-ink">
+                        <td className="px-4 py-2.5 font-bold text-ink">
                           {isEditing ? (
                             <input
                               type="text"
@@ -743,7 +750,7 @@ export default function SettingsView({
                             proj.name
                           )}
                         </td>
-                        <td className="px-4 py-4 text-ink-secondary font-medium">
+                        <td className="px-4 py-2.5 text-ink-secondary font-medium">
                           {isEditing ? (
                             <input
                               type="text"
@@ -756,7 +763,7 @@ export default function SettingsView({
                             proj.clientName
                           )}
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-2.5">
                           {isEditing ? (
                             <div className="flex gap-2 flex-wrap items-center">
                               {[
@@ -809,7 +816,7 @@ export default function SettingsView({
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-4 max-w-[220px]">
+                        <td className="px-4 py-2.5 max-w-[220px]">
                           {isEditing ? (
                             <TagListEditor
                               tags={editTerritories}
@@ -832,7 +839,7 @@ export default function SettingsView({
                             )
                           )}
                         </td>
-                        <td className="px-4 py-4 text-right">
+                        <td className="px-4 py-2.5 text-right">
                           {isEditing ? (
                             <div className="flex justify-end gap-1.5">
                               <button

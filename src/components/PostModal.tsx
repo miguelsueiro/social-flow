@@ -535,6 +535,7 @@ export default function PostModal({
   const [isDragOverReferences, setIsDragOverReferences] = useState(false);
   const [isDragOverCreativity, setIsDragOverCreativity] = useState(false);
   const [draggingSlideIdx, setDraggingSlideIdx] = useState<number | null>(null);
+  const [dragOverSlideIdx, setDragOverSlideIdx] = useState<number | null>(null);
 
   const handleSlideDragStart = (e: React.DragEvent, index: number) => {
     if (!canEditDesign) return;
@@ -545,15 +546,17 @@ export default function PostModal({
   const handleSlideDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
     if (!canEditDesign || draggingSlideIdx === null || draggingSlideIdx === index) return;
+    setDragOverSlideIdx(index);
   };
 
   const handleSlideDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault();
+    setDragOverSlideIdx(null);
     if (!canEditDesign || draggingSlideIdx === null || draggingSlideIdx === targetIndex) return;
 
     const urls = [...(localPost.carouselUrls || [])];
     const draggedUrl = urls[draggingSlideIdx];
-    
+
     // Remove the dragged URL and insert it at the targetIndex
     urls.splice(draggingSlideIdx, 1);
     urls.splice(targetIndex, 0, draggedUrl);
@@ -567,6 +570,7 @@ export default function PostModal({
 
   const handleSlideDragEnd = () => {
     setDraggingSlideIdx(null);
+    setDragOverSlideIdx(null);
   };
 
   useEffect(() => {
@@ -1629,7 +1633,7 @@ export default function PostModal({
                             )}
                           </div>
                           {localPost.carouselUrls && localPost.carouselUrls.length > 0 ? (
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                               {localPost.carouselUrls.map((url, idx) => (
                                 <div
                                   key={idx}
@@ -1645,6 +1649,7 @@ export default function PostModal({
                                   className={cn(
                                     "group relative aspect-square bg-white rounded-lg overflow-hidden border border-divider shadow-sm cursor-zoom-in hover:scale-105 transition-all duration-200",
                                     draggingSlideIdx === idx ? "opacity-30 border-app-accent border-2 scale-95" : "cursor-grab active:cursor-grabbing",
+                                    dragOverSlideIdx === idx && draggingSlideIdx !== idx ? "ring-2 ring-app-accent bg-app-accent/5 scale-[0.98]" : "",
                                     canEditDesign ? "hover:border-app-accent/50" : ""
                                   )}
                                 >
