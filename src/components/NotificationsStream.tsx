@@ -15,7 +15,7 @@ import { db } from '../lib/firebase';
 import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Role } from '../lib/utils';
+import { Role, cn } from '../lib/utils';
 import Avatar from './Avatar';
 import EmptyState from './EmptyState';
 
@@ -33,9 +33,13 @@ interface NotificationsStreamProps {
   userRole: Role;
   userProjectId: string | null;
   permittedProjects: string[];
+  /** Caps how many items render — used by the Dashboard's "Actividad reciente"
+   *  preview, which shares this same stream instead of duplicating the query. */
+  limit?: number;
+  onSeeAll?: () => void;
 }
 
-export default function NotificationsStream({ userRole, userProjectId, permittedProjects }: NotificationsStreamProps) {
+export default function NotificationsStream({ userRole, userProjectId, permittedProjects, limit, onSeeAll }: NotificationsStreamProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [announcement, setAnnouncement] = useState('');
@@ -126,33 +130,41 @@ export default function NotificationsStream({ userRole, userProjectId, permitted
     }
   };
 
+  const visibleNotifications = limit ? notifications.slice(0, limit) : notifications;
+
   return (
     <div className="flex-1 bg-white rounded-3xl border border-divider shadow-sm overflow-hidden flex flex-col max-w-4xl mx-auto w-full">
       <div aria-live="polite" className="sr-only">{announcement}</div>
       <div className="p-6 border-b border-divider flex items-center justify-between">
         <h3 className="font-extrabold text-ink text-base flex items-center gap-2">
           <Bell size={18} className="text-app-accent animate-pulse" />
-          Historial de Notificaciones y Actividad
+          {limit ? 'Actividad reciente' : 'Historial de Notificaciones y Actividad'}
         </h3>
-        <span className="text-[11px] bg-app-accent-subtle text-app-accent font-extrabold px-2.5 py-0.5 rounded-full uppercase">
-          En Vivo
-        </span>
+        {limit && onSeeAll ? (
+          <button onClick={onSeeAll} className="text-caption font-bold text-app-accent hover:text-app-accent-hover transition-colors">
+            Ver todo →
+          </button>
+        ) : (
+          <span className="text-[11px] bg-app-accent-subtle text-app-accent font-extrabold px-2.5 py-0.5 rounded-full uppercase">
+            En Vivo
+          </span>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-100 p-4 space-y-2">
+      <div className={cn("flex-1 divide-y divide-gray-100 p-4 space-y-2", !limit && "overflow-y-auto")}>
         {loading ? (
           <div className="flex justify-center items-center py-20" role="status" aria-label="Cargando notificaciones">
             <div className="w-8 h-8 bg-app-accent/20 rounded-xl animate-pulse"></div>
           </div>
-        ) : notifications.length === 0 ? (
+        ) : visibleNotifications.length === 0 ? (
           <EmptyState
             icon={Bell}
             title="No hay actividad reciente"
             description="Las alertas automáticas y menciones aparecerán aquí en vivo."
-            size="lg"
+            size={limit ? 'sm' : 'lg'}
           />
         ) : (
-          notifications.map((notif, i) => (
+          visibleNotifications.map((notif, i) => (
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}

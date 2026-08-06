@@ -20,6 +20,7 @@ import {
   where
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import { format } from 'date-fns';
 import { auth, db, signIn, logOut } from './lib/firebase';
 import { cn, Role, ROLES, Phase, PHASES, deriveAccentPalette } from './lib/utils';
 import { Post } from './types';
@@ -38,6 +39,7 @@ import Avatar from './components/Avatar';
 import NavItems, { NavItem } from './components/NavItems';
 import ProjectTag from './components/ProjectTag';
 import SegmentedControl from './components/SegmentedControl';
+import StatTile from './components/StatTile';
 import SettingsView from './components/SettingsView';
 import UserGuideModal from './components/UserGuideModal';
 import { InstagramIcon, TikTokIcon, LinkedInIcon, PLATFORM_META } from './components/SocialIcons';
@@ -66,7 +68,8 @@ import {
   Grid,
   Info,
   Download,
-  ChevronDown
+  ChevronDown,
+  AlertTriangle
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
@@ -1214,6 +1217,30 @@ export default function App() {
     published: filteredPosts.filter(p => p.phase === 'published').length,
   };
 
+  // Dashboard-only: unlike `filteredPosts`/`stats` above (scoped to whichever
+  // single project is active), the Dashboard has no active project yet — it
+  // needs a view across every project the user can see, to answer "what
+  // needs my attention" instead of just "how many things exist".
+  const accessiblePosts = posts.filter(p => hasProjectPermission(p.projectId));
+  // What counts as "needs action" depends on which side of the handoff the
+  // viewer sits on: an agency member acts on changes the client asked for,
+  // a client acts on posts waiting for their review.
+  const needsAttentionPosts = accessiblePosts.filter(p =>
+    userRole === 'client' ? p.phase === 'client_review' : p.phase === 'changes_requested'
+  );
+  const upcomingPosts = accessiblePosts
+    .filter(p => p.phase !== 'published' && p.date > new Date() && p.date <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+  const overduePosts = accessiblePosts
+    .filter(p => p.phase !== 'published' && p.date < new Date())
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+  const dashboardStats = {
+    total: accessiblePosts.length,
+    pending: accessiblePosts.filter(p => p.phase !== 'approved' && p.phase !== 'published').length,
+    approved: accessiblePosts.filter(p => p.phase === 'approved').length,
+    published: accessiblePosts.filter(p => p.phase === 'published').length,
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1567,6 +1594,107 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Needs-attention: what's actually blocking someone, not just a
+                  count — an agency member acts on client-requested changes, a
+                  client acts on posts awaiting their review. */}
+              {needsAttentionPosts.length > 0 && (
+                <div className="bg-orange-50/60 border border-orange-200 rounded-3xl p-5 sm:p-6 space-y-3">
+                  <h3 className="text-sm font-extrabold text-orange-900 flex items-center gap-2">
+                    <AlertTriangle size={16} />
+                    Necesita tu acción ({needsAttentionPosts.length})
+                  </h3>
+                  <div className="space-y-1.5">
+                    {needsAttentionPosts.slice(0, 5).map(post => {
+                      const proj = projects.find(p => p.id === post.projectId);
+                      return (
+                        <button
+                          key={post.id}
+                          type="button"
+                          onClick={() => openPostModal(post)}
+                          className="w-full flex items-center gap-3 bg-white hover:bg-orange-50 border border-orange-100 rounded-xl px-3 py-2.5 text-left transition-all"
+                        >
+                          <PhaseBadge phase={post.phase} className="shrink-0" />
+                          <span className="text-xs font-bold text-ink truncate flex-1">{post.title || post.idea}</span>
+                          {proj && <ProjectTag name={proj.name} color={proj.color} emphasis="subtle" className="shrink-0 hidden sm:inline-flex max-w-[140px]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Próximas publicaciones / Atrasados — anticipate what's coming
+                  and surface what already slipped, instead of only reacting. */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white border border-divider rounded-3xl p-5 sm:p-6 space-y-3">
+                  <h3 className="text-sm font-extrabold text-ink flex items-center gap-2">
+                    <Clock size={16} className="text-app-accent" />
+                    Próximas publicaciones
+                  </h3>
+                  {upcomingPosts.length === 0 ? (
+                    <p className="text-xs text-ink-muted">Sin publicaciones programadas en los próximos 7 días.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {upcomingPosts.slice(0, 5).map(post => (
+                        <button
+                          key={post.id}
+                          type="button"
+                          onClick={() => openPostModal(post)}
+                          className="w-full flex items-center gap-3 hover:bg-gray-50 border border-divider rounded-xl px-3 py-2.5 text-left transition-all"
+                        >
+                          <span className="text-caption text-ink-muted shrink-0 w-14">{format(post.date, 'dd MMM')}</span>
+                          <span className="text-xs font-bold text-ink truncate flex-1">{post.title || post.idea}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white border border-divider rounded-3xl p-5 sm:p-6 space-y-3">
+                  <h3 className="text-sm font-extrabold text-ink flex items-center gap-2">
+                    <AlertTriangle size={16} className="text-ink-muted" />
+                    Atrasados
+                  </h3>
+                  {overduePosts.length === 0 ? (
+                    <p className="text-xs text-ink-muted">Nada atrasado — todo al día.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {overduePosts.slice(0, 5).map(post => (
+                        <button
+                          key={post.id}
+                          type="button"
+                          onClick={() => openPostModal(post)}
+                          className="w-full flex items-center gap-3 hover:bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 text-left transition-all"
+                        >
+                          <span className="text-caption text-red-500 font-bold shrink-0 w-14">{format(post.date, 'dd MMM')}</span>
+                          <span className="text-xs font-bold text-ink truncate flex-1">{post.title || post.idea}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Actividad reciente — the same stream NotificationsStream reads,
+                  just capped and linked out instead of duplicating the query. */}
+              <NotificationsStream
+                userRole={userRole}
+                userProjectId={userProjectId}
+                permittedProjects={permittedProjects}
+                limit={5}
+                onSeeAll={() => { selectProject('all'); setSidebarTab('notificaciones'); }}
+              />
+
+              {/* Secondary stats — demoted below the sections above: a count on
+                  its own doesn't tell you what to do next, so it no longer
+                  leads the screen. */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <StatTile label="Total Posts" value={dashboardStats.total} icon={FileText} tone="accent" />
+                <StatTile label="En Producción" value={dashboardStats.pending} icon={Activity} tone="warning" />
+                <StatTile label="Aprobados" value={dashboardStats.approved} icon={Trophy} tone="success" />
+                <StatTile label="Publicados" value={dashboardStats.published} icon={ShieldCheck} tone="accent" />
+              </div>
+
               {/* Projects list */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1673,23 +1801,11 @@ export default function App() {
             <>
               {/* Stats Bar */}
               {sidebarTab === 'calendario' && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
-                  {[
-                    { label: 'Total Posts', value: stats.total, icon: FileText, color: 'text-app-accent', bg: 'bg-app-accent/10' },
-                    { label: 'En Producción', value: stats.pending, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
-                    { label: 'Aprobados', value: stats.approved, icon: Trophy, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                    { label: 'Publicados', value: stats.published, icon: ShieldCheck, color: 'text-app-accent', bg: 'bg-app-accent-subtle' }
-                  ].map((stat, i) => (
-                    <div key={i} className="bg-white p-4 rounded-2xl border border-divider shadow-sm flex items-center gap-4 transition-all hover:scale-[1.02]">
-                      <div className={cn("p-3 rounded-xl", stat.bg, stat.color)}>
-                        <stat.icon size={20} />
-                      </div>
-                      <div>
-                        <p className="text-caption text-ink-muted leading-none mb-1">{stat.label}</p>
-                        <p className="text-xl font-black text-ink">{stat.value}</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
+                  <StatTile label="Total Posts" value={stats.total} icon={FileText} tone="accent" />
+                  <StatTile label="En Producción" value={stats.pending} icon={Activity} tone="warning" />
+                  <StatTile label="Aprobados" value={stats.approved} icon={Trophy} tone="success" />
+                  <StatTile label="Publicados" value={stats.published} icon={ShieldCheck} tone="accent" />
                 </div>
               )}
 
