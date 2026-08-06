@@ -1410,6 +1410,20 @@ export default function App() {
           </div>
         </aside>
 
+      {/* Tablet icon-rail — the 640-1023px range previously fell through to
+          the phone bottom bar, stretched full-width with big empty gutters
+          (audit finding R2). This is a scaled-down version of the same
+          sidebar, icon-only, sticky like the full sidebar it stands in for. */}
+        <aside className="hidden sm:flex lg:hidden w-16 bg-white border-r border-divider py-4 flex-col items-center shrink-0 h-screen sticky top-0 justify-between">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-9 h-9 bg-app-accent rounded-xl flex items-center justify-center text-white shadow-md shadow-app-accent/15">
+              <LayoutDashboard size={18} />
+            </div>
+            <NavItems orientation="rail" items={getNavItems(true)} activeId={activeNavId} onSelect={handleNavSelect} />
+          </div>
+          <IconButton icon={LogOut} onClick={logOut} variant="danger" aria-label="Cerrar Sesión" title="Cerrar Sesión" />
+        </aside>
+
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Topbar — always rendered, including on the Dashboard */}
@@ -1573,7 +1587,7 @@ export default function App() {
           "flex-1 flex flex-col gap-4 sm:gap-6",
           activeProjectId === 'dashboard' 
             ? "p-6 sm:p-10 max-w-6xl mx-auto w-full overflow-y-auto" 
-            : "p-4 sm:p-6 pb-24 lg:pb-6 overflow-hidden"
+            : "p-4 sm:p-6 pb-24 sm:pb-6 overflow-hidden"
         )}>
           {activeProjectId === 'dashboard' ? (
             <div className="space-y-8 animate-fade-in">
@@ -2023,13 +2037,14 @@ export default function App() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation Bar — always rendered, including on the Dashboard */}
+      {/* Mobile Bottom Navigation Bar — phone widths only (<640px); the
+          640-1023px tablet range gets the icon-rail sidebar above instead. */}
         <NavItems
           orientation="horizontal"
           items={getNavItems(true)}
           activeId={activeNavId}
           onSelect={handleNavSelect}
-          className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-divider h-16 px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0"
+          className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-divider h-16 px-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] shrink-0"
         />
 
       {/* Modals & Dialogs */}

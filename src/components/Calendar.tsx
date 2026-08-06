@@ -12,6 +12,7 @@ import {
   subMonths 
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { es } from 'date-fns/locale';
 import { cn, PHASES } from '../lib/utils';
 import { motion } from 'motion/react';
 import { PlatformBadge } from './SocialIcons';
@@ -75,7 +76,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
     <div className="bg-white rounded-xl shadow-sm border border-divider overflow-hidden">
       <div className="p-4 border-b border-divider flex items-center justify-between">
         <h2 className="text-xl font-semibold text-ink capitalize">
-          {format(currentMonth, 'MMMM yyyy')}
+          {format(currentMonth, 'MMMM yyyy', { locale: es })}
         </h2>
         <div className="flex items-center gap-2">
           <IconButton icon={ChevronLeft} onClick={prevMonth} aria-label="Mes anterior" size="sm" className="border border-divider" />
@@ -89,7 +90,10 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
         </div>
       </div>
 
-      <div className="grid grid-cols-7 border-b border-divider bg-gray-50/40">
+      {/* Weekday header and month grid are a desktop pattern — a 7-column grid
+          on a phone leaves cells too narrow to show anything but a date
+          number (audit finding R1). Below md, an agenda list replaces it. */}
+      <div className="hidden md:grid grid-cols-7 border-b border-divider bg-gray-50/40">
         {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => (
           <div key={day} className="p-3 text-center text-xs font-semibold text-ink-secondary">
             {day}
@@ -99,21 +103,73 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
 
       {!loading && !monthHasPosts && (
         <div className="px-4 py-2.5 bg-gray-50/60 border-b border-divider text-xs text-ink-muted font-medium text-center">
-          No hay posts programados en {format(currentMonth, 'MMMM yyyy')}.
+          No hay posts programados en {format(currentMonth, 'MMMM yyyy', { locale: es })}.
         </div>
       )}
 
       {loading ? (
-        <div className="grid grid-cols-7 auto-rows-[120px] md:auto-rows-[160px]" role="status" aria-label="Cargando calendario">
-          {calendarDays.map((day) => (
-            <div key={day.toISOString()} className="p-2 border-r border-b border-divider flex flex-col gap-1.5">
-              <div className="w-7 h-7 rounded-full bg-gray-100 animate-pulse" />
-              <div className="h-10 rounded-lg bg-gray-100 animate-pulse mt-1" />
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="hidden md:grid grid-cols-7 auto-rows-[120px] md:auto-rows-[160px]" role="status" aria-label="Cargando calendario">
+            {calendarDays.map((day) => (
+              <div key={day.toISOString()} className="p-2 border-r border-b border-divider flex flex-col gap-1.5">
+                <div className="w-7 h-7 rounded-full bg-gray-100 animate-pulse" />
+                <div className="h-10 rounded-lg bg-gray-100 animate-pulse mt-1" />
+              </div>
+            ))}
+          </div>
+          <div className="md:hidden p-3 space-y-2" role="status" aria-label="Cargando calendario">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+            ))}
+          </div>
+        </>
       ) : (
-      <div className="grid grid-cols-7 auto-rows-[120px] md:auto-rows-[160px]">
+      <>
+      {/* Mobile agenda — only days with posts, most recent first within the
+          visible month, so scrolling a long empty month isn't the fallback. */}
+      <div className="md:hidden divide-y divide-divider">
+        {calendarDays
+          .filter(day => isSameMonth(day, monthStart) && posts.some(p => isSameDay(p.date, day)))
+          .map(day => {
+            const dayPosts = posts.filter(p => isSameDay(p.date, day)).filter(p => userRole !== 'client' || PHASES[p.phase].clientVisible);
+            if (dayPosts.length === 0) return null;
+            const isToday = isSameDay(day, new Date());
+            return (
+              <div key={day.toISOString()} className="p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    "text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0",
+                    isToday ? "bg-app-accent text-white" : "text-ink-secondary bg-gray-100"
+                  )}>
+                    {format(day, 'd', { locale: es })}
+                  </span>
+                  <span className="text-xs font-bold text-ink-secondary capitalize">{format(day, 'EEEE', { locale: es })}</span>
+                </div>
+                <div className="space-y-1.5 pl-9">
+                  {dayPosts.map(post => {
+                    const phaseInfo = PHASES[post.phase];
+                    return (
+                      <button
+                        key={post.id}
+                        type="button"
+                        onClick={() => onSelectPost(post)}
+                        className={cn(
+                          "w-full text-left p-2.5 rounded-lg border text-xs leading-tight shadow-sm flex items-center gap-2",
+                          phaseInfo.cardClass
+                        )}
+                      >
+                        <PlatformBadge platform={post.platform} size={10} className="shrink-0" />
+                        <span className="font-bold truncate text-ink flex-1">{post.title || "Post sin título"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+      </div>
+
+      <div className="hidden md:grid grid-cols-7 auto-rows-[120px] md:auto-rows-[160px]">
         {calendarDays.map((day, idx) => {
           const dayPosts = posts.filter(p => isSameDay(p.date, day));
           const isCurrentMonth = isSameMonth(day, monthStart);
@@ -140,7 +196,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                   isToday ? "bg-app-accent text-white shadow-sm" : "text-ink-secondary",
                   !isCurrentMonth && "text-ink-muted"
                 )}>
-                  {format(day, 'd')}
+                  {format(day, 'd', { locale: es })}
                 </span>
                 
                 {userRole !== 'client' && isCurrentMonth && (
@@ -197,6 +253,7 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
           );
         })}
       </div>
+      </>
       )}
     </div>
   );

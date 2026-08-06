@@ -15,7 +15,12 @@ interface NavItemsProps {
   items: NavItem[];
   activeId: string;
   onSelect: (id: string) => void;
-  orientation: 'vertical' | 'horizontal';
+  /** 'vertical' is the full desktop sidebar row (icon + label). 'horizontal'
+   *  is the phone bottom bar. 'rail' is the icon-only tablet-width column
+   *  (640-1023px) — that range previously got the same cramped phone bottom
+   *  bar stretched full-width with big empty gutters (audit finding R2);
+   *  labels move to a title tooltip instead of disappearing outright. */
+  orientation: 'vertical' | 'horizontal' | 'rail';
   className?: string;
 }
 
@@ -49,6 +54,35 @@ export default function NavItems({ items, activeId, onSelect, orientation, class
               <span className={cn('truncate transition-all', isActive ? 'text-app-accent font-black' : 'text-ink-muted')}>
                 {item.label}
               </span>
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
+
+  if (orientation === 'rail') {
+    return (
+      <nav className={cn('flex flex-col items-center gap-1', className)}>
+        {items.map((item) => {
+          const isActive = activeId === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onSelect(item.id)}
+              aria-current={isActive ? 'page' : undefined}
+              title={item.label}
+              aria-label={item.label}
+              className={cn(
+                'w-11 h-11 flex items-center justify-center rounded-xl transition-all shrink-0',
+                isActive ? 'bg-app-accent/10' : 'hover:bg-gray-50'
+              )}
+            >
+              <item.icon
+                size={20}
+                className={cn('transition-all', !item.iconColor && (isActive ? 'text-app-accent' : 'text-ink-muted'))}
+                style={item.iconColor ? { color: item.iconColor } : undefined}
+              />
             </button>
           );
         })}
