@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Copy, Image as ImageIcon, Layers, CheckCircle2, Languages, FileText, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import JSZip from 'jszip';
 import { jsPDF } from 'jspdf';
 import { toast } from 'react-hot-toast';
@@ -215,7 +216,7 @@ export default function PublishHubView({ posts, onSelectPost, loading = false }:
                     </span>
                     <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-ink-secondary bg-gray-100 px-2.5 py-1 rounded-full">
                       <CalendarDays size={13} className="text-ink-muted" />
-                      {post.date ? format(post.date instanceof Date ? post.date : (post.date?.toDate ? post.date.toDate() : new Date(post.date)), "d MMM yyyy") : ''}
+                      {post.date ? format(post.date instanceof Date ? post.date : (post.date?.toDate ? post.date.toDate() : new Date(post.date)), "d MMM yyyy", { locale: es }) : ''}
                     </span>
                   </div>
                   <div>

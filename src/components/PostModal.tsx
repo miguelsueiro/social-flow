@@ -77,6 +77,12 @@ interface PostModalProps {
   onDeleteFeedback?: (feedbackId: string) => void;
   projects?: any[];
   initialTab?: 'comments' | 'feedback';
+  /** Opens the "Detalles" section (platform/format/date/language/assignee)
+   *  already expanded — those fields matter most right when a post is first
+   *  created, before it has a real idea/copy/design to look at yet. Existing
+   *  posts still open collapsed, since by then those fields are usually
+   *  already set and the tabs below are what needs attention. */
+  initialShowDetails?: boolean;
 }
 
 interface VersionFeedbackControlProps {
@@ -381,7 +387,8 @@ export default function PostModal({
   onUpdateFeedback,
   onDeleteFeedback,
   projects = [],
-  initialTab
+  initialTab,
+  initialShowDetails
 }: PostModalProps) {
   const [activeTab, setActiveTab] = useState<'idea' | 'production' | 'history' | 'comments' | 'feedback'>(
     initialTab || (userRole !== 'client' && post && post.phase === 'idea_1' ? 'idea' : 'production')
@@ -394,7 +401,7 @@ export default function PostModal({
   const [localPost, setLocalPost] = useState<Post | null>(post);
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(!!initialShowDetails);
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [showRequestChangesForm, setShowRequestChangesForm] = useState(false);
   const [changesRequestReason, setChangesRequestReason] = useState('');

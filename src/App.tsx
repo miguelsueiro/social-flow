@@ -21,6 +21,7 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { auth, db, signIn, logOut } from './lib/firebase';
 import { cn, Role, ROLES, Phase, PHASES, deriveAccentPalette } from './lib/utils';
 import { Post } from './types';
@@ -231,11 +232,13 @@ export default function App() {
   const [activeProjectId, setActiveProjectId] = useState<string>('dashboard');
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [selectedPostInitialTab, setSelectedPostInitialTab] = useState<'comments' | 'feedback' | undefined>(undefined);
+  const [selectedPostInitialShowDetails, setSelectedPostInitialShowDetails] = useState(false);
   // Feeds' "Comentar" buttons call this so the modal opens straight on the
   // right conversation thread — Comentarios for the agency, Feedback
   // (Cliente) for clients — instead of always landing on Producción.
   const openPostModal = (post: any, initialTab?: 'comments' | 'feedback') => {
     setSelectedPostInitialTab(initialTab);
+    setSelectedPostInitialShowDetails(false);
     setSelectedPost(post);
   };
   const [loading, setLoading] = useState(true);
@@ -693,6 +696,8 @@ export default function App() {
         projectId: assignedProjectId,
       };
       setPosts(prev => [...prev, newPost]);
+      setSelectedPostInitialTab(undefined);
+      setSelectedPostInitialShowDetails(true);
       setSelectedPost(newPost);
       toast.success('Post creado (Modo Demo)');
       return;
@@ -714,6 +719,8 @@ export default function App() {
         updatedAt: serverTimestamp()
       };
       const docRef = await addDoc(collection(db, 'posts'), newPostData);
+      setSelectedPostInitialTab(undefined);
+      setSelectedPostInitialShowDetails(true);
       setSelectedPost({
         id: docRef.id,
         date,
@@ -1668,7 +1675,7 @@ export default function App() {
                           onClick={() => openPostModal(post)}
                           className="w-full flex items-center gap-3 hover:bg-gray-50 border border-divider rounded-xl px-3 py-2.5 text-left transition-all"
                         >
-                          <span className="text-caption text-ink-muted shrink-0 w-14">{format(post.date, 'dd MMM')}</span>
+                          <span className="text-caption text-ink-muted shrink-0 w-14">{format(post.date, 'dd MMM', { locale: es })}</span>
                           <span className="text-xs font-bold text-ink truncate flex-1">{post.title || post.idea}</span>
                         </button>
                       ))}
@@ -1692,7 +1699,7 @@ export default function App() {
                           onClick={() => openPostModal(post)}
                           className="w-full flex items-center gap-3 hover:bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 text-left transition-all"
                         >
-                          <span className="text-caption text-red-500 font-bold shrink-0 w-14">{format(post.date, 'dd MMM')}</span>
+                          <span className="text-caption text-red-500 font-bold shrink-0 w-14">{format(post.date, 'dd MMM', { locale: es })}</span>
                           <span className="text-xs font-bold text-ink truncate flex-1">{post.title || post.idea}</span>
                         </button>
                       ))}
@@ -2072,7 +2079,7 @@ export default function App() {
         {selectedPost && (
           <PostModal
             post={selectedPost}
-            onClose={() => { setSelectedPost(null); setSelectedPostInitialTab(undefined); }}
+            onClose={() => { setSelectedPost(null); setSelectedPostInitialTab(undefined); setSelectedPostInitialShowDetails(false); }}
             userRole={userRole}
             comments={comments}
             feedbacks={feedbacks}
@@ -2086,6 +2093,7 @@ export default function App() {
             onDuplicate={handleDuplicatePost}
             projects={projects}
             initialTab={selectedPostInitialTab}
+            initialShowDetails={selectedPostInitialShowDetails}
           />
         )}
 

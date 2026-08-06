@@ -3,6 +3,7 @@ import { PHASES, Phase, cn } from '../lib/utils';
 import { motion } from 'motion/react';
 import { Clock, MessageSquare, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { PlatformBadge } from './SocialIcons';
 import Avatar from './Avatar';
 import Media from './Media';
@@ -152,7 +153,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                         <div className="flex items-center gap-1.5 min-w-0">
                           <PlatformBadge platform={post.platform} size={12} showLabel className="text-[11px] font-extrabold text-ink-secondary uppercase truncate tracking-wider" />
                         </div>
-                        <span className="text-caption text-ink-muted shrink-0">{format(post.date, 'dd MMM')}</span>
+                        <span className="text-caption text-ink-muted shrink-0">{format(post.date, 'dd MMM', { locale: es })}</span>
                       </div>
                       
                       <h4 className="text-xs sm:text-sm font-extrabold text-ink line-clamp-1 leading-tight mb-0.5">
