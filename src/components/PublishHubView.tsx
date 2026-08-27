@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Download, Copy, Image as ImageIcon, Layers, CheckCircle2, Languages, FileText, CalendarDays } from 'lucide-react';
+import { Download, Copy, Image as ImageIcon, Layers, CheckCircle2, Languages, FileText, CalendarDays, Hash } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import JSZip from 'jszip';
 import { jsPDF } from 'jspdf';
 import { toast } from 'react-hot-toast';
 import { isVideoUrl } from '../lib/utils';
+import { htmlToPlainText } from '../lib/richText';
 import { PlatformBadge, PLATFORM_META } from './SocialIcons';
 import EmptyState from './EmptyState';
 
@@ -23,6 +24,7 @@ interface PublishHubPost {
   reelCoverUrl?: string;
   carouselUrls?: string[];
   projectId?: string;
+  hashtags?: string[];
 }
 
 interface PublishHubViewProps {
@@ -121,8 +123,23 @@ async function downloadCarouselPdf(post: PublishHubPost) {
   }
 }
 
-function copyCaption(text: string | undefined, label: string) {
-  if (!text || !text.trim()) {
+/** Copies the plain-text rendering of a (possibly rich-text) field. This must
+ *  never copy raw HTML: Instagram/LinkedIn/TikTok don't render bold/italic/
+ *  links in a caption, so pasting markup there would paste literal "<b>"
+ *  characters instead of the formatted text the editor showed. */
+function copyPlainText(text: string | undefined, label: string) {
+  const plain = htmlToPlainText(text || '');
+  if (!plain.trim()) {
+    toast.error(`No hay ${label} para copiar.`);
+    return;
+  }
+  navigator.clipboard.writeText(plain)
+    .then(() => toast.success(`${label} copiado al portapapeles ✓`))
+    .catch(() => toast.error('No se pudo copiar al portapapeles.'));
+}
+
+function copyToClipboard(text: string, label: string) {
+  if (!text.trim()) {
     toast.error(`No hay ${label} para copiar.`);
     return;
   }
@@ -238,7 +255,7 @@ export default function PublishHubView({ posts, onSelectPost, loading = false }:
                     </button>
                     <button
                       type="button"
-                      onClick={() => copyCaption(post.copyCaption, 'Caption')}
+                      onClick={() => copyPlainText(post.copyCaption, 'Caption')}
                       className="w-full flex items-center justify-center gap-1.5 bg-gray-50 hover:bg-gray-100 text-ink-secondary text-xs font-bold py-2 rounded-lg transition-colors"
                     >
                       <Copy size={13} /> Copiar caption
@@ -246,11 +263,29 @@ export default function PublishHubView({ posts, onSelectPost, loading = false }:
                     {hasTranslatedCaption && (
                       <button
                         type="button"
-                        onClick={() => copyCaption(post.copyCaptionTranslated, 'Caption traducido')}
+                        onClick={() => copyPlainText(post.copyCaptionTranslated, 'Caption traducido')}
                         className="w-full flex items-center justify-center gap-1.5 bg-gray-50 hover:bg-gray-100 text-ink-secondary text-xs font-bold py-2 rounded-lg transition-colors"
                       >
                         <Languages size={13} /> Copiar traducido
                       </button>
+                    )}
+                    {(post.hashtags?.length || 0) > 0 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(post.hashtags!.join(' '), 'Hashtags')}
+                          className="w-full flex items-center justify-center gap-1.5 bg-gray-50 hover:bg-gray-100 text-ink-secondary text-xs font-bold py-2 rounded-lg transition-colors"
+                        >
+                          <Hash size={13} /> Copiar hashtags
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(`${htmlToPlainText(post.copyCaption || '')}\n\n${post.hashtags!.join(' ')}`, 'Caption + hashtags')}
+                          className="w-full flex items-center justify-center gap-1.5 bg-app-accent/5 hover:bg-app-accent/10 text-app-accent text-xs font-bold py-2 rounded-lg transition-colors"
+                        >
+                          <Copy size={13} /> Copiar caption + hashtags
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>

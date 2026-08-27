@@ -16,6 +16,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { cn, PHASES, Phase, isVideoUrl, onActivateKey } from '../lib/utils';
+import { htmlToPlainText } from '../lib/richText';
 import { Post, Comment } from '../types';
 import { useModalA11y } from '../lib/useModalA11y';
 import SocialCaption from './SocialCaption';
@@ -200,7 +201,7 @@ export default function InstagramDetailModal({
                 <span className="font-bold text-xs text-white">socialflow_agency</span>
               </div>
               <p className="text-xs text-white/90 line-clamp-3 leading-relaxed drop-shadow-sm font-medium">
-                {post.copyCaption || post.idea}
+                {htmlToPlainText(post.copyCaption || post.idea)}
               </p>
               <p className="text-[11px] text-white/60 flex items-center gap-1">
                 <span>🎵 Audio original - socialflow_agency</span>
@@ -247,8 +248,8 @@ export default function InstagramDetailModal({
                 <div className={cn("w-full h-full bg-gradient-to-tr flex flex-col justify-between p-6 text-white", mediaGradient)}>
                   <span className="text-xs font-semibold bg-black/20 px-2 py-0.5 rounded-full self-start">Slide {currentSlide + 1}</span>
                   <div className="space-y-2 text-center my-auto">
-                    <p className="text-base font-bold px-4">{post.idea}</p>
-                    <p className="text-xs text-white/85 px-4 italic">{post.copyCaption || 'Diseño de carrusel en producción...'}</p>
+                    <p className="text-base font-bold px-4">{htmlToPlainText(post.idea)}</p>
+                    <p className="text-xs text-white/85 px-4 italic">{post.copyCaption ? htmlToPlainText(post.copyCaption) : 'Diseño de carrusel en producción...'}</p>
                   </div>
                   <div className="text-right text-[11px] opacity-50 font-mono">v{currentSlide + 1}</div>
                 </div>
@@ -306,8 +307,8 @@ export default function InstagramDetailModal({
             </div>
             
             <div className="space-y-2 text-left my-auto">
-              <h4 className="text-base font-bold leading-snug">{post.idea}</h4>
-              <p className="text-xs text-white/80 leading-relaxed italic">{post.copyCaption || 'El copy se está revisando'}</p>
+              <h4 className="text-base font-bold leading-snug">{htmlToPlainText(post.idea)}</h4>
+              <p className="text-xs text-white/80 leading-relaxed italic">{post.copyCaption ? htmlToPlainText(post.copyCaption) : 'El copy se está revisando'}</p>
             </div>
             
             <div className="flex justify-between items-center text-[11px] opacity-60 font-medium">

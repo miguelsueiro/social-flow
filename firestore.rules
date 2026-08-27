@@ -105,43 +105,94 @@ service cloud.firestore {
         && data.color is string && data.color.size() <= 10;
     }
 
+    // Repository items hold real client-sensitive material (brand strategy,
+    // brandbook) — unlike the project doc itself (readable by any signed-in
+    // user, just a name/color), so read access is scoped the same way posts
+    // are: agency members within their permitted projects, clients only
+    // their own project(s). Declared at top level with every other
+    // validator in this file — a Firestore rules function is only reliably
+    // callable from nested matches when it's not itself nested inside
+    // another match block.
+    function isValidRepositoryItem(data) {
+      return data.category in ['strategy', 'guidelines', 'brandbook', 'assets', 'links']
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 256
+        && data.get('description', '') is string && data.get('description', '').size() <= 4000
+        && data.get('url', '') is string && data.get('url', '').size() <= 200000
+        && data.get('guidelineType', '') in ['', 'do', 'dont'];
+    }
+
     match /projects/{projectId} {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn() && isAgencyRole() && isValidProject(incoming());
       allow delete: if isAdmin();
+
+      match /repository/{itemId} {
+        allow read: if isSignedIn() && (
+          canAccessProjectAsAgency(projectId) || isOwnProjectAsClient(projectId)
+        );
+        allow create, update: if isSignedIn() && isAgencyRole()
+          && canAccessProjectAsAgency(projectId)
+          && isValidRepositoryItem(incoming())
+          && incoming().createdAt is string;
+        allow delete: if isSignedIn() && isAgencyRole() && canAccessProjectAsAgency(projectId);
+      }
     }
 
     // --- Posts Collection ---
+    // Every field read below goes through .get() with a default. Direct field
+    // access (data.platform, resource.data.projectId) raises an error when the
+    // field is absent, and on a `list` that error denies the ENTIRE query — so
+    // one legacy document missing `projectId` would make the whole posts
+    // collection unreadable for every user, which surfaces in the app as an
+    // empty calendar with no explanation. Defaults fail that single document's
+    // check instead of the collection's.
+    // idea/copyCaption/copyCreativity can now hold sanitized rich-text HTML
+    // (bold/italic/underline/links/lists) from the app's RichTextField
+    // instead of only plain text — the same words wrapped in tags take more
+    // bytes, so these ceilings were raised to give formatting headroom
+    // without opening the door to arbitrarily large payloads.
     function isValidPost(data) {
-      return data.platform in ['instagram', 'linkedin', 'tiktok']
-        && data.phase in ['idea_1', 'idea_2', 'copy', 'design', 'client_review', 'changes_requested', 'approved', 'published']
-        && data.get('idea', '') is string && data.get('idea', '').size() <= 5000
-        && data.get('copyCaption', '') is string && data.get('copyCaption', '').size() <= 6000
-        && data.get('copyCreativity', '') is string && data.get('copyCreativity', '').size() <= 2000;
+      return data.get('platform', '') in ['instagram', 'linkedin', 'tiktok']
+        && data.get('phase', '') in ['idea_1', 'idea_2', 'copy', 'design', 'client_review', 'changes_requested', 'approved', 'published']
+        && data.get('idea', '') is string && data.get('idea', '').size() <= 8000
+        && data.get('copyCaption', '') is string && data.get('copyCaption', '').size() <= 10000
+        && data.get('copyCreativity', '') is string && data.get('copyCreativity', '').size() <= 4000;
     }
 
     function isClientVisible(phase) {
       return phase in ['copy', 'design', 'client_review', 'changes_requested', 'approved', 'published'];
     }
 
+    function postProjectId(data) {
+      return data.get('projectId', '');
+    }
+
+    function postPhase(data) {
+      return data.get('phase', '');
+    }
+
     match /posts/{postId} {
       allow list: if isSignedIn() && (
-        (isAgencyRole() && canAccessProjectAsAgency(resource.data.projectId)) ||
-        (isRole('client') && isOwnProjectAsClient(resource.data.projectId) && isClientVisible(resource.data.phase))
+        (isAgencyRole() && canAccessProjectAsAgency(postProjectId(resource.data))) ||
+        (isRole('client') && isOwnProjectAsClient(postProjectId(resource.data)) && isClientVisible(postPhase(resource.data)))
       );
 
       allow get: if isSignedIn() && (
-        (isAgencyRole() && canAccessProjectAsAgency(existing().projectId)) ||
-        (isRole('client') && isOwnProjectAsClient(existing().projectId) && isClientVisible(existing().phase))
+        (isAgencyRole() && canAccessProjectAsAgency(postProjectId(existing()))) ||
+        (isRole('client') && isOwnProjectAsClient(postProjectId(existing())) && isClientVisible(postPhase(existing())))
       );
 
-      allow create: if isAgencyRole() && canAccessProjectAsAgency(incoming().projectId)
+      // A post must always name a real project. Creating one without a
+      // projectId produces a document no view can ever show it in.
+      allow create: if isAgencyRole()
+        && postProjectId(incoming()) != ''
+        && canAccessProjectAsAgency(postProjectId(incoming()))
         && isValidPost(incoming())
         && incoming().updatedAt == request.time;
 
       allow update: if isSignedIn() && (
-        (isAgencyRole() && canAccessProjectAsAgency(existing().projectId) && isValidPost(incoming()) && incoming().updatedAt == request.time) ||
-        (isRole('client') && isOwnProjectAsClient(existing().projectId) && isClientVisible(existing().phase) && (
+        (isAgencyRole() && canAccessProjectAsAgency(postProjectId(existing())) && isValidPost(incoming()) && incoming().updatedAt == request.time) ||
+        (isRole('client') && isOwnProjectAsClient(postProjectId(existing())) && isClientVisible(postPhase(existing())) && (
           // Clients can only approve or request changes on their own post —
           // never edit content, and never reach any other phase directly.
           incoming().diff(existing()).affectedKeys().hasOnly([
@@ -149,23 +200,24 @@ service cloud.firestore {
             'approvedBy', 'approvedAt',
             'changesRequestedReason', 'changesRequestedAt', 'changesRequestedBy'
           ])
-          && incoming().phase in ['client_review', 'changes_requested', 'approved']
+          && postPhase(incoming()) in ['client_review', 'changes_requested', 'approved']
           && incoming().updatedAt == request.time
         ))
       );
 
-      allow delete: if isAgencyRole() && canAccessProjectAsAgency(existing().projectId);
+      allow delete: if isAgencyRole() && canAccessProjectAsAgency(postProjectId(existing()));
 
       // --- Comments Subcollection (internal agency discussion — never client-facing) ---
       match /comments/{commentId} {
         allow read, list: if isSignedIn() && isAgencyRole();
 
         allow create: if isSignedIn() && isAgencyRole()
-          && incoming().authorId == request.auth.uid
+          && incoming().get('authorId', '') == request.auth.uid
           && incoming().createdAt == request.time
-          && incoming().text.size() <= 1000;
+          && incoming().get('text', '') is string
+          && incoming().get('text', '').size() <= 1000;
 
-        allow update, delete: if isRole('admin') || (isSignedIn() && existing().authorId == request.auth.uid);
+        allow update, delete: if isRole('admin') || (isSignedIn() && existing().get('authorId', '') == request.auth.uid);
       }
 
       // --- Feedbacks Subcollection ---
@@ -174,20 +226,21 @@ service cloud.firestore {
 
         allow create: if isSignedIn() && (
           isAgencyRole() ||
-          (isRole('client') && isClientVisible(get(/databases/$(database)/documents/posts/$(postId)).data.phase))
-        ) && incoming().authorId == request.auth.uid
+          (isRole('client') && isClientVisible(postPhase(get(/databases/$(database)/documents/posts/$(postId)).data)))
+        ) && incoming().get('authorId', '') == request.auth.uid
           && incoming().createdAt == request.time
-          && incoming().text.size() <= 2000;
+          && incoming().get('text', '') is string
+          && incoming().get('text', '').size() <= 2000;
 
         // Editing the text is author-only. Agency can flip done/doneAt/doneBy
         // without touching the text or reassigning authorship.
         allow update: if isSignedIn() && (
-          (existing().authorId == request.auth.uid && incoming().authorId == existing().authorId)
+          (existing().get('authorId', '') == request.auth.uid && incoming().get('authorId', '') == existing().get('authorId', ''))
           || (isAgencyRole() && incoming().diff(existing()).affectedKeys().hasOnly(['done', 'doneAt', 'doneBy']))
           || isAdmin()
         );
 
-        allow delete: if isRole('admin') || (isSignedIn() && existing().authorId == request.auth.uid);
+        allow delete: if isRole('admin') || (isSignedIn() && existing().get('authorId', '') == request.auth.uid);
       }
     }
 

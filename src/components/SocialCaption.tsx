@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { cn } from '../lib/utils';
+import { htmlToPlainText } from '../lib/richText';
 
 const TOKEN_RE = /(#[\p{L}0-9_]+|@[\p{L}0-9_.]+)/gu;
 
@@ -46,6 +47,11 @@ export default function SocialCaption({
   moreClassName = 'font-semibold text-ink-muted hover:text-ink-secondary',
 }: SocialCaptionProps) {
   const [expanded, setExpanded] = useState(false);
+  // idea/copyCaption can now hold sanitized rich-text HTML (RichTextField) —
+  // no feed simulator here renders HTML, so this always renders the plain
+  // text a real Instagram/LinkedIn/TikTok caption would show. Legacy plain
+  // values pass through unchanged.
+  text = htmlToPlainText(text);
 
   if (maxChars && !expanded && text.length > maxChars) {
     const truncated = text.slice(0, maxChars).trimEnd();

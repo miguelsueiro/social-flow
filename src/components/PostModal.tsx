@@ -18,10 +18,25 @@ import {
   CheckSquare,
   Edit2,
   Save,
-  Copy
+  Copy,
+  FileText,
+  Link as LinkIcon,
+  PlayCircle,
+  Snowflake,
+  Hash
 } from 'lucide-react';
 import { cn, PHASE_TIMELINE_ORDER, Phase, Role, ROLES, compressImage, isVideoUrl, onActivateKey, MODAL_MOTION, FADE_MOTION } from '../lib/utils';
-import { Post, VersionItem, InternalFeedback } from '../types';
+import { Post, VersionItem, InternalFeedback, PostReference } from '../types';
+import {
+  REFERENCE_ACCEPT,
+  MAX_INLINE_BYTES,
+  classifyReferenceFile,
+  classifyReferenceUrl,
+  detectProvider,
+  extractVideoPoster,
+  makeReferenceId,
+  normalizeReference,
+} from '../lib/media';
 import { useModalA11y } from '../lib/useModalA11y';
 import { PlatformBadge } from './SocialIcons';
 import ConfirmInline from './ConfirmInline';
@@ -33,6 +48,8 @@ import Media from './Media';
 import EmptyState from './EmptyState';
 import Field from './Field';
 import ProjectTag from './ProjectTag';
+import RichTextField from './RichTextField';
+import HashtagPickerModal from './HashtagPickerModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { db, auth } from '../lib/firebase';
@@ -67,6 +84,10 @@ interface PostModalProps {
   onUpdate: (updates: Partial<Post>) => void;
   onDelete?: (postId: string) => void;
   onDuplicate?: (post: Post) => void;
+  /** Sends the post to Nevera (Post.frozen = true). Undefined for an
+   *  already-frozen post — Nevera is the one place a post comes back out,
+   *  per spec, so the header never offers an "unfreeze" action. */
+  onFreeze?: (post: Post) => void;
   userRole: Role;
   comments: Comment[];
   onAddComment: (text: string) => void;
@@ -156,6 +177,89 @@ function SaveVersionButton({ type, currentValue, versions = [], isAgencyMember, 
         <span className="text-caption text-ink-muted">({versions.length} guardada{versions.length !== 1 ? 's' : ''})</span>
       )}
     </button>
+  );
+}
+
+const REFERENCE_KIND_LABEL: Record<PostReference['kind'], string> = {
+  image: 'Imagen',
+  gif: 'GIF',
+  video: 'Vídeo',
+  pdf: 'PDF',
+  embed: 'Enlace incrustado',
+  link: 'Enlace',
+};
+
+/** One 64px reference chip. Replaces the previous bare <img src={ref}> whose
+ *  onError swapped in a generic stock photo on ANY failure — including every
+ *  video and every non-image URL, since those were never going to load as an
+ *  <img> in the first place. Each kind now gets a thumbnail that actually
+ *  represents it: the extracted poster frame for video, the provider's own
+ *  thumbnail for embeds that have one (YouTube/Vimeo), and a labeled icon
+ *  chip for everything else (PDF, plain links, providers with no thumbnail
+ *  API like Drive/Figma/Loom) — never a photo of something unrelated. */
+function ReferenceThumb({ reference, onOpen, onRemove }: { reference: PostReference; onOpen: () => void; onRemove?: () => void }) {
+  const providerInfo = reference.provider ? detectProvider(reference.url) : null;
+  const thumbnailSrc = reference.kind === 'video' || reference.kind === 'gif'
+    ? reference.poster
+    : reference.kind === 'embed'
+      ? providerInfo?.thumbnailUrl
+      : reference.kind === 'image'
+        ? reference.url
+        : undefined;
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={onActivateKey(onOpen)}
+      title={reference.name || REFERENCE_KIND_LABEL[reference.kind]}
+      className="group relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border border-divider shadow-sm cursor-pointer transition-transform hover:scale-105"
+    >
+      {thumbnailSrc ? (
+        <img src={thumbnailSrc} alt={reference.name || REFERENCE_KIND_LABEL[reference.kind]} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-gray-100 text-ink-muted px-1">
+          {reference.kind === 'pdf' ? <FileText size={18} /> : reference.kind === 'link' || reference.kind === 'embed' ? <LinkIcon size={18} /> : <ImageIcon size={18} />}
+          <span className="text-[9px] font-bold uppercase tracking-wide truncate max-w-full">
+            {providerInfo?.label || REFERENCE_KIND_LABEL[reference.kind]}
+          </span>
+        </div>
+      )}
+
+      {/* Only over a real thumbnail image — a white play icon has no
+          contrast against the plain gray icon-fallback tile below it. */}
+      {thumbnailSrc && (reference.kind === 'video' || reference.kind === 'embed') && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none">
+          <PlayCircle size={20} className="text-white drop-shadow" />
+        </div>
+      )}
+
+      {/* Opens in a new tab directly — larger than the old 8px icon it
+          replaces, which was unusable as a click/tap target. */}
+      <a
+        href={reference.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="absolute bottom-1 left-1 bg-black/60 text-white p-1 rounded hover:bg-black/85 transition-colors z-10"
+        title="Abrir referencia en pestaña nueva"
+        aria-label="Abrir referencia en pestaña nueva"
+      >
+        <ExternalLink size={12} />
+      </a>
+
+      {onRemove && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="absolute top-1 right-1 bg-white/95 hover:bg-white p-1.5 -m-0.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity z-10"
+          aria-label="Quitar referencia"
+        >
+          <X size={10} className="text-red-500" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -378,6 +482,7 @@ export default function PostModal({
   onUpdate,
   onDelete,
   onDuplicate,
+  onFreeze,
   userRole,
   comments, 
   onAddComment,
@@ -400,6 +505,12 @@ export default function PostModal({
   const [editingFeedbackText, setEditingFeedbackText] = useState('');
   const [localPost, setLocalPost] = useState<Post | null>(post);
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
+  // Separate from zoomedImageUrl (which stays string-only, for the design/
+  // creativity/carousel fields — still a plain image-or-video URL, untouched
+  // by the reference model change below) because a reference needs its kind
+  // alongside the URL to render the right lightbox (video/pdf/embed/link).
+  const [zoomedReference, setZoomedReference] = useState<PostReference | null>(null);
+  const [showHashtagPicker, setShowHashtagPicker] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDetails, setShowDetails] = useState(!!initialShowDetails);
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
@@ -410,20 +521,21 @@ export default function PostModal({
   const modalContainerRef = useModalA11y(() => {
     // Escape doesn't blur the focused field, so title/idea/copy/caption
     // (which only autosave onBlur) would otherwise lose an unsaved draft.
-    if (!zoomedImageUrl) handleCloseModal();
+    if (!zoomedImageUrl && !zoomedReference) handleCloseModal();
   });
 
   useEffect(() => {
-    if (!zoomedImageUrl) return;
+    if (!zoomedImageUrl && !zoomedReference) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
         setZoomedImageUrl(null);
+        setZoomedReference(null);
       }
     };
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [zoomedImageUrl]);
+  }, [zoomedImageUrl, zoomedReference]);
 
   const getFormattedDateForInput = (d: any) => {
     if (!d) return '';
@@ -837,31 +949,86 @@ export default function PostModal({
   };
 
   // --- File Processing Helpers ---
+  /** Handles image/GIF/video/PDF references dropped or picked from disk.
+   *  Firestore's 1 MiB per-document cap (shared across the whole post) is why
+   *  each kind has its own inline size ceiling (MAX_INLINE_BYTES) — a file
+   *  that doesn't fit gets a clear "paste a link instead" message rather than
+   *  a silent failure or a corrupted save. Images still go through
+   *  compressImage() as before; video/PDF can't be losslessly shrunk the same
+   *  way, so they're capped as-is. Video additionally gets a real poster
+   *  frame extracted via canvas, replacing the old behavior of falling back
+   *  to a generic stock photo whenever the browser couldn't decode a video
+   *  file as an <img>. */
   const processAndAppendReferences = (files: FileList) => {
     const promises = (Array.from(files) as File[]).map(file => {
-      return new Promise<string>((resolve, reject) => {
-        if (file.size > 700 * 1024) {
-          toast.error(`El archivo de referencia "${file.name}" supera el límite de 700KB. No se puede guardar en la base de datos.`);
-          reject(new Error("File too large"));
+      return new Promise<PostReference | null>((resolve) => {
+        const kind = classifyReferenceFile(file);
+        const limit = MAX_INLINE_BYTES[kind];
+        if (file.size > limit) {
+          toast.error(
+            `"${file.name}" (${Math.round(file.size / 1024)}KB) supera el límite de ${Math.round(limit / 1024)}KB para ${REFERENCE_KIND_LABEL[kind]} en referencias. Súbelo a Drive/Vimeo/YouTube y pega el enlace en su lugar.`
+          );
+          resolve(null);
           return;
         }
+
         const reader = new FileReader();
-        reader.onloadend = () => {
-          compressImage(reader.result as string).then(resolve);
+        reader.onloadend = async () => {
+          const raw = reader.result as string;
+          const url = kind === 'image' ? await compressImage(raw) : raw;
+          if (kind === 'image' && url.length > limit) {
+            toast.error(`"${file.name}" sigue siendo demasiado grande después de comprimir. Prueba con una imagen de menor resolución.`);
+            resolve(null);
+            return;
+          }
+          const poster = kind === 'video' ? await extractVideoPoster(file) : undefined;
+          // Firestore's updateDoc rejects a literal `undefined` anywhere in
+          // the payload, including nested inside an array/object field like
+          // this one — `poster` must be omitted entirely, not set to
+          // undefined, whenever there's no poster to store.
+          resolve({
+            id: makeReferenceId(),
+            url,
+            kind,
+            name: file.name,
+            ...(poster ? { poster } : {}),
+          });
         };
         reader.readAsDataURL(file);
       });
     });
 
-    Promise.all(promises).then(base64Urls => {
+    Promise.all(promises).then(results => {
+      const added = results.filter((r): r is PostReference => r !== null);
+      if (added.length === 0) return;
       const currentRefs = localPost.references || [];
-      const updatedRefs = [...currentRefs, ...base64Urls];
+      const updatedRefs = [...currentRefs, ...added];
       const updated = { ...localPost, references: updatedRefs };
       setLocalPost(updated);
       onUpdate(updated);
-    }).catch(() => {
-      // Error already shown in toast
     });
+  };
+
+  /** Adds a pasted URL as a reference, classifying it as an embed (with a
+   *  real provider preview) when it matches a known provider, or a plain
+   *  link chip otherwise. */
+  const addReferenceUrl = (input: HTMLInputElement) => {
+    const val = input.value.trim();
+    if (!val || !localPost) return;
+    const provider = detectProvider(val);
+    const reference: PostReference = {
+      id: makeReferenceId(),
+      url: val,
+      kind: provider ? 'embed' : classifyReferenceUrl(val),
+      // Omitted entirely (not set to undefined) when there's no provider —
+      // see the same note in processAndAppendReferences above.
+      ...(provider ? { provider: provider.id } : {}),
+    };
+    const currentRefs = localPost.references || [];
+    const updated = { ...localPost, references: [...currentRefs, reference] };
+    setLocalPost(updated);
+    onUpdate(updated);
+    input.value = '';
   };
 
   const processAndSetSingleDesign = (file: File) => {
@@ -994,6 +1161,17 @@ export default function PostModal({
           )}
 
           <div className="flex items-center gap-1 shrink-0">
+            {isAgencyMember && onFreeze && !localPost.frozen && (
+              <button
+                onClick={() => localPost && onFreeze(localPost)}
+                className="p-2 hover:bg-sky-50 text-ink-secondary hover:text-sky-600 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+                title="Enviar a la nevera"
+                aria-label="Enviar a la nevera"
+              >
+                <Snowflake size={18} />
+                <span className="hidden sm:inline">Nevera</span>
+              </button>
+            )}
             {isAgencyMember && onDuplicate && (
               <button
                 onClick={() => localPost && onDuplicate(localPost)}
@@ -1352,12 +1530,12 @@ export default function PostModal({
               >
                 <section>
                   <Field label="La Idea" id="post-idea" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-ink-secondary [&>label]:mb-2">
-                    <textarea
+                    <RichTextField
                       disabled={!canEditIdea}
                       value={localPost.idea}
-                      onChange={e => setLocalPost({...localPost, idea: e.target.value})}
+                      onChange={html => setLocalPost({...localPost, idea: html})}
                       onBlur={handleUpdate}
-                      className="w-full bg-gray-50 border border-divider rounded-md p-4 text-ink placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-40 text-sm"
+                      editorClassName="h-36"
                       placeholder="Describe la idea central del post..."
                     />
                   </Field>
@@ -1366,7 +1544,7 @@ export default function PostModal({
                 {/* Drag and Drop References Section */}
                 <section>
                   <label className="block text-sm font-semibold text-ink-secondary mb-2">
-                    Referencias Visuales (Arrastra imágenes o añade URLs externas)
+                    Referencias Visuales (imágenes, GIFs, vídeos, PDFs o enlaces externos)
                   </label>
 
                   <div
@@ -1379,71 +1557,36 @@ export default function PostModal({
                     )}
                   >
                     <div className="flex flex-wrap gap-2">
-                      {localPost.references?.map((ref, i) => (
-                        <div
-                          key={i}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setZoomedImageUrl(ref)}
-                          onKeyDown={onActivateKey(() => setZoomedImageUrl(ref))}
-                          className="group relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border border-divider shadow-sm cursor-zoom-in transition-transform hover:scale-105"
-                        >
-                           <img
-                             src={ref}
-                             alt="ref"
-                             className="w-full h-full object-cover"
-                             onError={(e) => {
-                               e.currentTarget.onerror = null;
-                               e.currentTarget.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80';
-                             }}
-                           />
-                           {ref.startsWith('http') && (
-                             <a
-                               href={ref}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               onClick={(e) => e.stopPropagation()}
-                               className="absolute bottom-1 left-1 bg-black/60 text-white p-1 rounded hover:bg-black/85 transition-colors z-10"
-                               title="Abrir referencia en pestaña nueva"
-                             >
-                               <ExternalLink size={8} />
-                             </a>
-                           )}
-                           {/* Not <IconButton> — its 36px floor would cover most of this
-                               64px thumbnail. p-1.5 -m-0.5 grows the tap target without
-                               enlarging the visible chip; group-focus-within/focus-visible
-                               keep it reachable by keyboard, not just hover. */}
-                           {!isClient && (
-                             <button
-                               type="button"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 const newRefs = [...(localPost.references || [])];
-                                 newRefs.splice(i, 1);
-                                 const updated = { ...localPost, references: newRefs };
-                                 setLocalPost(updated);
-                                 onUpdate(updated);
-                               }}
-                               className="absolute top-1 right-1 bg-white/95 hover:bg-white p-1.5 -m-0.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity z-10"
-                               aria-label="Quitar referencia"
-                             >
-                               <X size={10} className="text-red-500" />
-                             </button>
-                           )}
-                        </div>
-                      ))}
+                      {localPost.references?.map((ref, i) => {
+                        const reference = normalizeReference(ref, i);
+                        return (
+                          <ReferenceThumb
+                            key={reference.id}
+                            reference={reference}
+                            onOpen={() => setZoomedReference(reference)}
+                            onRemove={isClient ? undefined : () => {
+                              const newRefs = [...(localPost.references || [])];
+                              newRefs.splice(i, 1);
+                              const updated = { ...localPost, references: newRefs };
+                              setLocalPost(updated);
+                              onUpdate(updated);
+                            }}
+                          />
+                        );
+                      })}
 
                       {!isClient && (
                         <div className="relative">
                           <input
                             type="file"
                             multiple
-                            accept="image/*"
+                            accept={REFERENCE_ACCEPT}
                             id="references-upload"
                             className="hidden"
                             onChange={(e) => {
                               const files = e.target.files;
                               if (files && files.length > 0) processAndAppendReferences(files);
+                              e.target.value = '';
                             }}
                           />
                           <label
@@ -1458,29 +1601,24 @@ export default function PostModal({
                     </div>
 
                     {(!localPost.references || localPost.references.length === 0) && (
-                      <EmptyState title="Arrastra tus imágenes de referencia aquí o haz clic en Subir" size="sm" className="py-2" />
+                      <EmptyState title="Arrastra imágenes, GIFs, vídeos o PDFs aquí, o pega un enlace externo" size="sm" className="py-2" />
                     )}
 
-                    {/* Direct URL Reference input */}
+                    {/* Direct URL Reference input — recognizes YouTube, Vimeo,
+                        Google Drive, Loom and Figma links and stores them as
+                        embeds with a real preview; anything else is stored as
+                        a plain link chip. */}
                     {!isClient && (
                       <div className="mt-2 pt-2 border-t border-divider/40 flex gap-2">
                         <input
                           type="url"
                           aria-label="URL de referencia externa"
-                          placeholder="Pegar enlace de referencia externa..."
+                          placeholder="Pegar enlace de YouTube, Vimeo, Drive, Loom, Figma u otra URL..."
                           id="ref-url-input"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
-                              const target = e.currentTarget;
-                              const val = target.value.trim();
-                              if (val) {
-                                const currentRefs = localPost.references || [];
-                                const updated = { ...localPost, references: [...currentRefs, val] };
-                                setLocalPost(updated);
-                                onUpdate(updated);
-                                target.value = '';
-                              }
+                              addReferenceUrl(e.currentTarget);
                             }
                           }}
                           className="flex-1 bg-white border border-divider rounded-md py-1.5 px-3 text-xs outline-none focus:border-app-accent focus:ring-1 focus:ring-app-accent/20 transition-all"
@@ -1489,14 +1627,7 @@ export default function PostModal({
                           type="button"
                           onClick={() => {
                             const el = document.getElementById('ref-url-input') as HTMLInputElement;
-                            const val = el?.value.trim();
-                            if (val) {
-                              const currentRefs = localPost.references || [];
-                              const updated = { ...localPost, references: [...currentRefs, val] };
-                              setLocalPost(updated);
-                              onUpdate(updated);
-                              el.value = '';
-                            }
+                            if (el) addReferenceUrl(el);
                           }}
                           className="bg-app-accent hover:bg-app-accent-hover text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
                         >
@@ -1535,12 +1666,12 @@ export default function PostModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <section>
                     <Field label="Copy en la Creatividad (Diseños)" id="post-copy-creativity" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-ink-secondary [&>label]:mb-2">
-                      <textarea
+                      <RichTextField
                         disabled={!canEditCopy}
-                        value={localPost.copyCreativity}
-                        onChange={e => setLocalPost({...localPost, copyCreativity: e.target.value})}
+                        value={localPost.copyCreativity || ''}
+                        onChange={html => setLocalPost({...localPost, copyCreativity: html})}
                         onBlur={handleUpdate}
-                        className="w-full bg-gray-50 border border-divider rounded-md p-4 text-ink placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
+                        editorClassName="h-20"
                         placeholder="Texto que aparecerá dentro del diseño..."
                       />
                     </Field>
@@ -1554,12 +1685,12 @@ export default function PostModal({
                     />
                     {localPost.translationEnabled && (
                       <Field label="Copy en la Creatividad (Traducido)" id="post-copy-creativity-translated" className="mt-4 [&>label]:text-sm [&>label]:font-semibold [&>label]:text-ink-secondary [&>label]:mb-2">
-                        <textarea
+                        <RichTextField
                           disabled={!canEditCopy}
                           value={localPost.copyCreativityTranslated || ''}
-                          onChange={e => setLocalPost({...localPost, copyCreativityTranslated: e.target.value})}
+                          onChange={html => setLocalPost({...localPost, copyCreativityTranslated: html})}
                           onBlur={handleUpdate}
-                          className="w-full bg-gray-50 border border-divider rounded-md p-4 text-ink placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-none h-24 text-sm"
+                          editorClassName="h-20"
                           placeholder="Traducción manual del texto de la creatividad..."
                         />
                       </Field>
@@ -1568,12 +1699,12 @@ export default function PostModal({
 
                   <section>
                     <Field label="Post Caption (Texto de Publicación)" id="post-copy-caption" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-ink-secondary [&>label]:mb-2">
-                      <textarea
+                      <RichTextField
                         disabled={!canEditCopy}
-                        value={localPost.copyCaption}
-                        onChange={e => setLocalPost({...localPost, copyCaption: e.target.value})}
+                        value={localPost.copyCaption || ''}
+                        onChange={html => setLocalPost({...localPost, copyCaption: html})}
                         onBlur={handleUpdate}
-                        className="w-full bg-gray-50 border border-divider rounded-md p-4 text-ink placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-y h-64 text-sm"
+                        editorClassName="h-60"
                         placeholder="Escribe el caption definitivo..."
                       />
                     </Field>
@@ -1587,18 +1718,64 @@ export default function PostModal({
                     />
                     {localPost.translationEnabled && (
                       <Field label="Post Caption (Traducido)" id="post-copy-caption-translated" className="mt-4 [&>label]:text-sm [&>label]:font-semibold [&>label]:text-ink-secondary [&>label]:mb-2">
-                        <textarea
+                        <RichTextField
                           disabled={!canEditCopy}
                           value={localPost.copyCaptionTranslated || ''}
-                          onChange={e => setLocalPost({...localPost, copyCaptionTranslated: e.target.value})}
+                          onChange={html => setLocalPost({...localPost, copyCaptionTranslated: html})}
                           onBlur={handleUpdate}
-                          className="w-full bg-gray-50 border border-divider rounded-md p-4 text-ink placeholder-gray-400 focus:ring-2 focus:ring-app-accent/20 focus:border-app-accent outline-none transition-all resize-y h-64 text-sm"
+                          editorClassName="h-60"
                           placeholder="Traducción manual del caption..."
                         />
                       </Field>
                     )}
                   </section>
                 </div>
+
+                {/* Hashtags — reuses the project's library (Hashtags nav
+                    item), never typed freehand here, so captions stay
+                    consistent with what the team agreed to reuse. */}
+                <section>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-semibold text-ink-secondary flex items-center gap-2">
+                      <Hash size={16} />
+                      Hashtags
+                    </label>
+                    {!isClient && (
+                      <button
+                        type="button"
+                        onClick={() => setShowHashtagPicker(true)}
+                        className="text-app-accent hover:underline text-xs font-semibold"
+                      >
+                        {(localPost.hashtags || []).length > 0 ? 'Editar hashtags' : '+ Añadir hashtags'}
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 min-h-[2rem] p-3 bg-gray-50 border border-divider rounded-xl">
+                    {(localPost.hashtags || []).length === 0 ? (
+                      <span className="text-xs text-ink-muted italic">Sin hashtags seleccionados.</span>
+                    ) : (
+                      localPost.hashtags!.map(tag => (
+                        <span key={tag} className="inline-flex items-center gap-1 bg-app-accent/5 border border-app-accent/15 text-app-accent rounded-full font-bold text-xs py-1 px-2.5">
+                          {tag}
+                          {!isClient && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = { ...localPost, hashtags: localPost.hashtags!.filter(t => t !== tag) };
+                                setLocalPost(updated);
+                                onUpdate(updated);
+                              }}
+                              aria-label={`Quitar ${tag}`}
+                              className="p-1 -m-1 text-app-accent/60 hover:text-red-600 transition-colors"
+                            >
+                              <X size={10} />
+                            </button>
+                          )}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </section>
 
                 {/* Creatividades Section (Interactive and Drag & Drop enabled) */}
                 <section className="bg-gray-50 p-6 rounded-2xl border border-divider">
@@ -2197,6 +2374,90 @@ export default function PostModal({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Reference lightbox — kind-aware, unlike the design/creativity zoom
+          above which only ever holds an image-or-video URL. This is what
+          fixes the reported bug: clicking a video reference thumbnail used
+          to try to render it as an <img> (which errors) instead of opening
+          this panel, and only the tiny 8px external-link icon worked. */}
+      <AnimatePresence>
+        {zoomedReference && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 cursor-default"
+            onClick={(e) => {
+              e.stopPropagation();
+              setZoomedReference(null);
+            }}
+          >
+            <IconButton
+              icon={X}
+              variant="overlay"
+              className="absolute top-4 right-4"
+              onClick={(e) => {
+                e.stopPropagation();
+                setZoomedReference(null);
+              }}
+              aria-label="Cerrar referencia ampliada"
+            />
+            {zoomedReference.kind === 'link' ? (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center space-y-4"
+              >
+                <LinkIcon size={32} className="mx-auto text-app-accent" />
+                <p className="text-sm text-ink-secondary break-all">{zoomedReference.url}</p>
+                <a
+                  href={zoomedReference.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-app-accent hover:bg-app-accent-hover text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors"
+                >
+                  Abrir enlace <ExternalLink size={14} />
+                </a>
+              </div>
+            ) : zoomedReference.kind === 'pdf' ? (
+              <iframe
+                src={zoomedReference.url}
+                title={zoomedReference.name || 'Referencia PDF'}
+                onClick={(e) => e.stopPropagation()}
+                className="w-[92vw] h-[88vh] max-w-4xl bg-white rounded-lg shadow-2xl"
+              />
+            ) : zoomedReference.kind === 'embed' ? (
+              <iframe
+                src={detectProvider(zoomedReference.url)?.embedUrl || zoomedReference.url}
+                title={zoomedReference.name || 'Referencia incrustada'}
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+                onClick={(e) => e.stopPropagation()}
+                className="w-[90vw] max-w-3xl aspect-video rounded-lg shadow-2xl bg-black"
+              />
+            ) : (
+              <Media
+                src={zoomedReference.url}
+                kind={zoomedReference.kind}
+                alt={zoomedReference.name || 'Referencia ampliada'}
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                videoProps={{ controls: true, autoPlay: true, onClick: (e) => e.stopPropagation() }}
+                imgProps={{ onClick: (e) => e.stopPropagation() }}
+              />
+            )}
+          </div>
+        )}
+      </AnimatePresence>
+
+      {showHashtagPicker && localPost && (
+        <HashtagPickerModal
+          groups={projectInfo?.hashtagGroups || []}
+          selected={localPost.hashtags || []}
+          onClose={() => setShowHashtagPicker(false)}
+          onSave={(nextHashtags) => {
+            const updated = { ...localPost, hashtags: nextHashtags };
+            setLocalPost(updated);
+            onUpdate(updated);
+            setShowHashtagPicker(false);
+          }}
+        />
+      )}
     </div>
   );
 }

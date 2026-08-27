@@ -1,5 +1,6 @@
 import React from 'react';
 import { PHASES, Phase, cn } from '../lib/utils';
+import { htmlToPlainText } from '../lib/richText';
 import { motion } from 'motion/react';
 import { Clock, MessageSquare, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
@@ -160,7 +161,7 @@ export default function Board({ posts, onSelectPost, onUpdatePost, userRole, loa
                         {post.title || "Post sin título"}
                       </h4>
                       <p className="text-caption text-ink-muted line-clamp-2 leading-snug">
-                        {post.idea}
+                        {htmlToPlainText(post.idea)}
                       </p>
                     </div>
                   </div>

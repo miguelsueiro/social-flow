@@ -34,10 +34,16 @@ import LinkedInFeed from './components/LinkedInFeed';
 import TikTokFeed from './components/TikTokFeed';
 import NotificationsStream from './components/NotificationsStream';
 import PublishHubView from './components/PublishHubView';
+import NeveraView from './components/NeveraView';
+import HashtagsView from './components/HashtagsView';
+import RepositoryView from './components/RepositoryView';
+import EmptyState from './components/EmptyState';
 import IconButton from './components/IconButton';
 import PhaseBadge from './components/PhaseBadge';
 import Avatar from './components/Avatar';
 import NavItems, { NavItem } from './components/NavItems';
+import DataIssueBanner, { DataIssue, DataIssueKind } from './components/DataIssueBanner';
+import { htmlToPlainText } from './lib/richText';
 import ProjectTag from './components/ProjectTag';
 import SegmentedControl from './components/SegmentedControl';
 import StatTile from './components/StatTile';
@@ -70,7 +76,10 @@ import {
   Info,
   Download,
   ChevronDown,
-  AlertTriangle
+  AlertTriangle,
+  Snowflake,
+  Hash,
+  Archive
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
@@ -119,6 +128,44 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
+}
+
+/** Classifies why a data listener failed. The app used to collapse every one of
+ *  these into a single "quota exceeded" banner, which meant a rules denial, a
+ *  missing index and a dropped connection all reported the same (wrong) cause —
+ *  and sent the user to the billing page to fix a problem billing can't fix. */
+function classifyFirestoreError(error: unknown, context: string): DataIssue {
+  const code = (error as { code?: string } | null)?.code || 'unknown';
+  const message = error instanceof Error ? error.message : String(error);
+  let kind: DataIssueKind = 'unknown';
+  if (code.includes('resource-exhausted')) kind = 'quota';
+  else if (code.includes('permission-denied') || code.includes('unauthenticated')) kind = 'permissions';
+  else if (code.includes('unavailable') || code.includes('deadline-exceeded') || code.includes('cancelled')) kind = 'network';
+  else if (code.includes('failed-precondition')) kind = 'index';
+  return { kind, code, context, message };
+}
+
+/** Demo data is a reasonable stand-in when Firestore is simply unreachable, but
+ *  it actively hides a rules denial or a missing index — the user sees a full,
+ *  working-looking app built on posts that don't exist. Only fall back for the
+ *  two kinds where "come back later" is genuinely the right advice. */
+function shouldUseDemoData(kind: DataIssueKind) {
+  return kind === 'quota' || kind === 'network';
+}
+
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  'auth/unauthorized-domain': 'Este dominio no está autorizado en Firebase Authentication. Añade el dominio actual en Authentication → Settings → Authorized domains.',
+  'auth/popup-blocked': 'El navegador ha bloqueado la ventana de Google. Permite las ventanas emergentes para este sitio y vuelve a intentarlo.',
+  'auth/popup-closed-by-user': 'Se ha cerrado la ventana de Google antes de terminar. Vuelve a intentarlo.',
+  'auth/cancelled-popup-request': 'Se ha cancelado el inicio de sesión porque se abrió otra ventana. Vuelve a intentarlo.',
+  'auth/network-request-failed': 'No se ha podido contactar con Firebase. Revisa tu conexión y vuelve a intentarlo.',
+  'auth/operation-not-allowed': 'El acceso con Google no está habilitado en este proyecto de Firebase.',
+  'auth/internal-error': 'Firebase ha devuelto un error interno. Vuelve a intentarlo en unos segundos.',
+};
+
+function authErrorMessage(error: unknown): string {
+  const code = (error as { code?: string } | null)?.code || '';
+  return AUTH_ERROR_MESSAGES[code] || `No se ha podido iniciar sesión (${code || 'error desconocido'}).`;
 }
 
 // Helper to slugify text for friendly URLs
@@ -210,6 +257,9 @@ const defaultFallbackPosts: Post[] = [
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
+  /** The real reason a data listener failed, so the banner can report it
+   *  instead of blaming quota for everything. */
+  const [dataIssue, setDataIssue] = useState<DataIssue | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.remove('dark');
@@ -224,7 +274,7 @@ export default function App() {
   const [filterPlatform, setFilterPlatform] = useState<'instagram' | 'linkedin' | 'tiktok' | 'all'>('all');
   const [filterTerritory, setFilterTerritory] = useState<string>('all');
   const [filterAssignedToMe, setFilterAssignedToMe] = useState(false);
-  const [sidebarTab, setSidebarTab] = useState<'calendario' | 'instagram_feed' | 'linkedin_feed' | 'tiktok_feed' | 'publicacion' | 'notificaciones' | 'configuracion'>('calendario');
+  const [sidebarTab, setSidebarTab] = useState<'calendario' | 'nevera' | 'instagram_feed' | 'linkedin_feed' | 'tiktok_feed' | 'publicacion' | 'hashtags' | 'repositorio' | 'notificaciones' | 'configuracion'>('calendario');
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
@@ -261,6 +311,27 @@ export default function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
+  /** The login screen renders before <Toaster>, so a toast here would never be
+   *  seen — hence an inline, role="alert" message instead. Previously
+   *  `onClick={signIn}` had no error handling at all: any auth failure (blocked
+   *  popup, unauthorized domain) was an uncaught promise rejection and the
+   *  button simply appeared to do nothing. */
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
+
+  const handleSignIn = async () => {
+    setAuthError(null);
+    setSigningIn(true);
+    try {
+      await signIn();
+    } catch (err) {
+      console.error('Auth error on signIn:', err);
+      setAuthError(authErrorMessage(err));
+    } finally {
+      setSigningIn(false);
+    }
+  };
+
   // Guards against double-submit from rapid double-clicks: each ref flips true
   // for the duration of its handler's async work and ignores re-entrant calls.
   const creatingPostRef = useRef(false);
@@ -286,6 +357,19 @@ export default function App() {
       return permittedProjects.includes(projectId);
     }
     return true; // Default for other agency roles if not explicitly restricted
+  };
+
+  /** The project a newly created (or duplicated) post should belong to, or null
+   *  when there is no valid target. Callers must refuse to write on null rather
+   *  than stamping a post with a projectId that matches no project: such a post
+   *  is saved to Firestore but filtered out of every single view, so the UI
+   *  reports "Post creado" while the post is nowhere to be found. */
+  const resolveTargetProjectId = (): string | null => {
+    const candidate = (activeProjectId === 'all' || activeProjectId === 'dashboard')
+      ? projects[0]?.id
+      : activeProjectId;
+    if (!candidate) return null;
+    return projects.some(p => p.id === candidate) ? candidate : null;
   };
 
   // Helper to synchronize the URL with the active project
@@ -323,10 +407,13 @@ export default function App() {
     if (activeProjectId === 'dashboard') return [dashboardItem];
     const projectScoped = [
       { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
+      { id: 'nevera', label: 'Nevera', icon: Snowflake, agencyOnly: true },
       { id: 'instagram_feed', label: short ? 'Instagram' : 'Feed Instagram', icon: InstagramIcon, iconColor: PLATFORM_META.instagram.color, platform: 'instagram' },
       { id: 'linkedin_feed', label: short ? 'LinkedIn' : 'Feed LinkedIn', icon: LinkedInIcon, iconColor: PLATFORM_META.linkedin.color, platform: 'linkedin' },
       { id: 'tiktok_feed', label: 'TikTok', icon: TikTokIcon, iconColor: PLATFORM_META.tiktok.color, platform: 'tiktok' },
       { id: 'publicacion', label: short ? 'Publicar' : 'Listo para Publicar', icon: Download, agencyOnly: true },
+      { id: 'hashtags', label: 'Hashtags', icon: Hash, agencyOnly: true },
+      { id: 'repositorio', label: short ? 'Marca' : 'Repositorio de Marca', icon: Archive },
       { id: 'notificaciones', label: short ? 'Alertas' : 'Notificaciones', icon: Bell },
       { id: 'configuracion', label: short ? 'Config.' : 'Configuración', icon: Settings }
     ]
@@ -341,20 +428,52 @@ export default function App() {
     else setSidebarTab(id as any);
   };
 
-  // Synchronize initial active project from URL param or pathname at startup
+  // Synchronize initial active project from URL param or pathname at startup.
+  //
+  // The slug is parked in a ref rather than pushed straight into
+  // `activeProjectId`, because a URL slug is NOT a project id. Assigning it
+  // directly (as this used to) left `activeProjectId` holding e.g.
+  // "ecoglow-cosmetics" while every post carries a Firestore document id — so
+  // `filteredPosts`' `post.projectId === activeProjectId` matched nothing and
+  // the calendar rendered empty with no error, no banner and no way to tell
+  // why. Worse, handleCreatePost stamped that same slug onto new posts, which
+  // then couldn't appear in any view. Only resolveProjectSlug (below) may
+  // promote it, and only to an id that really exists.
+  const pendingProjectSlugRef = useRef<string | null>(null);
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const projParam = urlParams.get('project');
     const pathSegment = window.location.pathname.replace(/^\/|\/$/g, '');
-    
-    if (projParam) {
-      setActiveProjectId(projParam);
-    } else if (pathSegment && pathSegment !== 'index.html' && pathSegment !== 'dashboard') {
-      setActiveProjectId(pathSegment);
+
+    const slug = projParam
+      || (pathSegment && pathSegment !== 'index.html' && pathSegment !== 'dashboard' ? pathSegment : null);
+
+    if (slug && slug !== 'all' && slug !== 'dashboard') {
+      pendingProjectSlugRef.current = slug;
     } else {
-      setActiveProjectId('dashboard');
+      pendingProjectSlugRef.current = null;
+      setActiveProjectId(slug === 'all' ? 'all' : 'dashboard');
     }
   }, []);
+
+  /** Promotes a pending URL slug to a real project id once the project list is
+   *  known. Falls back to the dashboard (and says so) when the slug matches
+   *  nothing — a renamed or deleted project shouldn't strand the user on an
+   *  empty screen. */
+  const resolveProjectSlug = (projList: { id: string; name?: string }[]) => {
+    const slug = pendingProjectSlugRef.current;
+    if (!slug) return;
+    pendingProjectSlugRef.current = null;
+
+    const found = projList.find(p => p.id === slug || slugify(p.name || '') === slug);
+    if (found) {
+      setActiveProjectId(found.id);
+    } else {
+      setActiveProjectId('dashboard');
+      toast.error(`No se ha encontrado el proyecto "${slug}". Puede que se haya renombrado o eliminado.`);
+    }
+  };
 
   // Close search suggestions on click outside
   useEffect(() => {
@@ -465,12 +584,16 @@ export default function App() {
         }
       }
     }, (err) => {
-      console.error("Error subscribing to user doc:", err);
+      const issue = classifyFirestoreError(err, `users/${currentUser.uid}`);
+      console.error(`Error subscribing to user doc [${issue.code}]:`, err);
       // Fail gracefully: don't crash, but never assume an agency role in offline/demo mode.
       setUserRole('pending');
       setUserProjectId(null);
       setPermittedProjects([]);
-      setIsOfflineMode(true);
+      setDataIssue(issue);
+      // Without the user doc there is no role, so there is nothing to show —
+      // the demo catalogue is only honest when Firestore itself is unreachable.
+      if (shouldUseDemoData(issue.kind)) setIsOfflineMode(true);
     });
 
     return () => unsubUserDoc();
@@ -501,38 +624,23 @@ export default function App() {
           ...doc.data()
         }));
         setProjects(projList);
-
-        // Resolve activeProjectId if it was loaded as a slug from the URL or pathname
-        const urlParams = new URLSearchParams(window.location.search);
-        const projParam = urlParams.get('project');
-        const pathSegment = window.location.pathname.replace(/^\/|\/$/g, '');
-        const targetSlug = projParam || (pathSegment && pathSegment !== 'index.html' && pathSegment !== 'dashboard' ? pathSegment : null);
-        
-        if (targetSlug && targetSlug !== 'all' && targetSlug !== 'dashboard') {
-          const found = projList.find((p: any) => p.id === targetSlug || slugify(p.name) === targetSlug);
-          if (found) {
-            setActiveProjectId(found.id);
-          }
-        }
+        resolveProjectSlug(projList);
       }
     }, (error) => {
-      console.warn("Firestore error loading projects, falling back to local demo state:", error);
-      setIsOfflineMode(true);
+      const issue = classifyFirestoreError(error, 'projects');
+      console.error(`Firestore error loading projects [${issue.code}]:`, error);
+      setDataIssue(issue);
       setProjectsLoading(false);
-      setProjects(defaultFallbackProjects);
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const projParam = urlParams.get('project');
-      const pathSegment = window.location.pathname.replace(/^\/|\/$/g, '');
-      const targetSlug = projParam || (pathSegment && pathSegment !== 'index.html' && pathSegment !== 'dashboard' ? pathSegment : null);
-      if (targetSlug && targetSlug !== 'all' && targetSlug !== 'dashboard') {
-        const found = defaultFallbackProjects.find((p: any) => p.id === targetSlug || slugify(p.name) === targetSlug);
-        if (found) {
-          setActiveProjectId(found.id);
-        } else {
-          setActiveProjectId('dashboard');
-        }
+
+      if (shouldUseDemoData(issue.kind)) {
+        setIsOfflineMode(true);
+        setProjects(defaultFallbackProjects);
+        resolveProjectSlug(defaultFallbackProjects);
       } else {
+        // A rules denial or a missing index must not be papered over with fake
+        // projects that look real — the banner explains it instead.
+        setProjects([]);
+        pendingProjectSlugRef.current = null;
         setActiveProjectId('dashboard');
       }
     });
@@ -618,11 +726,26 @@ export default function App() {
       postsData.sort((a, b) => a.date.getTime() - b.date.getTime());
       setPosts(postsData);
       setPostsLoading(false);
+      if (import.meta.env.DEV) {
+        console.info('[SocialFlow] posts snapshot', {
+          docs: snapshot.size,
+          userRole,
+          permittedProjects: scopedProjectIds,
+          query: userRole === 'client' ? 'client-scoped' : (scopedProjectIds.length > 0 ? 'agency-scoped' : 'agency-unrestricted'),
+        });
+      }
     }, (error) => {
-      console.warn("Firestore error loading posts, falling back to local demo state:", error);
-      setIsOfflineMode(true);
-      setPosts(defaultFallbackPosts);
+      const issue = classifyFirestoreError(error, 'posts');
+      console.error(`Firestore error loading posts [${issue.code}]:`, error);
+      setDataIssue(issue);
       setPostsLoading(false);
+
+      if (shouldUseDemoData(issue.kind)) {
+        setIsOfflineMode(true);
+        setPosts(defaultFallbackPosts);
+      } else {
+        setPosts([]);
+      }
     });
 
     return () => unsubPosts();
@@ -680,8 +803,16 @@ export default function App() {
     if (creatingPostRef.current) return;
     creatingPostRef.current = true;
     try {
+    const assignedProjectId = resolveTargetProjectId();
+    if (!assignedProjectId) {
+      toast.error(
+        projects.length === 0
+          ? 'No se ha podido crear el post: todavía no hay proyectos cargados.'
+          : 'No se ha podido crear el post: selecciona un proyecto válido en el menú lateral.'
+      );
+      return;
+    }
     if (isOfflineMode) {
-      const assignedProjectId = activeProjectId === 'all' ? (projects[0]?.id || '') : activeProjectId;
       const newPost: Post = {
         id: `local-post-${Date.now()}`,
         date: date,
@@ -703,7 +834,6 @@ export default function App() {
       return;
     }
     try {
-      const assignedProjectId = activeProjectId === 'all' ? (projects[0]?.id || '') : activeProjectId;
       const newPostData = {
         date: Timestamp.fromDate(date),
         platform: 'instagram',
@@ -802,13 +932,13 @@ export default function App() {
     }
   };
 
-  const handleUpdatePostDirectly = async (postId: string, updates: any) => {
+  const handleUpdatePostDirectly = async (postId: string, updates: any, successMessage = 'Fase de post actualizada') => {
     if (isOfflineMode) {
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, ...updates } : p));
       if (selectedPost && selectedPost.id === postId) {
         setSelectedPost(prev => prev ? ({ ...prev, ...updates }) : null);
       }
-      toast.success('Fase de post actualizada (Modo Demo)');
+      toast.success(`${successMessage} (Modo Demo)`);
       return;
     }
     try {
@@ -829,7 +959,7 @@ export default function App() {
       if (selectedPost && selectedPost.id === postId) {
         setSelectedPost(prev => prev ? ({ ...prev, ...updates }) : null);
       }
-      toast.success('Fase de post actualizada');
+      toast.success(successMessage);
 
       const previousPost = posts.find(p => p.id === postId);
       if (updates.phase && previousPost && updates.phase !== previousPost.phase && currentUser) {
@@ -1183,17 +1313,24 @@ export default function App() {
 
   const filteredPosts = posts.filter(post => {
     if (!hasProjectPermission(post.projectId)) return false;
+    // Nevera posts are deliberately parked with no committed date — they
+    // belong only in the Nevera view (see `frozenPosts` below), never in
+    // Calendar/Board/feeds/Publicación, which is what `filteredPosts` feeds.
+    if (post.frozen) return false;
 
     const matchesProject = activeProjectId === 'all' || post.projectId === activeProjectId;
     if (!matchesProject) return false;
 
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
+    // idea/copyCaption/copyCreativity can hold rich-text HTML now — search
+    // against their plain-text rendering so a query spanning a formatting
+    // boundary (e.g. "hola mundo" when "hola" is bold) still matches.
     return (
       (post.title || '').toLowerCase().includes(query) ||
-      (post.idea || '').toLowerCase().includes(query) ||
-      (post.copyCaption || '').toLowerCase().includes(query) ||
-      (post.copyCreativity || '').toLowerCase().includes(query) ||
+      htmlToPlainText(post.idea || '').toLowerCase().includes(query) ||
+      htmlToPlainText(post.copyCaption || '').toLowerCase().includes(query) ||
+      htmlToPlainText(post.copyCreativity || '').toLowerCase().includes(query) ||
       (post.platform || '').toLowerCase().includes(query)
     );
   });
@@ -1209,11 +1346,35 @@ export default function App() {
     return true;
   });
 
+  // Dev-only: an empty calendar has several possible causes that all look
+  // identical on screen (no posts at all, a projectId mismatch, a permission
+  // filter, an active phase/platform filter). Logging the funnel makes which
+  // one it is obvious in one glance at the console.
+  useEffect(() => {
+    if (!import.meta.env.DEV || postsLoading || projectsLoading) return;
+    if (calendarBoardPosts.length > 0) return;
+    console.warn('[SocialFlow] 0 posts visible en Calendario/Tablero', {
+      activeProjectId,
+      activeProjectExists: projects.some(p => p.id === activeProjectId),
+      knownProjectIds: projects.map(p => p.id),
+      userRole,
+      permittedProjects,
+      funnel: {
+        loadedFromFirestore: posts.length,
+        afterPermissionAndProject: filteredPosts.length,
+        afterExtraFilters: calendarBoardPosts.length,
+      },
+      distinctProjectIdsOnPosts: Array.from(new Set(posts.map(p => p.projectId))),
+      activeFilters: { filterPhase, filterPlatform, filterTerritory, filterAssignedToMe, searchQuery },
+    });
+  }, [postsLoading, projectsLoading, posts, filteredPosts.length, calendarBoardPosts.length, activeProjectId, projects, userRole, permittedProjects, filterPhase, filterPlatform, filterTerritory, filterAssignedToMe, searchQuery]);
+
   const approvedPosts = filteredPosts.filter(post => post.phase === 'approved');
 
   const matchingSuggestions = searchQuery.trim()
     ? posts.filter(post => {
         if (!hasProjectPermission(post.projectId)) return false;
+        if (post.frozen) return false;
 
         const matchesProject = activeProjectId === 'all' || post.projectId === activeProjectId;
         if (!matchesProject) return false;
@@ -1221,9 +1382,9 @@ export default function App() {
         const query = searchQuery.toLowerCase();
         return (
           (post.title || '').toLowerCase().includes(query) ||
-          (post.idea || '').toLowerCase().includes(query) ||
-          (post.copyCaption || '').toLowerCase().includes(query) ||
-          (post.copyCreativity || '').toLowerCase().includes(query) ||
+          htmlToPlainText(post.idea || '').toLowerCase().includes(query) ||
+          htmlToPlainText(post.copyCaption || '').toLowerCase().includes(query) ||
+          htmlToPlainText(post.copyCreativity || '').toLowerCase().includes(query) ||
           (post.platform || '').toLowerCase().includes(query)
         );
       })
@@ -1236,11 +1397,24 @@ export default function App() {
     published: filteredPosts.filter(p => p.phase === 'published').length,
   };
 
+  // Nevera: posts parked with no committed publish date, scoped to the
+  // active project (mirrors `filteredPosts`' project-scoping, minus the
+  // `!post.frozen` it applies). Clients never see this — Nevera is on the
+  // agencyOnly nav list — but the permission check stays here regardless,
+  // since it's the same invariant every other post list enforces.
+  const frozenPosts = posts.filter(post => {
+    if (!hasProjectPermission(post.projectId)) return false;
+    if (!post.frozen) return false;
+    return activeProjectId === 'all' || post.projectId === activeProjectId;
+  });
+
   // Dashboard-only: unlike `filteredPosts`/`stats` above (scoped to whichever
   // single project is active), the Dashboard has no active project yet — it
   // needs a view across every project the user can see, to answer "what
-  // needs my attention" instead of just "how many things exist".
-  const accessiblePosts = posts.filter(p => hasProjectPermission(p.projectId));
+  // needs my attention" instead of just "how many things exist". Frozen
+  // posts are excluded here too — a post parked in Nevera isn't "pending"
+  // work the dashboard should be nudging anyone about.
+  const accessiblePosts = posts.filter(p => hasProjectPermission(p.projectId) && !p.frozen);
   // What counts as "needs action" depends on which side of the handoff the
   // viewer sits on: an agency member acts on changes the client asked for,
   // a client acts on posts waiting for their review.
@@ -1284,13 +1458,22 @@ export default function App() {
              <p className="text-ink-secondary font-medium mb-10 leading-relaxed text-sm">
                Gestión de producción, seguimiento y control de redes sociales para agencias creativas y clientes.
              </p>
-             <button 
-                onClick={signIn}
-                className="w-full bg-app-accent hover:bg-app-accent-hover text-white py-4 px-6 rounded-2xl font-bold transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3"
+             <button
+                onClick={handleSignIn}
+                disabled={signingIn}
+                className="w-full bg-app-accent hover:bg-app-accent-hover text-white py-4 px-6 rounded-2xl font-bold transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
               >
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 bg-white rounded-full p-0.5" alt="google" />
-                Continuar con Google
+                {signingIn ? 'Conectando…' : 'Continuar con Google'}
              </button>
+             {authError && (
+               <div
+                 role="alert"
+                 className="mt-4 text-left bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3 text-xs font-medium leading-relaxed"
+               >
+                 {authError}
+               </div>
+             )}
           </div>
           <p className="text-caption text-ink-muted tracking-wide">
             © 2026 SocialFlow Agency Tool
@@ -1302,11 +1485,15 @@ export default function App() {
 
   if (userRole === 'pending' && !isOfflineMode) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 bg-gradient-to-br from-app-accent-subtle/60 to-app-accent-subtle/20">
+      <div className="min-h-screen bg-white flex flex-col bg-gradient-to-br from-app-accent-subtle/60 to-app-accent-subtle/20">
+        {/* A denied read on the user doc also lands here with role 'pending',
+            and the message below would then blame an unapproved account for
+            what is actually a rules failure. The banner names the real cause. */}
+        {dataIssue && <DataIssueBanner issue={dataIssue} isDemo={isOfflineMode} />}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full text-center space-y-6"
+          className="max-w-md w-full text-center space-y-6 m-auto p-6"
         >
           <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-app-accent/20">
             <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-3xl mx-auto flex items-center justify-center mb-6">
@@ -1330,24 +1517,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      {isOfflineMode && (
-        <div className="bg-amber-500 text-amber-950 font-medium px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-amber-600/30 text-xs shadow-md z-50">
-          <div className="flex items-center gap-2">
-            <span className="text-sm">⚠️</span>
-            <div>
-              <strong className="font-extrabold text-amber-950">Límite de Quota de Firestore superado para el día de hoy.</strong> El sistema ha entrado automáticamente en <span className="underline decoration-wavy font-bold">Modo de Demostración Offline</span>. Toda la interfaz es 100% interactiva utilizando un catálogo de simulación en memoria.
-            </div>
-          </div>
-          <a
-            href="https://console.firebase.google.com/project/gen-lang-client-0678644199/firestore/databases/ai-studio-963cf462-80fd-413c-a534-7008f0861a7a/data?openUpgradeDialog=true"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 bg-amber-950 text-white font-bold px-4 py-1.5 rounded-lg hover:bg-amber-900 transition-all text-[11px] shadow-sm uppercase tracking-wider"
-          >
-            Habilitar Facturación / Consola Firebase
-          </a>
-        </div>
-      )}
+      {dataIssue && <DataIssueBanner issue={dataIssue} isDemo={isOfflineMode} />}
       <div className="min-h-screen bg-gray-50 flex flex-1">
         <Toaster position="bottom-right" />
       
@@ -1527,13 +1697,13 @@ export default function App() {
                               
                               {/* Idea / content description */}
                               <p className="text-xs font-bold text-ink line-clamp-1 group-hover:text-app-accent transition-colors">
-                                {post.idea}
+                                {htmlToPlainText(post.idea)}
                               </p>
 
                               {/* Caption preview if available */}
                               {post.copyCaption && (
                                 <p className="text-caption text-ink-muted line-clamp-1 italic">
-                                  "{post.copyCaption}"
+                                  "{htmlToPlainText(post.copyCaption)}"
                                 </p>
                               )}
                             </button>
@@ -1984,6 +2154,15 @@ export default function App() {
                   )
                 )}
 
+                {sidebarTab === 'nevera' && (
+                  <NeveraView
+                    posts={frozenPosts}
+                    onSelectPost={openPostModal}
+                    onUnfreeze={(postId, newDate) => handleUpdatePostDirectly(postId, { frozen: false, date: newDate }, 'Post sacado de la nevera')}
+                    loading={postsLoading}
+                  />
+                )}
+
                 {sidebarTab === 'instagram_feed' && (
                   <InstagramFeed
                     posts={filteredPosts}
@@ -2019,6 +2198,28 @@ export default function App() {
                     onSelectPost={openPostModal}
                     loading={postsLoading || projectsLoading}
                   />
+                )}
+
+                {sidebarTab === 'hashtags' && (
+                  <HashtagsView
+                    project={projects.find(p => p.id === activeProjectId)}
+                    loading={projectsLoading}
+                  />
+                )}
+
+                {sidebarTab === 'repositorio' && (
+                  activeProjectId !== 'all' && activeProjectId !== 'dashboard' ? (
+                    <RepositoryView
+                      projectId={activeProjectId}
+                      userRole={userRole}
+                      userName={currentUser?.displayName || undefined}
+                    />
+                  ) : (
+                    // Repository is inherently single-project (a Firestore
+                    // subcollection path needs one project id) — "Todos los
+                    // Proyectos" has no repository of its own to show.
+                    <EmptyState title="Selecciona un proyecto concreto para ver su repositorio de marca." size="md" />
+                  )
                 )}
 
                 {sidebarTab === 'notificaciones' && (
@@ -2091,6 +2292,7 @@ export default function App() {
             onUpdate={handleUpdatePost}
             onDelete={handleDeletePost}
             onDuplicate={handleDuplicatePost}
+            onFreeze={(p) => handleUpdatePostDirectly(p.id, { frozen: true }, 'Post enviado a la nevera 🧊')}
             projects={projects}
             initialTab={selectedPostInitialTab}
             initialShowDetails={selectedPostInitialShowDetails}
