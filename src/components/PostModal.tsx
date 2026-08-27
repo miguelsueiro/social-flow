@@ -1526,7 +1526,7 @@ export default function PostModal({
               <motion.div
                 key="idea"
                 {...FADE_MOTION}
-                className="space-y-6 max-w-3xl"
+                className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start"
               >
                 <section>
                   <Field label="La Idea" id="post-idea" className="[&>label]:text-sm [&>label]:font-semibold [&>label]:text-ink-secondary [&>label]:mb-2">
@@ -1535,7 +1535,7 @@ export default function PostModal({
                       value={localPost.idea}
                       onChange={html => setLocalPost({...localPost, idea: html})}
                       onBlur={handleUpdate}
-                      editorClassName="h-36"
+                      editorClassName="h-72"
                       placeholder="Describe la idea central del post..."
                     />
                   </Field>

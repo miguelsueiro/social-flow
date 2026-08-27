@@ -405,7 +405,7 @@ export default function App() {
     const activePlatforms = activeProj && activeProj.platforms ? activeProj.platforms : ['instagram', 'linkedin', 'tiktok'];
     const dashboardItem: NavItem = { id: 'dashboard', label: 'Dashboard', icon: Grid };
     if (activeProjectId === 'dashboard') return [dashboardItem];
-    const projectScoped = [
+    const projectScoped: (NavItem & { agencyOnly?: boolean; platform?: string })[] = [
       { id: 'calendario', label: 'Calendario', icon: LayoutDashboard },
       { id: 'nevera', label: 'Nevera', icon: Snowflake, agencyOnly: true },
       { id: 'instagram_feed', label: short ? 'Instagram' : 'Feed Instagram', icon: InstagramIcon, iconColor: PLATFORM_META.instagram.color, platform: 'instagram' },
@@ -413,13 +413,20 @@ export default function App() {
       { id: 'tiktok_feed', label: 'TikTok', icon: TikTokIcon, iconColor: PLATFORM_META.tiktok.color, platform: 'tiktok' },
       { id: 'publicacion', label: short ? 'Publicar' : 'Listo para Publicar', icon: Download, agencyOnly: true },
       { id: 'hashtags', label: 'Hashtags', icon: Hash, agencyOnly: true },
-      { id: 'repositorio', label: short ? 'Marca' : 'Repositorio de Marca', icon: Archive },
+      { id: 'repositorio', label: short ? 'Marca' : 'Kit de Marca', icon: Archive },
       { id: 'notificaciones', label: short ? 'Alertas' : 'Notificaciones', icon: Bell },
       { id: 'configuracion', label: short ? 'Config.' : 'Configuración', icon: Settings }
     ]
       .filter(item => !item.platform || activePlatforms.includes(item.platform))
       .filter(item => !item.agencyOnly || userRole !== 'client');
-    return [dashboardItem, ...projectScoped];
+    // Dashboard sits just above Configuración rather than leading the list —
+    // it's a "back out of this project" link, not a project-scoped section,
+    // so it reads better grouped with the other cross-project item at the
+    // bottom than competing with Calendario for the top spot.
+    const configIndex = projectScoped.findIndex(item => item.id === 'configuracion');
+    const withDashboard = [...projectScoped];
+    withDashboard.splice(configIndex === -1 ? withDashboard.length : configIndex, 0, dashboardItem);
+    return withDashboard;
   };
 
   const activeNavId = activeProjectId === 'dashboard' ? 'dashboard' : sidebarTab;
@@ -2218,7 +2225,7 @@ export default function App() {
                     // Repository is inherently single-project (a Firestore
                     // subcollection path needs one project id) — "Todos los
                     // Proyectos" has no repository of its own to show.
-                    <EmptyState title="Selecciona un proyecto concreto para ver su repositorio de marca." size="md" />
+                    <EmptyState title="Selecciona un proyecto concreto para ver su Kit de Marca." size="md" />
                   )
                 )}
 

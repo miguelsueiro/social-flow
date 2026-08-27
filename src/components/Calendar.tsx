@@ -200,15 +200,16 @@ export default function Calendar({ posts, onAddPost, onSelectPost, userRole, onU
                 </span>
                 
                 {userRole !== 'client' && isCurrentMonth && (
-                  // Visible on keyboard focus as well as hover — the original
-                  // opacity-0/group-hover-only version was reachable by Tab but
-                  // stayed invisible the whole time you were on it (WCAG 2.4.7).
+                  // Dimmed rather than fully hidden by default — opacity-0
+                  // meant the only way to discover this button existed was to
+                  // already be hovering the cell, which is both undiscoverable
+                  // and permanently invisible on touch (no hover state at all).
                   <IconButton
                     icon={Plus}
                     onClick={() => onAddPost(day)}
                     aria-label="Añadir publicación"
                     size="sm"
-                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+                    className="opacity-40 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
                   />
                 )}
               </div>

@@ -171,7 +171,7 @@ export default function RichTextField({
                 activeCommands.has(command) ? 'bg-app-accent/15 text-app-accent' : 'text-ink-secondary hover:bg-gray-100'
               )}
             >
-              <Icon size={14} />
+              <Icon size={14} className="shrink-0" />
             </button>
           ))}
           <button
@@ -181,7 +181,7 @@ export default function RichTextField({
             title="Insertar enlace"
             className="w-7 h-7 flex items-center justify-center rounded-md text-ink-secondary hover:bg-gray-100 transition-colors"
           >
-            <LinkIcon size={14} />
+            <LinkIcon size={14} className="shrink-0" />
           </button>
           <div className="w-px h-4 bg-divider mx-1" />
           <button
@@ -191,7 +191,7 @@ export default function RichTextField({
             title="Limpiar formato"
             className="w-7 h-7 flex items-center justify-center rounded-md text-ink-secondary hover:bg-gray-100 transition-colors"
           >
-            <RemoveFormatting size={14} />
+            <RemoveFormatting size={14} className="shrink-0" />
           </button>
 
           {linkPopoverOpen && (
@@ -209,10 +209,10 @@ export default function RichTextField({
                 className="text-xs border border-divider rounded px-2 py-1 w-40 outline-none focus:border-app-accent"
               />
               <button type="button" onMouseDown={(e) => { e.preventDefault(); applyLink(); }} aria-label="Aplicar enlace" className="w-6 h-6 flex items-center justify-center rounded text-emerald-600 hover:bg-emerald-50">
-                <Check size={14} />
+                <Check size={14} className="shrink-0" />
               </button>
               <button type="button" onMouseDown={(e) => { e.preventDefault(); setLinkPopoverOpen(false); }} aria-label="Cancelar" className="w-6 h-6 flex items-center justify-center rounded text-ink-muted hover:bg-gray-100">
-                <XIcon size={14} />
+                <XIcon size={14} className="shrink-0" />
               </button>
             </div>
           )}

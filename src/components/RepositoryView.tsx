@@ -244,7 +244,7 @@ export default function RepositoryView({ projectId, userRole, userName }: Reposi
         <div>
           <h2 className="text-lg font-bold text-ink flex items-center gap-2">
             <BookMarked className="text-app-accent" size={20} />
-            Repositorio de Marca
+            Kit de Marca
           </h2>
           <p className="text-xs text-ink-muted mt-0.5">Estrategia, Do's & Don'ts, brandbook y assets de referencia para este proyecto.</p>
         </div>

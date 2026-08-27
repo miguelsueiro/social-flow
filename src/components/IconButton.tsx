@@ -59,7 +59,14 @@ export default function IconButton({ icon: Icon, variant = 'default', size = 'md
       )}
       {...props}
     >
-      <Icon size={icon} className="pointer-events-none" />
+      {/* shrink-0 is load-bearing, not decorative: an SVG nested two levels
+          deep in flex containers (a flex row of icon buttons, itself inside
+          another flex row — nav bars, toolbars, calendar day cells) loses
+          its intrinsic width and renders as a razor-thin sliver instead of
+          a square icon, even though height still resolves correctly. Without
+          this every IconButton in a nested-flex context (which is most of
+          them) renders effectively invisible. */}
+      <Icon size={icon} className="pointer-events-none shrink-0" />
     </button>
   );
 }
