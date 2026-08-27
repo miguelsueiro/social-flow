@@ -138,8 +138,13 @@ export default function InstagramDetailModal({
     if (post.format === 'reel') {
       return (
         <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
-          {/* Reel Container styled 9:16 inside */}
-          <div className="relative w-full h-full max-w-[360px] aspect-[9/16] bg-[#111] flex flex-col justify-between p-6 text-white shadow-xl">
+          {/* Fills the outer container edge-to-edge — this used to be capped
+              at max-w-[360px] aspect-[9/16] to look like a phone-shaped
+              frame, but that meant any creative narrower than the (wider)
+              outer 4:5 container left black bars down both sides. The UI
+              chrome below (badge, mute button, caption) still overlays
+              correctly since it's positioned relative to this same div. */}
+          <div className="relative w-full h-full bg-[#111] flex flex-col justify-between p-6 text-white shadow-xl">
             {post.currentDesignUrl ? (
               isVideoUrl(post.currentDesignUrl) ? (
                 <video 
